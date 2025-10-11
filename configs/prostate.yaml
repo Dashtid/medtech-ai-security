@@ -1,0 +1,85 @@
+# Configuration for Prostate dataset (QUBIQ Challenge)
+# This dataset contains one-channel MRI for prostate segmentation
+# Has 2 tasks with 6 expert annotations each
+
+dataset:
+  name: "prostate"
+  description: "One-channel MRI for prostate segmentation"
+  modality: "MRI"
+  num_tasks: 2  # Two different segmentation tasks
+  task_id: 1  # Set to 1 or 2 for different tasks
+  num_experts: 6  # Six expert annotations per task
+  num_channels: 1
+
+data:
+  # Update these paths to your data location
+  train_dir: "data/prostate/training"
+  val_dir: "data/prostate/validation"
+  test_dir: "data/prostate/test"
+
+  # Data preprocessing
+  image_size: 256
+  use_intensity_windowing: false  # Not needed for MRI
+  normalization_method: "min-max"
+  intensity_range: [0.0, 1.0]
+
+model:
+  architecture: "UNetDeepSpatialDropout"  # Best performing for prostate
+  base_filters: 16
+  use_batch_norm: true
+  use_dropout: true
+  dropout_rate: 0.5
+  output_activation: "sigmoid"
+
+training:
+  batch_size: 1
+  epochs: 500
+  learning_rate: 0.0001
+  loss_function: "dice_loss"
+
+  # Metrics to track
+  metrics:
+    - "dice_coefficient"
+    - "precision"
+    - "recall"
+
+  # Data augmentation
+  augmentation:
+    enabled: true
+    rotation_range: 10.0
+    width_shift_range: 0.1
+    height_shift_range: 0.1
+    horizontal_flip: true
+    vertical_flip: false
+    zoom_range: null
+
+  # Callbacks
+  callbacks:
+    early_stopping:
+      enabled: true
+      patience: 20
+      monitor: "val_loss"
+
+    reduce_lr:
+      enabled: true
+      factor: 0.5
+      patience: 10
+      min_lr: 1e-7
+
+    checkpoint:
+      enabled: true
+      save_best_only: true
+      monitor: "val_loss"
+
+evaluation:
+  # Threshold values for evaluation
+  thresholds: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+
+  # Multi-expert ensemble evaluation
+  ensemble_method: "mean"
+
+output:
+  model_dir: "models/prostate"
+  checkpoint_dir: "checkpoints/prostate"
+  log_dir: "logs/prostate"
+  results_dir: "results/prostate"

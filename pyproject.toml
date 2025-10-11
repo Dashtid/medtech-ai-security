@@ -1,0 +1,54 @@
+[project]
+name = "medical-image-segmentation"
+version = "1.0.0"
+description = "Medical image segmentation using U-Net architectures for multi-expert annotated datasets"
+readme = "README.md"
+authors = [
+    { name = "David Dashti", email = "david.dashti@hermesmedical.com" }
+]
+requires-python = ">=3.10"
+dependencies = [
+    "tensorflow>=2.13.0",
+    "numpy>=1.24.0",
+    "scipy>=1.11.0",
+    "matplotlib>=3.7.0",
+    "pyyaml>=6.0",
+    "simpleitk>=2.3.0",
+    "tqdm>=4.66.0",
+]
+keywords = ["deep-learning", "medical-imaging", "segmentation", "u-net", "tensorflow"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "black>=23.7.0",
+    "ruff>=0.0.285",
+    "mypy>=1.5.0",
+]
+notebooks = [
+    "jupyter>=1.0.0",
+    "ipykernel>=6.25.0",
+    "seaborn>=0.12.0",
+]
+
+[project.scripts]
+medseg-train = "med_seg.scripts.train:main"
+medseg-evaluate = "med_seg.scripts.evaluate:main"
+medseg-inference = "med_seg.scripts.inference:main"
+
+[project.urls]
+Homepage = "https://github.com/yourusername/medical-image-segmentation"
+Repository = "https://github.com/yourusername/medical-image-segmentation"
+
+[build-system]
+requires = ["uv_build>=0.9.0,<0.10.0"]
+build-backend = "uv_build"
