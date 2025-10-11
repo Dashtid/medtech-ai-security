@@ -3,8 +3,9 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![UV Package Manager](https://img.shields.io/badge/package%20manager-UV-orange.svg)](https://github.com/astral-sh/uv)
 
-A professional implementation of U-Net architectures for medical image segmentation with multi-expert ensemble support, developed for the QUBIQ Challenge.
+A professional, production-ready implementation of U-Net architectures for medical image segmentation. This package provides state-of-the-art deep learning models for segmenting medical images from CT, MRI, and other imaging modalities.
 
 ## Overview
 
