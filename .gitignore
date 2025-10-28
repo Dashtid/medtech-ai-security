@@ -41,18 +41,21 @@ uv.lock
 .ipynb_checkpoints
 *.ipynb
 
-# Data
-data/
+# Data (downloaded datasets, not source code)
+/data/
 *.nii
 *.nii.gz
 *.dcm
+*.tar
+*.tar.gz
+*.zip
 
-# Models and outputs
-models/
-checkpoints/
-logs/
-results/
-outputs/
+# Models and outputs (trained models, not source code)
+/models/
+/checkpoints/
+/logs/
+/results/
+/outputs/
 *.h5
 *.keras
 *.hdf5

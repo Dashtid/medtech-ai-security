@@ -1,133 +1,114 @@
-"""Unit tests for model architectures."""
+"""Unit tests for U-Net model architecture."""
 
 import pytest
 import numpy as np
-from tensorflow import keras
+import tensorflow as tf
 
-from med_seg.models import (
-    UNet,
-    UNetDeep,
-    UNetDeepSpatialDropout,
-    UNetLSTM,
-    UNetDeepLSTM
-)
+from med_seg.models import UNet
 
 
-class TestUNetModels:
-    """Test U-Net model building and basic properties."""
+class TestUNet:
+    """Test U-Net model building and properties."""
 
-    @pytest.fixture
-    def input_params(self):
-        """Common input parameters for all models."""
-        return {
-            'input_size': 256,
-            'input_channels': 1,
-            'base_filters': 16,
-            'use_batch_norm': True,
-            'use_dropout': True,
-            'dropout_rate': 0.5
-        }
-
-    def test_unet_build(self, input_params):
-        """Test standard U-Net can be built."""
-        model_builder = UNet(**input_params)
+    def test_unet_build_default(self):
+        """Test building U-Net with default parameters."""
+        model_builder = UNet()
         model = model_builder.build()
 
-        assert isinstance(model, keras.Model)
-        assert model.input_shape == (None, 256, 256, 1)
-        assert model.output_shape == (None, 256, 256, 1)
+        assert model is not None
+        assert isinstance(model, tf.keras.Model)
+        assert model.name == "unet"
 
-    def test_unet_deep_build(self, input_params):
-        """Test deep U-Net can be built."""
-        model_builder = UNetDeep(**input_params)
+    def test_unet_input_shape(self):
+        """Test U-Net input shape is correct."""
+        model_builder = UNet(input_size=128, input_channels=3)
         model = model_builder.build()
 
-        assert isinstance(model, keras.Model)
-        assert model.input_shape == (None, 256, 256, 1)
-        assert model.output_shape == (None, 256, 256, 1)
+        expected_shape = (None, 128, 128, 3)
+        assert model.input_shape == expected_shape
 
-    def test_unet_deep_spatial_dropout_build(self, input_params):
-        """Test deep U-Net with spatial dropout can be built."""
-        model_builder = UNetDeepSpatialDropout(**input_params)
+    def test_unet_output_shape_binary(self):
+        """Test U-Net output shape for binary segmentation."""
+        model_builder = UNet(input_size=256, num_classes=1)
         model = model_builder.build()
 
-        assert isinstance(model, keras.Model)
-        assert model.input_shape == (None, 256, 256, 1)
-        assert model.output_shape == (None, 256, 256, 1)
+        expected_shape = (None, 256, 256, 1)
+        assert model.output_shape == expected_shape
 
-    def test_unet_lstm_build(self, input_params):
-        """Test U-Net with LSTM can be built."""
-        model_builder = UNetLSTM(**input_params)
+    def test_unet_output_shape_multiclass(self):
+        """Test U-Net output shape for multi-class segmentation."""
+        model_builder = UNet(input_size=256, num_classes=5)
         model = model_builder.build()
 
-        assert isinstance(model, keras.Model)
-        assert model.input_shape == (None, 256, 256, 1)
-        assert model.output_shape == (None, 256, 256, 1)
+        expected_shape = (None, 256, 256, 5)
+        assert model.output_shape == expected_shape
 
-    def test_unet_deep_lstm_build(self, input_params):
-        """Test deep U-Net with LSTM can be built."""
-        model_builder = UNetDeepLSTM(**input_params)
-        model = model_builder.build()
-
-        assert isinstance(model, keras.Model)
-        assert model.input_shape == (None, 256, 256, 1)
-        assert model.output_shape == (None, 256, 256, 1)
-
-    def test_multi_channel_input(self):
-        """Test model works with multi-channel input."""
-        model_builder = UNet(
-            input_size=256,
-            input_channels=4,
-            base_filters=16
-        )
-        model = model_builder.build()
-
-        assert model.input_shape == (None, 256, 256, 4)
-        assert model.output_shape == (None, 256, 256, 1)
-
-    def test_model_prediction(self, input_params):
-        """Test model can make predictions."""
-        model_builder = UNet(**input_params)
+    def test_unet_prediction(self):
+        """Test U-Net can make predictions."""
+        model_builder = UNet(input_size=64, base_filters=16)
         model = model_builder.build()
 
         # Create dummy input
-        dummy_input = np.random.rand(2, 256, 256, 1).astype(np.float32)
+        batch_size = 2
+        dummy_input = np.random.rand(batch_size, 64, 64, 1).astype(np.float32)
 
         # Make prediction
         prediction = model.predict(dummy_input, verbose=0)
 
-        assert prediction.shape == (2, 256, 256, 1)
-        assert np.all(prediction >= 0) and np.all(prediction <= 1)  # Sigmoid output
+        assert prediction.shape == (batch_size, 64, 64, 1)
+        assert prediction.min() >= 0.0
+        assert prediction.max() <= 1.0  # Sigmoid output
 
-    def test_different_image_sizes(self):
-        """Test models work with different image sizes."""
-        for size in [128, 256, 512]:
-            model_builder = UNet(input_size=size, base_filters=8)
+    def test_unet_with_batch_norm(self):
+        """Test U-Net with batch normalization enabled."""
+        model_builder = UNet(use_batch_norm=True)
+        model = model_builder.build()
+
+        # Check that BatchNormalization layers exist
+        batch_norm_layers = [
+            layer for layer in model.layers
+            if isinstance(layer, tf.keras.layers.BatchNormalization)
+        ]
+        assert len(batch_norm_layers) > 0
+
+    def test_unet_with_dropout(self):
+        """Test U-Net with dropout enabled."""
+        model_builder = UNet(use_dropout=True, dropout_rate=0.3)
+        model = model_builder.build()
+
+        # Check that Dropout layers exist
+        dropout_layers = [
+            layer for layer in model.layers
+            if isinstance(layer, tf.keras.layers.Dropout)
+        ]
+        assert len(dropout_layers) > 0
+
+    def test_unet_depth(self):
+        """Test U-Net with different depth values."""
+        for depth in [3, 4, 5]:
+            model_builder = UNet(depth=depth, base_filters=16)
             model = model_builder.build()
 
-            assert model.input_shape == (None, size, size, 1)
-            assert model.output_shape == (None, size, size, 1)
+            # Model should build successfully
+            assert model is not None
+            assert isinstance(model, tf.keras.Model)
 
-    def test_model_without_batch_norm(self):
-        """Test model building without batch normalization."""
-        model_builder = UNet(
-            input_size=256,
-            input_channels=1,
-            base_filters=16,
-            use_batch_norm=False
-        )
+    @pytest.mark.parametrize("input_size", [64, 128, 256, 512])
+    def test_unet_different_sizes(self, input_size):
+        """Test U-Net with different input sizes."""
+        model_builder = UNet(input_size=input_size, base_filters=16)
         model = model_builder.build()
 
-        assert isinstance(model, keras.Model)
+        assert model.input_shape == (None, input_size, input_size, 1)
+        assert model.output_shape == (None, input_size, input_size, 1)
 
-    def test_model_without_dropout(self):
-        """Test model building without dropout."""
-        model_builder = UNet(
-            input_size=256,
-            input_channels=1,
-            base_filters=16,
-            use_dropout=False
-        )
+    def test_unet_parameter_count(self):
+        """Test U-Net has reasonable parameter count."""
+        model_builder = UNet(input_size=256, base_filters=64)
         model = model_builder.build()
 
-        assert isinstance(model, keras.Model)
+        total_params = model.count_params()
+
+        # U-Net should have millions of parameters
+        assert total_params > 1_000_000
+        assert total_params < 100_000_000  # But not too many
