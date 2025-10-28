@@ -17,11 +17,23 @@ Deep learning for automated tumor segmentation in PET/CT nuclear medicine imagin
 
 ## Project Status
 
-**Currently:** Pivoting to nuclear medicine focus - preparing for PET/CT tumor segmentation
+**Current Focus:** Nuclear medicine PET/CT tumor segmentation
 
-**Working:** 2D U-Net architecture, data loading, preprocessing
-**In Progress:** 3D U-Net for volumetric PET/CT, DICOM/NIfTI support
-**Planned:** AutoPET challenge entry, explainable AI (Grad-CAM), uncertainty quantification
+**Completed:**
+- 2D U-Net architecture with configurable depth and filters
+- Medical image data loader (2D/3D support for NIfTI, DICOM, PNG)
+- Training infrastructure (DICE loss, IoU metrics, trainer)
+- TCIA dataset integration script (ACRIN-NSCLC-FDG-PET collection)
+
+**In Progress:**
+- NBIA Data Retriever integration for automated PET/CT downloads
+- 3D U-Net implementation for volumetric tumor segmentation
+- NIfTI data loader for 3D PET/CT volumes
+
+**Planned:**
+- AutoPET challenge entry with whole-body tumor segmentation
+- Explainable AI (Grad-CAM for 3D volumes)
+- Uncertainty quantification for clinical decision support
 
 ## Features
 
@@ -53,19 +65,20 @@ pip install -e .
 
 ## Quick Start
 
-### 1. Download a Dataset
+### 1. Download PET/CT Dataset
 
-Start with MedMNIST for quick experimentation:
+Download ACRIN-NSCLC-FDG-PET dataset from TCIA:
 
 ```bash
-# Download PathMNIST (small histopathology dataset)
-python scripts/download_data.py --dataset medmnist --task pathmnist --output data/
-
-# Or download Medical Segmentation Decathlon task
-python scripts/download_data.py --dataset msd --task liver --output data/
+# Download 10 patients from ACRIN-NSCLC-FDG-PET collection
+# Requires NBIA Data Retriever CLI (see Nuclear Medicine Datasets section)
+python scripts/download_tcia_pet.py \
+    --collection "ACRIN-NSCLC-FDG-PET" \
+    --max-patients 10 \
+    --output data/tcia
 ```
 
-See [docs/DATASETS.md](docs/DATASETS.md) for complete dataset information.
+See [docs/DATASETS.md](docs/DATASETS.md) for complete dataset information and alternative download methods.
 
 ### 2. Use the Package
 
@@ -105,19 +118,40 @@ images, masks = preprocessor.preprocess_batch(images, masks)
 ## Nuclear Medicine Datasets
 
 ### Primary Focus
-- **AutoPET Challenge**: 900 FDG-PET/CT whole-body scans
-  - Melanoma, lymphoma, and lung cancer patients
-  - Expert-annotated tumor lesions
-  - Competition-ready benchmark dataset
 
-- **TCIA FDG-PET-CT-Lesions**: Publicly available PET/CT dataset
-  - Manually segmented malignant lesions
-  - Anonymized DICOM files with segmentation masks
-  - Clinical metadata (diagnosis, age, sex)
+**ACRIN-NSCLC-FDG-PET** (Currently Integrated)
+- 242 patients with non-small cell lung cancer (NSCLC)
+- Whole-body FDG-PET/CT scans (PET + CT modalities)
+- 4 PET series per patient (~195 slices each, ~7MB per series)
+- Publicly accessible via TCIA (The Cancer Imaging Archive)
+- Modalities: PET (with/without attenuation correction), CT (multiple series)
+- Download via NBIA Data Retriever CLI (integration in progress)
+
+**AutoPET Challenge** (Planned)
+- 900 FDG-PET/CT whole-body scans
+- Melanoma, lymphoma, and lung cancer patients
+- Expert-annotated tumor lesions
+- Competition-ready benchmark dataset
 
 ### Additional Resources
 - **HECKTOR**: Head & neck cancer PET/CT (882 patients)
+- **Lung-PET-CT-Dx**: General lung cancer PET/CT imaging
 - **Medical Segmentation Decathlon**: Various organ segmentation tasks
+
+### Download PET/CT Data
+
+```bash
+# Option 1: Using our TCIA script (requires NBIA Data Retriever CLI)
+python scripts/download_tcia_pet.py \
+    --collection "ACRIN-NSCLC-FDG-PET" \
+    --max-patients 10 \
+    --output data/tcia
+
+# Option 2: Direct NBIA Data Retriever (manual)
+# 1. Download NBIA Data Retriever from https://wiki.cancerimagingarchive.net/
+# 2. Generate manifest file for desired collection
+# 3. Use NBIA Data Retriever to download DICOM files
+```
 
 See [docs/DATASETS.md](docs/DATASETS.md) for detailed information and download instructions.
 
@@ -170,9 +204,9 @@ Output (256x256x1)
 biomedical-ai/
 ├── src/med_seg/
 │   ├── models/           # U-Net architectures
-│   │   └── unet.py       # Standard U-Net
+│   │   └── unet.py       # Standard 2D U-Net
 │   ├── data/             # Data loading & preprocessing
-│   │   ├── loader.py     # Medical image loader
+│   │   ├── loader.py     # Medical image loader (2D/3D, NIfTI, DICOM)
 │   │   └── preprocessor.py
 │   ├── training/         # Training utilities
 │   │   ├── losses.py     # Loss functions (DICE, etc.)
@@ -181,15 +215,17 @@ biomedical-ai/
 │   ├── evaluation/       # Evaluation & ensembling
 │   └── utils/            # Config, visualization
 ├── scripts/
-│   ├── download_data.py  # Dataset download script
-│   ├── train.py          # Training script
-│   ├── evaluate.py       # Evaluation script
-│   └── inference.py      # Inference script
+│   ├── download_tcia_pet.py  # TCIA PET/CT download script
+│   ├── train.py              # Training script
+│   ├── evaluate.py           # Evaluation script
+│   └── inference.py          # Inference script
+├── examples/
+│   └── train_simple.py   # Simple training example
 ├── configs/              # YAML configuration files
 ├── docs/                 # Documentation
 │   └── DATASETS.md       # Dataset information
 ├── tests/                # Unit tests
-└── notebooks/            # Jupyter notebooks (examples)
+└── data/                 # Downloaded datasets (gitignored)
 ```
 
 ## Development
