@@ -1,19 +1,27 @@
-# Medical Image Segmentation with U-Net
+# Nuclear Medicine AI - PET/CT Tumor Segmentation
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![UV Package Manager](https://img.shields.io/badge/package%20manager-UV-orange.svg)](https://github.com/astral-sh/uv)
 
-A production-ready implementation of U-Net architecture for medical image segmentation. This package provides clean, well-documented code for training segmentation models on various medical imaging datasets.
+Deep learning for automated tumor segmentation in PET/CT nuclear medicine imaging. Production-ready implementation with 3D U-Net architecture for whole-body tumor detection and segmentation.
+
+## Project Focus
+
+**Nuclear Medicine Applications:**
+- FDG-PET/CT whole-body tumor segmentation
+- Multi-modal fusion (PET + CT)
+- Automated lesion detection for oncology
+- Explainable AI for clinical workflows
 
 ## Project Status
 
-**Currently:** Basic U-Net implementation with data loaders and preprocessing utilities.
+**Currently:** Pivoting to nuclear medicine focus - preparing for PET/CT tumor segmentation
 
-**Working:** Model architecture, data loading, preprocessing
-**In Progress:** Training scripts, loss functions, evaluation metrics
-**Planned:** Advanced U-Net variants (Deep U-Net, Attention U-Net), 3D support
+**Working:** 2D U-Net architecture, data loading, preprocessing
+**In Progress:** 3D U-Net for volumetric PET/CT, DICOM/NIfTI support
+**Planned:** AutoPET challenge entry, explainable AI (Grad-CAM), uncertainty quantification
 
 ## Features
 
@@ -94,21 +102,22 @@ images, masks = loader.load_dataset_2d(max_samples=100)
 images, masks = preprocessor.preprocess_batch(images, masks)
 ```
 
-## Available Datasets
+## Nuclear Medicine Datasets
 
-### Beginner-Friendly
-- **MedMNIST v2**: Lightweight 2D datasets (28×28 images, <1 GB)
-  - PathMNIST, ChestMNIST, DermaMNIST, and more
-  - Perfect for prototyping and learning
+### Primary Focus
+- **AutoPET Challenge**: 900 FDG-PET/CT whole-body scans
+  - Melanoma, lymphoma, and lung cancer patients
+  - Expert-annotated tumor lesions
+  - Competition-ready benchmark dataset
 
-### Production
-- **Medical Segmentation Decathlon**: 10 tasks, 2,633 3D volumes
-  - Liver, brain, heart, prostate, lung, and more
-  - CC-BY-SA license (commercial use allowed)
+- **TCIA FDG-PET-CT-Lesions**: Publicly available PET/CT dataset
+  - Manually segmented malignant lesions
+  - Anonymized DICOM files with segmentation masks
+  - Clinical metadata (diagnosis, age, sex)
 
-### Advanced
-- **AMOS**: 500 CT + 100 MRI scans, 15 organs (~100 GB)
-- **BraTS**: 4,500+ brain tumor MRI scans (~50 GB)
+### Additional Resources
+- **HECKTOR**: Head & neck cancer PET/CT (882 patients)
+- **Medical Segmentation Decathlon**: Various organ segmentation tasks
 
 See [docs/DATASETS.md](docs/DATASETS.md) for detailed information and download instructions.
 
