@@ -196,3 +196,96 @@ def tversky_loss(
         return 1.0 - tversky
 
     return loss
+
+
+def focal_tversky_loss(
+    alpha: float = 0.3,
+    beta: float = 0.7,
+    gamma: float = 0.75,
+    smooth: float = 1e-7
+):
+    """Focal Tversky loss for small lesion segmentation.
+
+    Focal Tversky loss combines the Tversky index with focal loss principles
+    to better handle severe class imbalance and improve recall for small lesions.
+    The focal parameter gamma focuses training on hard examples.
+
+    Recommended for PET/CT tumor segmentation where:
+    - Tumors are very small compared to background (severe class imbalance)
+    - High recall is crucial (don't miss tumors)
+    - alpha < beta prioritizes recall over precision
+
+    Args:
+        alpha: Weight for false positives (lower = higher recall)
+        beta: Weight for false negatives (higher = higher recall)
+        gamma: Focal parameter (0.5-1.5). Higher values focus more on hard cases
+        smooth: Smoothing factor
+
+    Returns:
+        Focal Tversky loss function
+
+    Reference:
+        Abraham & Khan, "A Novel Focal Tversky loss function with improved
+        Attention U-Net for lesion segmentation", IEEE ISBI 2019.
+    """
+    def loss(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
+        # Flatten tensors
+        y_true_flat = K.flatten(y_true)
+        y_pred_flat = K.flatten(y_pred)
+
+        # Calculate true positives, false positives, false negatives
+        true_pos = K.sum(y_true_flat * y_pred_flat)
+        false_neg = K.sum(y_true_flat * (1 - y_pred_flat))
+        false_pos = K.sum((1 - y_true_flat) * y_pred_flat)
+
+        # Tversky index
+        tversky_index = (true_pos + smooth) / \
+                       (true_pos + alpha * false_pos + beta * false_neg + smooth)
+
+        # Apply focal weighting
+        focal_tversky = K.pow((1.0 - tversky_index), gamma)
+
+        return focal_tversky
+
+    return loss
+
+
+def dice_focal_loss(
+    dice_weight: float = 0.5,
+    focal_weight: float = 0.5,
+    focal_alpha: float = 0.25,
+    focal_gamma: float = 2.0
+):
+    """Combined DICE and Focal loss.
+
+    This combination won the MICCAI 2020 HECKTOR Challenge for PET/CT
+    head and neck tumor segmentation. DICE handles region-based overlap
+    while Focal loss focuses on hard-to-classify pixels.
+
+    Args:
+        dice_weight: Weight for DICE loss component
+        focal_weight: Weight for Focal loss component
+        focal_alpha: Alpha parameter for focal loss
+        focal_gamma: Gamma parameter for focal loss
+
+    Returns:
+        Combined DICE + Focal loss function
+
+    Reference:
+        Used by winning team in MICCAI HECKTOR 2020 Challenge.
+    """
+    def loss(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
+        # DICE loss component
+        dice = dice_loss(y_true, y_pred)
+
+        # Focal loss component
+        y_pred_clipped = K.clip(y_pred, K.epsilon(), 1 - K.epsilon())
+        alpha_factor = y_true * focal_alpha + (1 - y_true) * (1 - focal_alpha)
+        focal_weight_map = y_true * K.pow(1 - y_pred_clipped, focal_gamma) + \
+                          (1 - y_true) * K.pow(y_pred_clipped, focal_gamma)
+        bce = -(y_true * K.log(y_pred_clipped) + (1 - y_true) * K.log(1 - y_pred_clipped))
+        focal = K.mean(alpha_factor * focal_weight_map * bce)
+
+        return dice_weight * dice + focal_weight * focal
+
+    return loss

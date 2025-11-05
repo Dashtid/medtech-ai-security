@@ -14,6 +14,7 @@ dependencies = [
     "matplotlib>=3.7.0",
     "pyyaml>=6.0",
     "simpleitk>=2.3.0",
+    "scikit-image>=0.21.0",
     "tqdm>=4.66.0",
 ]
 keywords = ["deep-learning", "medical-imaging", "segmentation", "u-net", "tensorflow"]
