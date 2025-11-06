@@ -1,27 +1,50 @@
-# Nuclear Medicine AI - Multi-Task PET/CT Analysis
+# MedTech AI Security - AI-Powered Medical Device Cybersecurity
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![UV Package Manager](https://img.shields.io/badge/package%20manager-UV-orange.svg)](https://github.com/astral-sh/uv)
 
-Production-ready deep learning for PET/CT medical imaging with multi-task learning, survival prediction, and uncertainty quantification. Built on 2025 state-of-the-art research (DeepMTS, AdaMSS) for clinical oncology applications.
+AI and machine learning for medical device cybersecurity, combining NLP, anomaly detection, and adversarial ML to secure healthcare technology. Built on production experience with post-market surveillance scanning and vulnerability intelligence.
 
-## Project Focus
+## Project Transition Notice
 
-**Multi-Task Medical AI System:**
-- Tumor segmentation with state-of-the-art Focal Tversky loss
-- Survival prediction using Cox proportional hazards
-- Bayesian uncertainty quantification via Monte Carlo Dropout
-- Production optimization (INT8 quantization, model pruning)
-- Multi-modal fusion (PET + CT)
-- Clinical outcome prediction for oncology applications
+**November 2025 - Strategic Pivot:**
 
-**Quick Start:** See [QUICKSTART_MULTITASK.md](QUICKSTART_MULTITASK.md) for 2-hour setup guide
+This repository has transitioned from pure biomedical imaging AI to **AI for medical device cybersecurity**. The completed multi-task PET/CT learning system (30 epochs, DICE 0.340, C-index 0.669) serves as the foundation for understanding AI's role in medical technology, but the focus has shifted to where **cybersecurity intersects with medical AI**.
+
+**Why This Direction:**
+- Aligns with real-world role as medical device cybersecurity engineer at Hermes Medical Solutions
+- Combines domain expertise in medical technology, AI/ML, and cybersecurity
+- Addresses critical healthcare security challenges (FDA, EU MDR, ICS-CERT advisories)
+- Leverages existing production infrastructure (PMS-scanner, DefectDojo, RAG backend, K3s cluster)
+- Unique niche: few practitioners combine medical domain knowledge + AI + security
+
+The biomedical imaging work remains in this repository as a learning foundation and demonstration of multi-task learning, uncertainty quantification, and production ML deployment.
+
+## New Project Focus
+
+**Medical Device Security AI System:**
+- NLP-based threat intelligence extraction from CVE/ICS-CERT advisories
+- ML-powered vulnerability detection for medical devices
+- Anomaly detection for medical device network traffic (DICOM, HL7)
+- Adversarial ML attacks on medical AI models and defenses
+- SBOM (Software Bill of Materials) analysis with graph neural networks
+- Automated compliance checking (FDA, EU MDR, IEC 62304)
+- Integration with existing DefectDojo vulnerability management
+
+**Infrastructure Ready:**
+- Production K3s cluster on lab server (10.143.31.18)
+- Existing PMS-scanner for medical device vulnerability scanning
+- RAG backend for document processing (QMS, technical files)
+- DefectDojo for vulnerability tracking
+- Gitea CI/CD for automated pipelines
+
+See [PIVOT_PLAN.md](PIVOT_PLAN.md) for detailed transition roadmap and technical approach.
 
 ## Project Status
 
-**Latest Update:** Multi-task learning system with survival prediction (2025-11-05)
+**Current Phase:** Foundation established, transitioning to medical device cybersecurity AI (2025-11-06)
 
 **Completed:**
 - Multi-task U-Net architecture (shared encoder + dual decoders)
@@ -48,6 +71,32 @@ Production-ready deep learning for PET/CT medical imaging with multi-task learni
 - [MULTITASK_GUIDE.md](MULTITASK_GUIDE.md) - Comprehensive implementation guide
 - [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md) - Technical deep dive
 - [QUICKSTART_MULTITASK.md](QUICKSTART_MULTITASK.md) - 2-hour quick start guide
+
+## Biomedical AI Foundation (Completed)
+
+The initial multi-task PET/CT learning system serves as a strong foundation demonstrating:
+
+**Training Results (30 epochs completed):**
+- Final training DICE: 0.340 (34.0%)
+- Final validation DICE: 0.206 (20.6%)
+- Training survival C-index: 0.669 (66.9%)
+- Model size: 363 MB (31.6M parameters)
+
+**Skills Demonstrated:**
+- Multi-task deep learning architecture
+- Bayesian uncertainty quantification
+- Production model optimization
+- Medical imaging preprocessing
+- Loss function design for class imbalance
+- Survival analysis with Cox proportional hazards
+
+**Portfolio Value:**
+- Comprehensive documentation (1,500+ lines)
+- Professional demo script with portfolio-ready output
+- Complete evaluation framework
+- Production-ready quantization pipeline
+
+See sections below for technical details on the U-Net architecture, loss functions, and training pipeline. This work demonstrates the AI/ML foundation now being applied to medical device cybersecurity.
 
 ## Features
 
