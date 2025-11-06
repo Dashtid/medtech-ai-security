@@ -40,10 +40,14 @@ Production-ready deep learning for PET/CT medical imaging with multi-task learni
 - Estimated training time: 30 minutes (30 epochs)
 
 **Documentation:**
-- [QUICKSTART_MULTITASK.md](QUICKSTART_MULTITASK.md) - 2-hour quick start guide
+- [QUICK_REFERENCE.md](QUICK_REFERENCE.md) - One-page cheat sheet for demos and interviews
+- [PROJECT_SHOWCASE.md](PROJECT_SHOWCASE.md) - Portfolio-ready technical overview
+- [EXECUTION_PLAN.md](EXECUTION_PLAN.md) - Step-by-step evaluation workflow
+- [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Common issues and solutions
+- [scripts/README_DEMO.md](scripts/README_DEMO.md) - Professional demo script guide
 - [MULTITASK_GUIDE.md](MULTITASK_GUIDE.md) - Comprehensive implementation guide
 - [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md) - Technical deep dive
-- [NEXT_SESSION_CHECKLIST.md](NEXT_SESSION_CHECKLIST.md) - Step-by-step execution checklist
+- [QUICKSTART_MULTITASK.md](QUICKSTART_MULTITASK.md) - 2-hour quick start guide
 
 ## Features
 
@@ -103,29 +107,34 @@ pip install -e .
 Complete multi-task learning system in 2 hours:
 
 ```bash
+# 0. Quick Demo (10 seconds - Portfolio Screenshot!)
+UV_LINK_MODE=copy uv run python scripts/demo.py --patient patient_001
+
 # 1. Train multi-task model (30 min)
-python scripts/train_multitask.py \
+UV_LINK_MODE=copy uv run python scripts/train_multitask.py \
     --data-dir data/synthetic_v2_survival \
     --epochs 30
 
 # 2. Evaluate with uncertainty (5 min)
-python scripts/evaluate_multitask.py \
+UV_LINK_MODE=copy uv run python scripts/evaluate_multitask.py \
     --model models/multitask_unet/best_model.keras \
     --data-dir data/synthetic_v2_survival
 
-# 3. Uncertainty demo (2 min)
-python scripts/inference_with_uncertainty.py \
+# 3. Uncertainty visualization (2 min)
+UV_LINK_MODE=copy uv run python scripts/inference_with_uncertainty.py \
     --model models/multitask_unet/best_model.keras \
     --data-dir data/synthetic_v2_survival \
     --patient patient_001
 
 # 4. Optimize for deployment (10 min)
-python scripts/optimize_model.py \
+UV_LINK_MODE=copy uv run python scripts/optimize_model.py \
     --model models/multitask_unet/best_model.keras \
     --data-dir data/synthetic_v2_survival \
     --quantize \
     --benchmark
 ```
+
+**New**: Run [scripts/demo.py](scripts/demo.py) for portfolio-ready terminal output showing segmentation metrics, survival risk prediction, and uncertainty quantification in a professional format (perfect for screenshots)
 
 See [QUICKSTART_MULTITASK.md](QUICKSTART_MULTITASK.md) for complete guide.
 
