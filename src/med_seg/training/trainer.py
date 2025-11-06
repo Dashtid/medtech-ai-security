@@ -1,10 +1,8 @@
 """Model training orchestration."""
 
-from typing import Dict, Optional, Any, Iterator, Tuple
-from pathlib import Path
+from typing import Optional, Iterator, Tuple
 
 import numpy as np
-import tensorflow as tf
 from tensorflow import keras
 
 from med_seg.training.losses import dice_loss, dice_coefficient
@@ -41,7 +39,7 @@ class ModelTrainer:
         model: keras.Model,
         loss_function=None,
         learning_rate: float = 0.0001,
-        metrics: Optional[list] = None
+        metrics: Optional[list] = None,
     ):
         self.model = model
         self.loss_function = loss_function or dice_loss
@@ -53,11 +51,7 @@ class ModelTrainer:
         """Compile the model with specified loss and metrics."""
         optimizer = keras.optimizers.Adam(learning_rate=self.learning_rate)
 
-        self.model.compile(
-            optimizer=optimizer,
-            loss=self.loss_function,
-            metrics=self.metrics
-        )
+        self.model.compile(optimizer=optimizer, loss=self.loss_function, metrics=self.metrics)
 
     def train(
         self,
@@ -67,7 +61,7 @@ class ModelTrainer:
         steps_per_epoch: Optional[int] = None,
         validation_steps: Optional[int] = None,
         callbacks: Optional[list] = None,
-        verbose: int = 1
+        verbose: int = 1,
     ) -> keras.callbacks.History:
         """Train the model.
 
@@ -95,7 +89,7 @@ class ModelTrainer:
             validation_steps=validation_steps,
             epochs=epochs,
             callbacks=callbacks,
-            verbose=verbose
+            verbose=verbose,
         )
 
         return self.history
@@ -118,20 +112,15 @@ class ModelTrainer:
         self.model = keras.models.load_model(
             filepath,
             custom_objects={
-                'dice_loss': self.loss_function,
-                'dice_coefficient': dice_coefficient,
-                'precision': precision,
-                'recall': recall
-            }
+                "dice_loss": self.loss_function,
+                "dice_coefficient": dice_coefficient,
+                "precision": precision,
+                "recall": recall,
+            },
         )
         print(f"[+] Model loaded from {filepath}")
 
-    def predict(
-        self,
-        x: np.ndarray,
-        batch_size: int = 1,
-        verbose: int = 0
-    ) -> np.ndarray:
+    def predict(self, x: np.ndarray, batch_size: int = 1, verbose: int = 0) -> np.ndarray:
         """Make predictions on input data.
 
         Args:

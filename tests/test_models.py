@@ -66,8 +66,7 @@ class TestUNet:
 
         # Check that BatchNormalization layers exist
         batch_norm_layers = [
-            layer for layer in model.layers
-            if isinstance(layer, tf.keras.layers.BatchNormalization)
+            layer for layer in model.layers if isinstance(layer, tf.keras.layers.BatchNormalization)
         ]
         assert len(batch_norm_layers) > 0
 
@@ -78,8 +77,7 @@ class TestUNet:
 
         # Check that Dropout layers exist
         dropout_layers = [
-            layer for layer in model.layers
-            if isinstance(layer, tf.keras.layers.Dropout)
+            layer for layer in model.layers if isinstance(layer, tf.keras.layers.Dropout)
         ]
         assert len(dropout_layers) > 0
 

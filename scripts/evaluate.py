@@ -19,12 +19,12 @@ from tensorflow import keras
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root / 'src'))
+sys.path.insert(0, str(project_root / "src"))
 
 from med_seg.data import load_dataset
 from med_seg.evaluation import multi_expert_evaluation, evaluate_segmentation
 from med_seg.training import dice_loss, dice_coefficient, precision, recall
-from med_seg.utils import load_config, plot_segmentation_results, plot_dice_threshold_analysis
+from med_seg.utils import load_config, plot_segmentation_results
 
 
 def load_expert_models(model_dir: Path, num_experts: int):
@@ -39,20 +39,20 @@ def load_expert_models(model_dir: Path, num_experts: int):
     """
     models = []
     custom_objects = {
-        'dice_loss': dice_loss,
-        'dice_coefficient': dice_coefficient,
-        'precision': precision,
-        'recall': recall
+        "dice_loss": dice_loss,
+        "dice_coefficient": dice_coefficient,
+        "precision": precision,
+        "recall": recall,
     }
 
     for expert_id in range(1, num_experts + 1):
         expert_dir = model_dir / f"expert_{expert_id:02d}"
-        model_path = expert_dir / 'best_model.keras'
+        model_path = expert_dir / "best_model.keras"
 
         if not model_path.exists():
             print(f"[!] Warning: Model not found for expert {expert_id} at {model_path}")
-            print(f"[!] Trying final_model.keras instead...")
-            model_path = expert_dir / 'final_model.keras'
+            print("[!] Trying final_model.keras instead...")
+            model_path = expert_dir / "final_model.keras"
 
         if not model_path.exists():
             raise FileNotFoundError(f"No model found for expert {expert_id}")
@@ -77,19 +77,19 @@ def evaluate_models(config: dict, model_dir: str, output_dir: str = None):
     print(f"{'='*80}\n")
 
     # Configuration
-    dataset_config = config['dataset']
-    data_config = config['data']
-    eval_config = config.get('evaluation', {})
+    dataset_config = config["dataset"]
+    data_config = config["data"]
+    eval_config = config.get("evaluation", {})
 
     model_dir = Path(model_dir)
     if output_dir is None:
-        output_dir = Path(config['output']['results_dir'])
+        output_dir = Path(config["output"]["results_dir"])
     else:
         output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    num_experts = dataset_config['num_experts']
-    task_id = dataset_config.get('task_id', 1)
+    num_experts = dataset_config["num_experts"]
+    task_id = dataset_config.get("task_id", 1)
 
     # Load test data for all experts
     print(f"[i] Loading test data for {num_experts} experts...")
@@ -104,7 +104,7 @@ def evaluate_models(config: dict, model_dir: str, output_dir: str = None):
     for expert_id in range(1, num_experts + 1):
         # Create mask identifier
         mask_id = f"seg{expert_id:02d}"
-        if dataset_config.get('num_tasks', 1) > 1:
+        if dataset_config.get("num_tasks", 1) > 1:
             mask_id = f"task{task_id:02d}_{mask_id}"
 
         print(f"\n[i] Processing expert {expert_id}")
@@ -112,17 +112,17 @@ def evaluate_models(config: dict, model_dir: str, output_dir: str = None):
 
         # Load test data
         x_test, y_test = load_dataset(
-            data_dir=data_config['test_dir'],
+            data_dir=data_config["test_dir"],
             mask_identifier=mask_id,
-            image_size=data_config['image_size'],
-            num_channels=dataset_config['num_channels'],
-            use_intensity_windowing=data_config.get('use_intensity_windowing', False)
+            image_size=data_config["image_size"],
+            num_channels=dataset_config["num_channels"],
+            use_intensity_windowing=data_config.get("use_intensity_windowing", False),
         )
 
         print(f"[+] Loaded {len(x_test)} test samples")
 
         # Generate predictions
-        print(f"[i] Generating predictions...")
+        print("[i] Generating predictions...")
         predictions = models[expert_id - 1].predict(x_test, verbose=0)
 
         expert_predictions.append(predictions)
@@ -135,60 +135,59 @@ def evaluate_models(config: dict, model_dir: str, output_dir: str = None):
     print(" Multi-Expert Ensemble Evaluation")
     print(f"{'='*80}\n")
 
-    thresholds = eval_config.get('thresholds', [i/10 for i in range(1, 10)])
+    thresholds = eval_config.get("thresholds", [i / 10 for i in range(1, 10)])
 
     results = multi_expert_evaluation(
         expert_predictions=expert_predictions,
         expert_ground_truths=expert_ground_truths,
         task_id=task_id,
-        thresholds=thresholds
+        thresholds=thresholds,
     )
 
     # Save results
-    results_file = output_dir / 'evaluation_results.json'
-    with open(results_file, 'w') as f:
+    results_file = output_dir / "evaluation_results.json"
+    with open(results_file, "w") as f:
         json.dump(results, f, indent=2)
     print(f"\n[+] Results saved to {results_file}")
 
     # Save DICE matrix
-    dice_matrix_file = output_dir / 'dice_matrix.npy'
-    np.save(dice_matrix_file, results['dice_matrix'])
+    dice_matrix_file = output_dir / "dice_matrix.npy"
+    np.save(dice_matrix_file, results["dice_matrix"])
     print(f"[+] DICE matrix saved to {dice_matrix_file}")
 
     # Plot threshold analysis
-    print(f"\n[i] Generating visualizations...")
-    plot_save_path = output_dir / 'dice_threshold_analysis.png'
+    print("\n[i] Generating visualizations...")
+    plot_save_path = output_dir / "dice_threshold_analysis.png"
 
     from med_seg.utils.visualization import plot_dice_threshold_analysis
-    threshold_list = list(results['threshold_averages'].keys())
-    dice_list = list(results['threshold_averages'].values())
+
+    threshold_list = list(results["threshold_averages"].keys())
+    dice_list = list(results["threshold_averages"].values())
 
     plot_dice_threshold_analysis(
-        thresholds=threshold_list,
-        dice_scores=dice_list,
-        save_path=str(plot_save_path),
-        show=False
+        thresholds=threshold_list, dice_scores=dice_list, save_path=str(plot_save_path), show=False
     )
     print(f"[+] Threshold analysis plot saved to {plot_save_path}")
 
     # Generate sample predictions visualization
-    print(f"\n[i] Generating sample predictions visualization...")
+    print("\n[i] Generating sample predictions visualization...")
 
     # Use first expert's test data and ensemble predictions
     from med_seg.evaluation import ensemble_predictions
-    ensembled_preds = ensemble_predictions(expert_predictions, method='mean')
-    ensembled_gt = ensemble_predictions(expert_ground_truths, method='mean')
+
+    ensembled_preds = ensemble_predictions(expert_predictions, method="mean")
+    ensembled_gt = ensemble_predictions(expert_ground_truths, method="mean")
 
     # Plot first 5 samples
-    samples_plot = output_dir / 'sample_predictions.png'
+    samples_plot = output_dir / "sample_predictions.png"
     plot_segmentation_results(
         images=x_test,
         ground_truths=ensembled_gt,
         predictions=ensembled_preds,
         num_samples=min(5, len(x_test)),
-        threshold=results['best_threshold'],
+        threshold=results["best_threshold"],
         save_path=str(samples_plot),
-        show=False
+        show=False,
     )
     print(f"[+] Sample predictions saved to {samples_plot}")
 
@@ -197,14 +196,14 @@ def evaluate_models(config: dict, model_dir: str, output_dir: str = None):
     print(" Per-Expert Metrics at Best Threshold")
     print(f"{'='*80}\n")
 
-    best_threshold = results['best_threshold']
+    best_threshold = results["best_threshold"]
     per_expert_results = []
 
     for expert_id in range(num_experts):
         metrics = evaluate_segmentation(
             predictions=expert_predictions[expert_id],
             ground_truth=expert_ground_truths[expert_id],
-            threshold=best_threshold
+            threshold=best_threshold,
         )
         per_expert_results.append(metrics)
 
@@ -217,8 +216,8 @@ def evaluate_models(config: dict, model_dir: str, output_dir: str = None):
         print()
 
     # Save per-expert results
-    per_expert_file = output_dir / 'per_expert_metrics.json'
-    with open(per_expert_file, 'w') as f:
+    per_expert_file = output_dir / "per_expert_metrics.json"
+    with open(per_expert_file, "w") as f:
         json.dump(per_expert_results, f, indent=2)
     print(f"[+] Per-expert metrics saved to {per_expert_file}")
 
@@ -239,38 +238,29 @@ def evaluate_models(config: dict, model_dir: str, output_dir: str = None):
 def main():
     """Main evaluation function."""
     parser = argparse.ArgumentParser(
-        description='Evaluate trained medical image segmentation models'
+        description="Evaluate trained medical image segmentation models"
     )
+    parser.add_argument("--config", type=str, required=True, help="Path to configuration YAML file")
     parser.add_argument(
-        '--config',
+        "--model-dir",
         type=str,
         required=True,
-        help='Path to configuration YAML file'
+        help="Directory containing trained models (with expert_XX subdirectories)",
     )
     parser.add_argument(
-        '--model-dir',
-        type=str,
-        required=True,
-        help='Directory containing trained models (with expert_XX subdirectories)'
-    )
-    parser.add_argument(
-        '--output',
+        "--output",
         type=str,
         default=None,
-        help='Output directory for results (default: from config)'
+        help="Output directory for results (default: from config)",
     )
-    parser.add_argument(
-        '--gpu',
-        type=str,
-        default='0',
-        help='GPU ID to use'
-    )
+    parser.add_argument("--gpu", type=str, default="0", help="GPU ID to use")
 
     args = parser.parse_args()
 
     # Set GPU
     import os
-    os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
+
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
 
     # Load configuration
     print(f"[i] Loading configuration from {args.config}")
@@ -282,11 +272,12 @@ def main():
     except Exception as e:
         print(f"[!] Error during evaluation: {str(e)}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 
     print("[+] Evaluation complete!")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

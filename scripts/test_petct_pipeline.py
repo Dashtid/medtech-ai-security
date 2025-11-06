@@ -13,7 +13,7 @@ from pathlib import Path
 import sys
 
 # Add project to path
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from med_seg.data import PETCTLoader, PETCTPreprocessor
 from med_seg.data.petct_generator import PETCTDataGenerator
@@ -22,7 +22,7 @@ from med_seg.data.petct_generator import PETCTDataGenerator
 def test_loader(data_dir):
     """Test PETCTLoader functionality."""
     print("\n[TEST 1] PETCTLoader")
-    print("="*70)
+    print("=" * 70)
 
     loader = PETCTLoader(data_dir)
     print(f"Loader: {loader}")
@@ -68,57 +68,56 @@ def test_loader(data_dir):
 def test_preprocessor(loader):
     """Test PETCTPreprocessor functionality."""
     print("\n[TEST 2] PETCTPreprocessor")
-    print("="*70)
+    print("=" * 70)
 
     preprocessor = PETCTPreprocessor(
-        target_size=(256, 256),
-        ct_window_center=0,
-        ct_window_width=400,
-        suv_max=15
+        target_size=(256, 256), ct_window_center=0, ct_window_width=400, suv_max=15
     )
     print(f"Preprocessor: {preprocessor}")
 
     # Load one slice
     data = loader.load_patient_3d(0)
-    ct_slice = data['ct'][75]  # Middle slice
-    pet_slice = data['pet'][75]
-    seg_slice = data['seg'][75]
+    ct_slice = data["ct"][75]  # Middle slice
+    pet_slice = data["pet"][75]
+    seg_slice = data["seg"][75]
 
-    print(f"\n[*] Input shapes:")
+    print("\n[*] Input shapes:")
     print(f"  CT: {ct_slice.shape}")
     print(f"  PET: {pet_slice.shape}")
     print(f"  SEG: {seg_slice.shape}")
 
     # Test 2D preprocessing
-    print(f"\n[*] Preprocessing single slice...")
+    print("\n[*] Preprocessing single slice...")
     input_processed, seg_processed = preprocessor.preprocess_2d_slice(
         ct_slice, pet_slice, seg_slice
     )
 
     print(f"  Processed input shape: {input_processed.shape}")
     print(f"  Processed input range: [{input_processed.min():.3f}, {input_processed.max():.3f}]")
-    print(f"  CT channel range: [{input_processed[:,:,0].min():.3f}, {input_processed[:,:,0].max():.3f}]")
-    print(f"  PET channel range: [{input_processed[:,:,1].min():.3f}, {input_processed[:,:,1].max():.3f}]")
+    print(
+        f"  CT channel range: [{input_processed[:,:,0].min():.3f}, {input_processed[:,:,0].max():.3f}]"
+    )
+    print(
+        f"  PET channel range: [{input_processed[:,:,1].min():.3f}, {input_processed[:,:,1].max():.3f}]"
+    )
     print(f"  Processed seg shape: {seg_processed.shape}")
     print(f"  Processed seg range: [{seg_processed.min():.0f}, {seg_processed.max():.0f}]")
 
     # Test batch preprocessing
-    print(f"\n[*] Preprocessing batch of slices...")
+    print("\n[*] Preprocessing batch of slices...")
     ct_batch, pet_batch, seg_batch = loader.extract_2d_slices(0, axis=0, slice_indices=[70, 75, 80])
 
-    inputs_batch, segs_batch = preprocessor.preprocess_batch_2d(
-        ct_batch, pet_batch, seg_batch
-    )
+    inputs_batch, segs_batch = preprocessor.preprocess_batch_2d(ct_batch, pet_batch, seg_batch)
 
     print(f"  Batch input shape: {inputs_batch.shape}")
     print(f"  Batch seg shape: {segs_batch.shape}")
 
     # Test CT window presets
-    print(f"\n[*] Testing CT window presets...")
+    print("\n[*] Testing CT window presets...")
     presets = preprocessor.get_ct_window_presets()
     print(f"  Available presets: {list(presets.keys())}")
 
-    preprocessor.set_ct_window('lung')
+    preprocessor.set_ct_window("lung")
     print(f"  Changed to lung window: {preprocessor}")
 
     print("\n[+] PETCTPreprocessor test PASSED")
@@ -128,7 +127,7 @@ def test_preprocessor(loader):
 def test_generator(loader, preprocessor):
     """Test PETCTDataGenerator functionality."""
     print("\n[TEST 3] PETCTDataGenerator")
-    print("="*70)
+    print("=" * 70)
 
     generator = PETCTDataGenerator(
         loader=loader,
@@ -138,7 +137,7 @@ def test_generator(loader, preprocessor):
         shuffle=True,
         augment=True,
         tumor_only=True,
-        min_tumor_voxels=10
+        min_tumor_voxels=10,
     )
 
     print(f"Generator: {generator}")
@@ -146,7 +145,7 @@ def test_generator(loader, preprocessor):
     print(f"Total slices: {len(generator.slice_index)}")
 
     # Test getting a batch
-    print(f"\n[*] Getting first batch...")
+    print("\n[*] Getting first batch...")
     inputs, targets = generator[0]
 
     print(f"  Inputs shape: {inputs.shape}")
@@ -161,14 +160,14 @@ def test_generator(loader, preprocessor):
     print(f"  Tumor pixels in batch: {int(num_tumor_pixels)}")
 
     # Test class weights
-    print(f"\n[*] Computing class weights...")
+    print("\n[*] Computing class weights...")
     class_weights = generator.get_class_weights()
     print(f"  Class weights: {class_weights}")
     print(f"  Background weight: {class_weights[0]:.2f}")
     print(f"  Tumor weight: {class_weights[1]:.2f}")
 
     # Test epoch end
-    print(f"\n[*] Testing epoch end shuffle...")
+    print("\n[*] Testing epoch end shuffle...")
     first_indices = generator.slice_index[:5].copy()
     generator.on_epoch_end()
     second_indices = generator.slice_index[:5]
@@ -181,14 +180,9 @@ def test_generator(loader, preprocessor):
 
 def main():
     """Main function."""
-    parser = argparse.ArgumentParser(
-        description="Test PET/CT data pipeline"
-    )
+    parser = argparse.ArgumentParser(description="Test PET/CT data pipeline")
     parser.add_argument(
-        "--data-dir",
-        type=str,
-        default="data/synthetic",
-        help="Directory containing patient data"
+        "--data-dir", type=str, default="data/synthetic", help="Directory containing patient data"
     )
 
     args = parser.parse_args()
@@ -197,12 +191,12 @@ def main():
 
     if not data_dir.exists():
         print(f"[!] Error: Data directory not found: {data_dir}")
-        print(f"[*] Generate synthetic data first:")
+        print("[*] Generate synthetic data first:")
         print(f"    python scripts/create_synthetic_petct.py --output {data_dir} --num-patients 3")
         return 1
 
     print("[+] PET/CT Data Pipeline Test Suite")
-    print("="*70)
+    print("=" * 70)
     print(f"Data directory: {data_dir}")
 
     try:
@@ -213,22 +207,23 @@ def main():
         preprocessor = test_preprocessor(loader)
 
         # Test 3: Generator
-        generator = test_generator(loader, preprocessor)
+        test_generator(loader, preprocessor)
 
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("[+] ALL TESTS PASSED")
-        print("="*70)
+        print("=" * 70)
         print("\n[*] Data pipeline is ready for training!")
-        print(f"[*] You can now train models using:")
-        print(f"    - PETCTLoader for data loading")
-        print(f"    - PETCTPreprocessor for preprocessing")
-        print(f"    - PETCTDataGenerator for batch generation")
+        print("[*] You can now train models using:")
+        print("    - PETCTLoader for data loading")
+        print("    - PETCTPreprocessor for preprocessing")
+        print("    - PETCTDataGenerator for batch generation")
 
         return 0
 
     except Exception as e:
         print(f"\n[!] TEST FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 

@@ -63,24 +63,14 @@ class UNet:
         Returns:
             Output tensor after double convolution
         """
-        x = layers.Conv2D(
-            filters,
-            kernel_size,
-            padding="same",
-            kernel_initializer="he_normal"
-        )(x)
+        x = layers.Conv2D(filters, kernel_size, padding="same", kernel_initializer="he_normal")(x)
 
         if self.use_batch_norm:
             x = layers.BatchNormalization()(x)
 
         x = layers.Activation(activation)(x)
 
-        x = layers.Conv2D(
-            filters,
-            kernel_size,
-            padding="same",
-            kernel_initializer="he_normal"
-        )(x)
+        x = layers.Conv2D(filters, kernel_size, padding="same", kernel_initializer="he_normal")(x)
 
         if self.use_batch_norm:
             x = layers.BatchNormalization()(x)
@@ -127,12 +117,7 @@ class UNet:
         Returns:
             Output tensor after upsampling and convolution
         """
-        x = layers.Conv2DTranspose(
-            filters,
-            kernel_size=2,
-            strides=2,
-            padding="same"
-        )(x)
+        x = layers.Conv2DTranspose(filters, kernel_size=2, strides=2, padding="same")(x)
 
         x = layers.concatenate([x, skip])
         x = self.conv_block(x, filters)
@@ -145,21 +130,19 @@ class UNet:
         Returns:
             Compiled Keras model
         """
-        inputs = layers.Input(
-            shape=(self.input_size, self.input_size, self.input_channels)
-        )
+        inputs = layers.Input(shape=(self.input_size, self.input_size, self.input_channels))
 
         # Encoder path
         skip_connections = []
         x = inputs
 
         for i in range(self.depth):
-            filters = self.base_filters * (2 ** i)
+            filters = self.base_filters * (2**i)
             skip, x = self.encoder_block(x, filters)
             skip_connections.append(skip)
 
         # Bottleneck
-        filters = self.base_filters * (2 ** self.depth)
+        filters = self.base_filters * (2**self.depth)
         x = self.conv_block(x, filters)
 
         if self.use_dropout:
@@ -167,26 +150,18 @@ class UNet:
 
         # Decoder path
         for i in range(self.depth - 1, -1, -1):
-            filters = self.base_filters * (2 ** i)
+            filters = self.base_filters * (2**i)
             skip = skip_connections[i]
             x = self.decoder_block(x, skip, filters)
 
         # Output layer
         if self.num_classes == 1:
             # Binary segmentation
-            outputs = layers.Conv2D(
-                1,
-                kernel_size=1,
-                activation="sigmoid",
-                name="output"
-            )(x)
+            outputs = layers.Conv2D(1, kernel_size=1, activation="sigmoid", name="output")(x)
         else:
             # Multi-class segmentation
             outputs = layers.Conv2D(
-                self.num_classes,
-                kernel_size=1,
-                activation="softmax",
-                name="output"
+                self.num_classes, kernel_size=1, activation="softmax", name="output"
             )(x)
 
         model = keras.Model(inputs=inputs, outputs=outputs, name="unet")

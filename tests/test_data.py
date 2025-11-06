@@ -35,10 +35,7 @@ class TestMedicalImageLoader:
         """Test loader initialization."""
         data_dir, mask_dir = temp_data_dir
 
-        loader = MedicalImageLoader(
-            data_dir=str(data_dir),
-            mask_dir=str(mask_dir)
-        )
+        loader = MedicalImageLoader(data_dir=str(data_dir), mask_dir=str(mask_dir))
 
         assert loader.data_dir == data_dir
         assert loader.mask_dir == mask_dir
@@ -69,10 +66,7 @@ class TestMedicalImageLoader:
         """Test loading entire 2D dataset."""
         data_dir, mask_dir = temp_data_dir
 
-        loader = MedicalImageLoader(
-            data_dir=str(data_dir),
-            mask_dir=str(mask_dir)
-        )
+        loader = MedicalImageLoader(data_dir=str(data_dir), mask_dir=str(mask_dir))
 
         images, masks = loader.load_dataset_2d()
 
@@ -83,10 +77,7 @@ class TestMedicalImageLoader:
         """Test loading with max_samples parameter."""
         data_dir, mask_dir = temp_data_dir
 
-        loader = MedicalImageLoader(
-            data_dir=str(data_dir),
-            mask_dir=str(mask_dir)
-        )
+        loader = MedicalImageLoader(data_dir=str(data_dir), mask_dir=str(mask_dir))
 
         images, masks = loader.load_dataset_2d(max_samples=3)
 
@@ -115,8 +106,7 @@ class TestMedicalImagePreprocessor:
     def test_preprocessor_init(self):
         """Test preprocessor initialization."""
         preprocessor = MedicalImagePreprocessor(
-            target_size=(256, 256),
-            normalization_method="min-max"
+            target_size=(256, 256), normalization_method="min-max"
         )
 
         assert preprocessor.target_size == (256, 256)
@@ -124,9 +114,7 @@ class TestMedicalImagePreprocessor:
 
     def test_normalize_min_max(self, sample_image):
         """Test min-max normalization."""
-        preprocessor = MedicalImagePreprocessor(
-            normalization_method="min-max"
-        )
+        preprocessor = MedicalImagePreprocessor(normalization_method="min-max")
 
         normalized = preprocessor.normalize(sample_image)
 
@@ -136,9 +124,7 @@ class TestMedicalImagePreprocessor:
 
     def test_normalize_z_score(self, sample_image):
         """Test z-score normalization."""
-        preprocessor = MedicalImagePreprocessor(
-            normalization_method="z-score"
-        )
+        preprocessor = MedicalImagePreprocessor(normalization_method="z-score")
 
         normalized = preprocessor.normalize(sample_image)
 
@@ -149,8 +135,7 @@ class TestMedicalImagePreprocessor:
     def test_normalize_clip_range(self, sample_image):
         """Test normalization with clipping."""
         preprocessor = MedicalImagePreprocessor(
-            normalization_method="min-max",
-            clip_range=(50, 200)
+            normalization_method="min-max", clip_range=(50, 200)
         )
 
         normalized = preprocessor.normalize(sample_image)
@@ -174,9 +159,7 @@ class TestMedicalImagePreprocessor:
         images = np.stack([sample_image] * batch_size)
         masks = np.stack([sample_mask] * batch_size)
 
-        preprocessor = MedicalImagePreprocessor(
-            normalization_method="min-max"
-        )
+        preprocessor = MedicalImagePreprocessor(normalization_method="min-max")
 
         proc_images, proc_masks = preprocessor.preprocess_batch(images, masks)
 

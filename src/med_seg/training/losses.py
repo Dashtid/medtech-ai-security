@@ -9,11 +9,7 @@ from tensorflow import keras
 from tensorflow.keras import backend as K
 
 
-def dice_coefficient(
-    y_true: tf.Tensor,
-    y_pred: tf.Tensor,
-    smooth: float = 1e-7
-) -> tf.Tensor:
+def dice_coefficient(y_true: tf.Tensor, y_pred: tf.Tensor, smooth: float = 1e-7) -> tf.Tensor:
     """Compute DICE coefficient for segmentation.
 
     The DICE coefficient (also known as F1 score or Sørensen–Dice coefficient)
@@ -48,11 +44,7 @@ def dice_coefficient(
     return dice
 
 
-def dice_loss(
-    y_true: tf.Tensor,
-    y_pred: tf.Tensor,
-    smooth: float = 1e-7
-) -> tf.Tensor:
+def dice_loss(y_true: tf.Tensor, y_pred: tf.Tensor, smooth: float = 1e-7) -> tf.Tensor:
     """DICE loss for segmentation (1 - DICE coefficient).
 
     Minimizing this loss is equivalent to maximizing the DICE coefficient.
@@ -70,10 +62,7 @@ def dice_loss(
     return 1.0 - dice_coefficient(y_true, y_pred, smooth)
 
 
-def binary_crossentropy_loss(
-    y_true: tf.Tensor,
-    y_pred: tf.Tensor
-) -> tf.Tensor:
+def binary_crossentropy_loss(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
     """Binary cross-entropy loss.
 
     Standard binary cross-entropy loss, commonly used for binary
@@ -89,10 +78,7 @@ def binary_crossentropy_loss(
     return keras.losses.binary_crossentropy(y_true, y_pred)
 
 
-def combined_loss(
-    dice_weight: float = 0.5,
-    bce_weight: float = 0.5
-):
+def combined_loss(dice_weight: float = 0.5, bce_weight: float = 0.5):
     """Create a combined DICE and binary cross-entropy loss.
 
     Combining DICE loss with binary cross-entropy can provide better
@@ -110,6 +96,7 @@ def combined_loss(
         >>> loss_fn = combined_loss(dice_weight=0.7, bce_weight=0.3)
         >>> model.compile(optimizer='adam', loss=loss_fn)
     """
+
     def loss(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
         dice = dice_loss(y_true, y_pred)
         bce = binary_crossentropy_loss(y_true, y_pred)
@@ -118,10 +105,7 @@ def combined_loss(
     return loss
 
 
-def focal_loss(
-    alpha: float = 0.25,
-    gamma: float = 2.0
-):
+def focal_loss(alpha: float = 0.25, gamma: float = 2.0):
     """Focal loss for addressing class imbalance.
 
     Focal loss down-weights easy examples and focuses training on hard
@@ -139,14 +123,14 @@ def focal_loss(
     Reference:
         Lin et al., "Focal Loss for Dense Object Detection", ICCV 2017.
     """
+
     def loss(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
         # Clip predictions to prevent log(0)
         y_pred = K.clip(y_pred, K.epsilon(), 1 - K.epsilon())
 
         # Calculate focal loss
         alpha_factor = y_true * alpha + (1 - y_true) * (1 - alpha)
-        focal_weight = y_true * K.pow(1 - y_pred, gamma) + \
-                      (1 - y_true) * K.pow(y_pred, gamma)
+        focal_weight = y_true * K.pow(1 - y_pred, gamma) + (1 - y_true) * K.pow(y_pred, gamma)
 
         bce = -(y_true * K.log(y_pred) + (1 - y_true) * K.log(1 - y_pred))
         focal = alpha_factor * focal_weight * bce
@@ -156,11 +140,7 @@ def focal_loss(
     return loss
 
 
-def tversky_loss(
-    alpha: float = 0.5,
-    beta: float = 0.5,
-    smooth: float = 1e-7
-):
+def tversky_loss(alpha: float = 0.5, beta: float = 0.5, smooth: float = 1e-7):
     """Tversky loss - generalization of DICE loss.
 
     The Tversky index is a generalization of the DICE coefficient that
@@ -179,6 +159,7 @@ def tversky_loss(
         Salehi et al., "Tversky loss function for image segmentation using 3D
         fully convolutional deep networks", MICCAI 2017.
     """
+
     def loss(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
         # Flatten tensors
         y_true_flat = K.flatten(y_true)
@@ -190,8 +171,7 @@ def tversky_loss(
         false_pos = K.sum((1 - y_true_flat) * y_pred_flat)
 
         # Tversky index
-        tversky = (true_pos + smooth) / \
-                  (true_pos + alpha * false_pos + beta * false_neg + smooth)
+        tversky = (true_pos + smooth) / (true_pos + alpha * false_pos + beta * false_neg + smooth)
 
         return 1.0 - tversky
 
@@ -199,10 +179,7 @@ def tversky_loss(
 
 
 def focal_tversky_loss(
-    alpha: float = 0.3,
-    beta: float = 0.7,
-    gamma: float = 0.75,
-    smooth: float = 1e-7
+    alpha: float = 0.3, beta: float = 0.7, gamma: float = 0.75, smooth: float = 1e-7
 ):
     """Focal Tversky loss for small lesion segmentation.
 
@@ -228,6 +205,7 @@ def focal_tversky_loss(
         Abraham & Khan, "A Novel Focal Tversky loss function with improved
         Attention U-Net for lesion segmentation", IEEE ISBI 2019.
     """
+
     def loss(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
         # Flatten tensors
         y_true_flat = K.flatten(y_true)
@@ -239,8 +217,9 @@ def focal_tversky_loss(
         false_pos = K.sum((1 - y_true_flat) * y_pred_flat)
 
         # Tversky index
-        tversky_index = (true_pos + smooth) / \
-                       (true_pos + alpha * false_pos + beta * false_neg + smooth)
+        tversky_index = (true_pos + smooth) / (
+            true_pos + alpha * false_pos + beta * false_neg + smooth
+        )
 
         # Apply focal weighting
         focal_tversky = K.pow((1.0 - tversky_index), gamma)
@@ -254,7 +233,7 @@ def dice_focal_loss(
     dice_weight: float = 0.5,
     focal_weight: float = 0.5,
     focal_alpha: float = 0.25,
-    focal_gamma: float = 2.0
+    focal_gamma: float = 2.0,
 ):
     """Combined DICE and Focal loss.
 
@@ -274,6 +253,7 @@ def dice_focal_loss(
     Reference:
         Used by winning team in MICCAI HECKTOR 2020 Challenge.
     """
+
     def loss(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
         # DICE loss component
         dice = dice_loss(y_true, y_pred)
@@ -281,8 +261,9 @@ def dice_focal_loss(
         # Focal loss component
         y_pred_clipped = K.clip(y_pred, K.epsilon(), 1 - K.epsilon())
         alpha_factor = y_true * focal_alpha + (1 - y_true) * (1 - focal_alpha)
-        focal_weight_map = y_true * K.pow(1 - y_pred_clipped, focal_gamma) + \
-                          (1 - y_true) * K.pow(y_pred_clipped, focal_gamma)
+        focal_weight_map = y_true * K.pow(1 - y_pred_clipped, focal_gamma) + (1 - y_true) * K.pow(
+            y_pred_clipped, focal_gamma
+        )
         bce = -(y_true * K.log(y_pred_clipped) + (1 - y_true) * K.log(1 - y_pred_clipped))
         focal = K.mean(alpha_factor * focal_weight_map * bce)
 

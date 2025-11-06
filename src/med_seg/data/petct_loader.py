@@ -52,7 +52,7 @@ class PETCTLoader:
         """
         patient_dirs = []
         for item in self.data_dir.iterdir():
-            if item.is_dir() and item.name.startswith('patient'):
+            if item.is_dir() and item.name.startswith("patient"):
                 # Check if required files exist
                 ct_file = item / self.ct_filename
                 pet_file = item / self.pet_filename
@@ -73,7 +73,9 @@ class PETCTLoader:
             Dictionary with keys: 'ct', 'pet', 'seg', 'spacing', 'origin'
         """
         if patient_idx < 0 or patient_idx >= len(self.patient_dirs):
-            raise IndexError(f"Patient index {patient_idx} out of range [0, {len(self.patient_dirs)-1}]")
+            raise IndexError(
+                f"Patient index {patient_idx} out of range [0, {len(self.patient_dirs)-1}]"
+            )
 
         patient_dir = self.patient_dirs[patient_idx]
 
@@ -97,19 +99,16 @@ class PETCTLoader:
         origin = ct_image.GetOrigin()
 
         return {
-            'ct': ct_array.astype(np.float32),
-            'pet': pet_array.astype(np.float32),
-            'seg': seg_array.astype(np.uint8),
-            'spacing': spacing,
-            'origin': origin,
-            'patient_dir': patient_dir
+            "ct": ct_array.astype(np.float32),
+            "pet": pet_array.astype(np.float32),
+            "seg": seg_array.astype(np.uint8),
+            "spacing": spacing,
+            "origin": origin,
+            "patient_dir": patient_dir,
         }
 
     def extract_2d_slices(
-        self,
-        patient_idx: int,
-        axis: int = 0,
-        slice_indices: Optional[List[int]] = None
+        self, patient_idx: int, axis: int = 0, slice_indices: Optional[List[int]] = None
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Extract 2D slices from patient volumes.
 
@@ -124,9 +123,9 @@ class PETCTLoader:
         """
         data = self.load_patient_3d(patient_idx)
 
-        ct = data['ct']
-        pet = data['pet']
-        seg = data['seg']
+        ct = data["ct"]
+        pet = data["pet"]
+        seg = data["seg"]
 
         # Select slices along specified axis
         if slice_indices is None:
@@ -168,10 +167,7 @@ class PETCTLoader:
         return ct_slices, pet_slices, seg_slices
 
     def get_tumor_slices(
-        self,
-        patient_idx: int,
-        axis: int = 0,
-        min_tumor_voxels: int = 10
+        self, patient_idx: int, axis: int = 0, min_tumor_voxels: int = 10
     ) -> List[int]:
         """Find slice indices containing tumors.
 
@@ -184,7 +180,7 @@ class PETCTLoader:
             List of slice indices with tumors
         """
         data = self.load_patient_3d(patient_idx)
-        seg = data['seg']
+        seg = data["seg"]
 
         # Count tumor voxels per slice
         if axis == 0:  # Axial
@@ -202,10 +198,7 @@ class PETCTLoader:
         return tumor_slice_indices.tolist()
 
     def load_all_2d_slices(
-        self,
-        axis: int = 0,
-        include_empty: bool = False,
-        min_tumor_voxels: int = 10
+        self, axis: int = 0, include_empty: bool = False, min_tumor_voxels: int = 10
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Load all 2D slices from all patients.
 
@@ -225,9 +218,7 @@ class PETCTLoader:
         for patient_idx in range(len(self.patient_dirs)):
             if include_empty:
                 # Get all slices
-                ct_slices, pet_slices, seg_slices = self.extract_2d_slices(
-                    patient_idx, axis=axis
-                )
+                ct_slices, pet_slices, seg_slices = self.extract_2d_slices(patient_idx, axis=axis)
             else:
                 # Get only slices with tumors
                 tumor_indices = self.get_tumor_slices(
@@ -258,38 +249,38 @@ class PETCTLoader:
             Dictionary with dataset statistics
         """
         stats = {
-            'num_patients': len(self.patient_dirs),
-            'ct_range': {'min': float('inf'), 'max': float('-inf')},
-            'pet_range': {'min': float('inf'), 'max': float('-inf')},
-            'tumor_prevalence': [],
-            'volume_shapes': []
+            "num_patients": len(self.patient_dirs),
+            "ct_range": {"min": float("inf"), "max": float("-inf")},
+            "pet_range": {"min": float("inf"), "max": float("-inf")},
+            "tumor_prevalence": [],
+            "volume_shapes": [],
         }
 
         for patient_idx in range(len(self.patient_dirs)):
             data = self.load_patient_3d(patient_idx)
 
-            ct = data['ct']
-            pet = data['pet']
-            seg = data['seg']
+            ct = data["ct"]
+            pet = data["pet"]
+            seg = data["seg"]
 
             # Update ranges
-            stats['ct_range']['min'] = min(stats['ct_range']['min'], float(ct.min()))
-            stats['ct_range']['max'] = max(stats['ct_range']['max'], float(ct.max()))
-            stats['pet_range']['min'] = min(stats['pet_range']['min'], float(pet.min()))
-            stats['pet_range']['max'] = max(stats['pet_range']['max'], float(pet.max()))
+            stats["ct_range"]["min"] = min(stats["ct_range"]["min"], float(ct.min()))
+            stats["ct_range"]["max"] = max(stats["ct_range"]["max"], float(ct.max()))
+            stats["pet_range"]["min"] = min(stats["pet_range"]["min"], float(pet.min()))
+            stats["pet_range"]["max"] = max(stats["pet_range"]["max"], float(pet.max()))
 
             # Tumor prevalence
             total_voxels = seg.size
             tumor_voxels = np.sum(seg > 0)
             prevalence = tumor_voxels / total_voxels * 100
-            stats['tumor_prevalence'].append(prevalence)
+            stats["tumor_prevalence"].append(prevalence)
 
             # Volume shapes
-            stats['volume_shapes'].append(ct.shape)
+            stats["volume_shapes"].append(ct.shape)
 
         # Compute averages
-        stats['avg_tumor_prevalence'] = np.mean(stats['tumor_prevalence'])
-        stats['std_tumor_prevalence'] = np.std(stats['tumor_prevalence'])
+        stats["avg_tumor_prevalence"] = np.mean(stats["tumor_prevalence"])
+        stats["std_tumor_prevalence"] = np.std(stats["tumor_prevalence"])
 
         return stats
 

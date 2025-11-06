@@ -13,7 +13,6 @@ Usage:
 import argparse
 import os
 from pathlib import Path
-from typing import Optional
 import sys
 
 
@@ -40,20 +39,20 @@ def download_medmnist(task: str, output_dir: Path) -> None:
         raise ValueError(f"Unknown MedMNIST task: {task}. Available: {available}")
 
     # Get dataset class
-    DataClass = getattr(medmnist, INFO[task]['python_class'])
+    DataClass = getattr(medmnist, INFO[task]["python_class"])
 
     # Download train/val/test splits
     output_dir = output_dir / "medmnist" / task
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"[*] Downloading train split...")
-    train_dataset = DataClass(split='train', download=True, root=str(output_dir))
+    print("[*] Downloading train split...")
+    train_dataset = DataClass(split="train", download=True, root=str(output_dir))
 
-    print(f"[*] Downloading validation split...")
-    val_dataset = DataClass(split='val', download=True, root=str(output_dir))
+    print("[*] Downloading validation split...")
+    val_dataset = DataClass(split="val", download=True, root=str(output_dir))
 
-    print(f"[*] Downloading test split...")
-    test_dataset = DataClass(split='test', download=True, root=str(output_dir))
+    print("[*] Downloading test split...")
+    test_dataset = DataClass(split="test", download=True, root=str(output_dir))
 
     print(f"[+] Downloaded {task} to {output_dir}")
     print(f"    Train: {len(train_dataset)} samples")
@@ -105,22 +104,24 @@ def download_msd_task(task: str, output_dir: Path) -> None:
             # Fall back to Python requests
             print("[*] wget/curl not available, using Python requests...")
             import requests
-            response = requests.get(base_url, stream=True)
-            total_size = int(response.headers.get('content-length', 0))
 
-            with open(tar_path, 'wb') as f:
+            response = requests.get(base_url, stream=True)
+            total_size = int(response.headers.get("content-length", 0))
+
+            with open(tar_path, "wb") as f:
                 downloaded = 0
                 for chunk in response.iter_content(chunk_size=8192):
                     f.write(chunk)
                     downloaded += len(chunk)
                     if total_size > 0:
                         percent = (downloaded / total_size) * 100
-                        print(f"\r[*] Progress: {percent:.1f}%", end='')
+                        print(f"\r[*] Progress: {percent:.1f}%", end="")
             print()
 
-    print(f"[*] Extracting archive...")
+    print("[*] Extracting archive...")
     import tarfile
-    with tarfile.open(tar_path, 'r') as tar:
+
+    with tarfile.open(tar_path, "r") as tar:
         tar.extractall(output_dir)
 
     print(f"[+] Downloaded and extracted {task_name} to {output_dir / task_name}")
@@ -142,7 +143,7 @@ Examples:
 
   # List available MedMNIST tasks
   python scripts/download_data.py --dataset medmnist --list
-        """
+        """,
     )
 
     parser.add_argument(
@@ -150,24 +151,16 @@ Examples:
         type=str,
         required=True,
         choices=["msd", "medmnist"],
-        help="Dataset to download"
+        help="Dataset to download",
     )
-    parser.add_argument(
-        "--task",
-        type=str,
-        help="Specific task/subset to download"
-    )
+    parser.add_argument("--task", type=str, help="Specific task/subset to download")
     parser.add_argument(
         "--output",
         type=str,
         default="data",
-        help="Output directory for downloaded data (default: data/)"
+        help="Output directory for downloaded data (default: data/)",
     )
-    parser.add_argument(
-        "--list",
-        action="store_true",
-        help="List available tasks and exit"
-    )
+    parser.add_argument("--list", action="store_true", help="List available tasks and exit")
 
     args = parser.parse_args()
     output_dir = Path(args.output)
@@ -176,6 +169,7 @@ Examples:
         if args.dataset == "medmnist":
             try:
                 from medmnist import INFO
+
                 print("[+] Available MedMNIST tasks:")
                 for key, value in INFO.items():
                     print(f"    {key}: {value['task']}")
@@ -183,8 +177,18 @@ Examples:
                 print("[!] MedMNIST not installed. Install with: pip install medmnist")
         elif args.dataset == "msd":
             print("[+] Available Medical Segmentation Decathlon tasks:")
-            tasks = ["liver", "brain", "heart", "hippocampus", "prostate",
-                    "lung", "pancreas", "hepatic", "spleen", "colon"]
+            tasks = [
+                "liver",
+                "brain",
+                "heart",
+                "hippocampus",
+                "prostate",
+                "lung",
+                "pancreas",
+                "hepatic",
+                "spleen",
+                "colon",
+            ]
             for task in tasks:
                 print(f"    {task}")
         return
@@ -198,7 +202,7 @@ Examples:
     elif args.dataset == "msd":
         download_msd_task(args.task, output_dir)
 
-    print(f"\n[+] Download complete!")
+    print("\n[+] Download complete!")
     print(f"[+] Data saved to: {output_dir}")
 
 

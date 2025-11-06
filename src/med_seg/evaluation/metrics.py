@@ -1,15 +1,10 @@
 """Evaluation metrics computation."""
 
-from typing import Dict, List, Tuple
+from typing import Dict, List
 import numpy as np
-from tensorflow.keras import backend as K
 
 
-def dice_coefficient_np(
-    y_true: np.ndarray,
-    y_pred: np.ndarray,
-    smooth: float = 1e-7
-) -> float:
+def dice_coefficient_np(y_true: np.ndarray, y_pred: np.ndarray, smooth: float = 1e-7) -> float:
     """Calculate DICE coefficient for numpy arrays.
 
     Args:
@@ -32,9 +27,7 @@ def dice_coefficient_np(
 
 
 def calculate_dice_scores(
-    predictions: np.ndarray,
-    ground_truth: np.ndarray,
-    thresholds: List[float] = None
+    predictions: np.ndarray, ground_truth: np.ndarray, thresholds: List[float] = None
 ) -> Dict[float, np.ndarray]:
     """Calculate DICE scores at multiple thresholds.
 
@@ -69,9 +62,7 @@ def calculate_dice_scores(
 
 
 def evaluate_segmentation(
-    predictions: np.ndarray,
-    ground_truth: np.ndarray,
-    threshold: float = 0.5
+    predictions: np.ndarray, ground_truth: np.ndarray, threshold: float = 0.5
 ) -> Dict[str, float]:
     """Evaluate segmentation with multiple metrics.
 
@@ -116,10 +107,10 @@ def evaluate_segmentation(
     f1 = 2 * (precision * recall) / (precision + recall + 1e-7)
 
     return {
-        'dice': float(dice),
-        'iou': float(iou),
-        'precision': float(precision),
-        'recall': float(recall),
-        'specificity': float(specificity),
-        'f1': float(f1)
+        "dice": float(dice),
+        "iou": float(iou),
+        "precision": float(precision),
+        "recall": float(recall),
+        "specificity": float(specificity),
+        "f1": float(f1),
     }

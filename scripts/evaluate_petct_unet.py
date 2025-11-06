@@ -13,12 +13,10 @@ from pathlib import Path
 import sys
 
 # Add project to path
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.colors import ListedColormap
-import tensorflow as tf
 from tensorflow import keras
 
 from med_seg.data import PETCTLoader, PETCTPreprocessor
@@ -71,16 +69,16 @@ def calculate_metrics(y_true, y_pred, threshold=0.5):
     precision = TP / (TP + FP + epsilon)
 
     return {
-        'dice': dice,
-        'iou': iou,
-        'sensitivity': sensitivity,
-        'specificity': specificity,
-        'accuracy': accuracy,
-        'precision': precision,
-        'TP': int(TP),
-        'FP': int(FP),
-        'TN': int(TN),
-        'FN': int(FN)
+        "dice": dice,
+        "iou": iou,
+        "sensitivity": sensitivity,
+        "specificity": specificity,
+        "accuracy": accuracy,
+        "precision": precision,
+        "TP": int(TP),
+        "FP": int(FP),
+        "TN": int(TN),
+        "FN": int(FN),
     }
 
 
@@ -99,43 +97,43 @@ def visualize_prediction(ct_slice, pet_slice, ground_truth, prediction, metrics,
 
     # Row 1: Input images
     # CT
-    axes[0, 0].imshow(ct_slice, cmap='gray')
-    axes[0, 0].set_title('CT Input', fontsize=12, fontweight='bold')
-    axes[0, 0].axis('off')
+    axes[0, 0].imshow(ct_slice, cmap="gray")
+    axes[0, 0].set_title("CT Input", fontsize=12, fontweight="bold")
+    axes[0, 0].axis("off")
 
     # PET/SUV
-    axes[0, 1].imshow(pet_slice, cmap='hot')
-    axes[0, 1].set_title('PET/SUV Input', fontsize=12, fontweight='bold')
-    axes[0, 1].axis('off')
+    axes[0, 1].imshow(pet_slice, cmap="hot")
+    axes[0, 1].set_title("PET/SUV Input", fontsize=12, fontweight="bold")
+    axes[0, 1].axis("off")
 
     # Ground Truth
-    axes[0, 2].imshow(ct_slice, cmap='gray')
+    axes[0, 2].imshow(ct_slice, cmap="gray")
     # Overlay ground truth in green with transparency
     gt_overlay = np.zeros((*ground_truth.shape, 4))
     gt_overlay[ground_truth > 0.5] = [0, 1, 0, 0.5]  # Green, 50% transparent
     axes[0, 2].imshow(gt_overlay)
-    axes[0, 2].set_title('Ground Truth Overlay', fontsize=12, fontweight='bold')
-    axes[0, 2].axis('off')
+    axes[0, 2].set_title("Ground Truth Overlay", fontsize=12, fontweight="bold")
+    axes[0, 2].axis("off")
 
     # Row 2: Predictions and comparisons
     # Prediction probability map
-    axes[1, 0].imshow(prediction, cmap='jet', vmin=0, vmax=1)
-    axes[1, 0].set_title('Prediction Probability', fontsize=12, fontweight='bold')
-    axes[1, 0].axis('off')
+    axes[1, 0].imshow(prediction, cmap="jet", vmin=0, vmax=1)
+    axes[1, 0].set_title("Prediction Probability", fontsize=12, fontweight="bold")
+    axes[1, 0].axis("off")
     cbar1 = plt.colorbar(axes[1, 0].images[0], ax=axes[1, 0], fraction=0.046, pad=0.04)
-    cbar1.set_label('Probability', rotation=270, labelpad=15)
+    cbar1.set_label("Probability", rotation=270, labelpad=15)
 
     # Prediction overlay (red)
-    axes[1, 1].imshow(ct_slice, cmap='gray')
+    axes[1, 1].imshow(ct_slice, cmap="gray")
     pred_binary = prediction > 0.5
     pred_overlay = np.zeros((*prediction.shape, 4))
     pred_overlay[pred_binary] = [1, 0, 0, 0.5]  # Red, 50% transparent
     axes[1, 1].imshow(pred_overlay)
-    axes[1, 1].set_title('Prediction Overlay', fontsize=12, fontweight='bold')
-    axes[1, 1].axis('off')
+    axes[1, 1].set_title("Prediction Overlay", fontsize=12, fontweight="bold")
+    axes[1, 1].axis("off")
 
     # Comparison: Ground truth (green) vs Prediction (red)
-    axes[1, 2].imshow(ct_slice, cmap='gray')
+    axes[1, 2].imshow(ct_slice, cmap="gray")
 
     # Create comparison overlay
     comparison_overlay = np.zeros((*ground_truth.shape, 4))
@@ -154,8 +152,8 @@ def visualize_prediction(ct_slice, pet_slice, ground_truth, prediction, metrics,
     comparison_overlay[fn_mask] = [0, 0, 1, 0.6]  # Blue
 
     axes[1, 2].imshow(comparison_overlay)
-    axes[1, 2].set_title('Comparison (TP=Yellow, FP=Red, FN=Blue)', fontsize=12, fontweight='bold')
-    axes[1, 2].axis('off')
+    axes[1, 2].set_title("Comparison (TP=Yellow, FP=Red, FN=Blue)", fontsize=12, fontweight="bold")
+    axes[1, 2].axis("off")
 
     # Add metrics text
     metrics_text = (
@@ -167,14 +165,20 @@ def visualize_prediction(ct_slice, pet_slice, ground_truth, prediction, metrics,
         f"Accuracy: {metrics['accuracy']:.4f}"
     )
 
-    fig.text(0.98, 0.5, metrics_text, fontsize=11, verticalalignment='center',
-             bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8),
-             family='monospace')
+    fig.text(
+        0.98,
+        0.5,
+        metrics_text,
+        fontsize=11,
+        verticalalignment="center",
+        bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.8),
+        family="monospace",
+    )
 
     plt.tight_layout(rect=[0, 0, 0.95, 1])
 
     if output_path:
-        plt.savefig(output_path, dpi=150, bbox_inches='tight')
+        plt.savefig(output_path, dpi=150, bbox_inches="tight")
         plt.close()
     else:
         plt.show()
@@ -187,7 +191,7 @@ def evaluate(args):
         args: Command-line arguments
     """
     print("\n[+] PET/CT U-Net Evaluation")
-    print("="*70)
+    print("=" * 70)
     print(f"Model: {args.model}")
     print(f"Data directory: {args.data_dir}")
     print(f"Output directory: {args.output}")
@@ -196,7 +200,7 @@ def evaluate(args):
     # Create output directory
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
-    (output_dir / 'visualizations').mkdir(exist_ok=True)
+    (output_dir / "visualizations").mkdir(exist_ok=True)
 
     # Load model
     print("[1/5] Loading model...")
@@ -215,7 +219,7 @@ def evaluate(args):
         target_size=(args.image_size, args.image_size),
         ct_window_center=0,
         ct_window_width=400,
-        suv_max=15
+        suv_max=15,
     )
     print(f"  Preprocessor: {preprocessor}")
 
@@ -260,14 +264,18 @@ def evaluate(args):
 
         # Calculate metrics
         metrics = calculate_metrics(seg_processed[:, :, 0], prediction, threshold=0.5)
-        metrics['patient_idx'] = patient_idx
-        metrics['slice_idx'] = slice_idx
+        metrics["patient_idx"] = patient_idx
+        metrics["slice_idx"] = slice_idx
         all_metrics.append(metrics)
 
         # Visualize selected slices
         if idx in vis_indices:
             vis_idx = np.where(vis_indices == idx)[0][0]
-            output_path = output_dir / 'visualizations' / f'prediction_{vis_idx:03d}_patient{patient_idx}_slice{slice_idx}.png'
+            output_path = (
+                output_dir
+                / "visualizations"
+                / f"prediction_{vis_idx:03d}_patient{patient_idx}_slice{slice_idx}.png"
+            )
 
             visualize_prediction(
                 ct_slice=input_processed[:, :, 0],
@@ -275,48 +283,63 @@ def evaluate(args):
                 ground_truth=seg_processed[:, :, 0],
                 prediction=prediction,
                 metrics=metrics,
-                output_path=output_path
+                output_path=output_path,
             )
 
-            print(f"  [{idx+1}/{len(all_slices)}] Patient {patient_idx}, Slice {slice_idx}: "
-                  f"DICE={metrics['dice']:.4f}, IoU={metrics['iou']:.4f}")
+            print(
+                f"  [{idx+1}/{len(all_slices)}] Patient {patient_idx}, Slice {slice_idx}: "
+                f"DICE={metrics['dice']:.4f}, IoU={metrics['iou']:.4f}"
+            )
 
     # Compute aggregate statistics
     print("\n[5/5] Computing aggregate statistics...")
 
     metrics_summary = {}
-    for metric_name in ['dice', 'iou', 'sensitivity', 'specificity', 'accuracy', 'precision']:
+    for metric_name in ["dice", "iou", "sensitivity", "specificity", "accuracy", "precision"]:
         values = [m[metric_name] for m in all_metrics]
         metrics_summary[metric_name] = {
-            'mean': np.mean(values),
-            'std': np.std(values),
-            'median': np.median(values),
-            'min': np.min(values),
-            'max': np.max(values)
+            "mean": np.mean(values),
+            "std": np.std(values),
+            "median": np.median(values),
+            "min": np.min(values),
+            "max": np.max(values),
         }
 
     # Print results
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("[+] Evaluation Results")
-    print("="*70)
+    print("=" * 70)
     print(f"Total slices evaluated: {len(all_metrics)}")
     print()
 
     print("Metric Summary (Mean ± Std):")
     print("-" * 70)
-    for metric_name in ['dice', 'iou', 'sensitivity', 'specificity', 'precision', 'accuracy']:
-        mean = metrics_summary[metric_name]['mean']
-        std = metrics_summary[metric_name]['std']
-        median = metrics_summary[metric_name]['median']
+    for metric_name in ["dice", "iou", "sensitivity", "specificity", "precision", "accuracy"]:
+        mean = metrics_summary[metric_name]["mean"]
+        std = metrics_summary[metric_name]["std"]
+        median = metrics_summary[metric_name]["median"]
         print(f"  {metric_name.upper():15s}: {mean:.4f} ± {std:.4f}  (median: {median:.4f})")
 
     # Save detailed metrics to CSV
     import csv
-    csv_path = output_dir / 'metrics_per_slice.csv'
 
-    with open(csv_path, 'w', newline='') as f:
-        fieldnames = ['patient_idx', 'slice_idx', 'dice', 'iou', 'sensitivity',
-                      'specificity', 'accuracy', 'precision', 'TP', 'FP', 'TN', 'FN']
+    csv_path = output_dir / "metrics_per_slice.csv"
+
+    with open(csv_path, "w", newline="") as f:
+        fieldnames = [
+            "patient_idx",
+            "slice_idx",
+            "dice",
+            "iou",
+            "sensitivity",
+            "specificity",
+            "accuracy",
+            "precision",
+            "TP",
+            "FP",
+            "TN",
+            "FN",
+        ]
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(all_metrics)
@@ -324,18 +347,18 @@ def evaluate(args):
     print(f"\n[+] Detailed metrics saved: {csv_path}")
 
     # Save summary statistics
-    summary_path = output_dir / 'metrics_summary.txt'
-    with open(summary_path, 'w') as f:
+    summary_path = output_dir / "metrics_summary.txt"
+    with open(summary_path, "w") as f:
         f.write("PET/CT U-Net Evaluation Summary\n")
-        f.write("="*70 + "\n")
+        f.write("=" * 70 + "\n")
         f.write(f"Model: {args.model}\n")
         f.write(f"Data: {args.data_dir}\n")
         f.write(f"Total slices: {len(all_metrics)}\n")
         f.write("\n")
 
         f.write("Metric Statistics:\n")
-        f.write("-"*70 + "\n")
-        for metric_name in ['dice', 'iou', 'sensitivity', 'specificity', 'precision', 'accuracy']:
+        f.write("-" * 70 + "\n")
+        for metric_name in ["dice", "iou", "sensitivity", "specificity", "precision", "accuracy"]:
             stats = metrics_summary[metric_name]
             f.write(f"\n{metric_name.upper()}:\n")
             f.write(f"  Mean:   {stats['mean']:.6f}\n")
@@ -351,9 +374,9 @@ def evaluate(args):
     print("\n[*] Creating metric distribution plots...")
     create_distribution_plots(all_metrics, output_dir)
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("[+] Evaluation complete!")
-    print("="*70)
+    print("=" * 70)
 
 
 def create_distribution_plots(all_metrics, output_dir):
@@ -363,7 +386,7 @@ def create_distribution_plots(all_metrics, output_dir):
         all_metrics: List of metric dictionaries
         output_dir: Output directory
     """
-    metrics_to_plot = ['dice', 'iou', 'sensitivity', 'specificity', 'precision']
+    metrics_to_plot = ["dice", "iou", "sensitivity", "specificity", "precision"]
 
     fig, axes = plt.subplots(2, 3, figsize=(15, 10))
     axes = axes.flatten()
@@ -372,14 +395,24 @@ def create_distribution_plots(all_metrics, output_dir):
         values = [m[metric_name] for m in all_metrics]
 
         # Histogram
-        axes[idx].hist(values, bins=20, edgecolor='black', alpha=0.7)
-        axes[idx].axvline(np.mean(values), color='red', linestyle='--',
-                          linewidth=2, label=f'Mean: {np.mean(values):.3f}')
-        axes[idx].axvline(np.median(values), color='green', linestyle='--',
-                          linewidth=2, label=f'Median: {np.median(values):.3f}')
-        axes[idx].set_xlabel(metric_name.upper(), fontweight='bold')
-        axes[idx].set_ylabel('Frequency')
-        axes[idx].set_title(f'{metric_name.upper()} Distribution')
+        axes[idx].hist(values, bins=20, edgecolor="black", alpha=0.7)
+        axes[idx].axvline(
+            np.mean(values),
+            color="red",
+            linestyle="--",
+            linewidth=2,
+            label=f"Mean: {np.mean(values):.3f}",
+        )
+        axes[idx].axvline(
+            np.median(values),
+            color="green",
+            linestyle="--",
+            linewidth=2,
+            label=f"Median: {np.median(values):.3f}",
+        )
+        axes[idx].set_xlabel(metric_name.upper(), fontweight="bold")
+        axes[idx].set_ylabel("Frequency")
+        axes[idx].set_title(f"{metric_name.upper()} Distribution")
         axes[idx].legend()
         axes[idx].grid(True, alpha=0.3)
 
@@ -387,7 +420,7 @@ def create_distribution_plots(all_metrics, output_dir):
     fig.delaxes(axes[-1])
 
     plt.tight_layout()
-    plt.savefig(output_dir / 'metric_distributions.png', dpi=150, bbox_inches='tight')
+    plt.savefig(output_dir / "metric_distributions.png", dpi=150, bbox_inches="tight")
     plt.close()
 
     # Box plots
@@ -399,16 +432,16 @@ def create_distribution_plots(all_metrics, output_dir):
     bp = ax.boxplot(data, labels=labels, patch_artist=True)
 
     # Color the boxes
-    colors = ['lightblue', 'lightgreen', 'lightcoral', 'lightyellow', 'lightpink']
-    for patch, color in zip(bp['boxes'], colors):
+    colors = ["lightblue", "lightgreen", "lightcoral", "lightyellow", "lightpink"]
+    for patch, color in zip(bp["boxes"], colors):
         patch.set_facecolor(color)
 
-    ax.set_ylabel('Score', fontweight='bold')
-    ax.set_title('Segmentation Metrics Distribution', fontsize=14, fontweight='bold')
-    ax.grid(True, alpha=0.3, axis='y')
+    ax.set_ylabel("Score", fontweight="bold")
+    ax.set_title("Segmentation Metrics Distribution", fontsize=14, fontweight="bold")
+    ax.grid(True, alpha=0.3, axis="y")
 
     plt.tight_layout()
-    plt.savefig(output_dir / 'metric_boxplots.png', dpi=150, bbox_inches='tight')
+    plt.savefig(output_dir / "metric_boxplots.png", dpi=150, bbox_inches="tight")
     plt.close()
 
     print(f"  Saved: {output_dir / 'metric_distributions.png'}")
@@ -417,38 +450,21 @@ def create_distribution_plots(all_metrics, output_dir):
 
 def main():
     """Main function."""
-    parser = argparse.ArgumentParser(
-        description="Evaluate trained U-Net on PET/CT data"
+    parser = argparse.ArgumentParser(description="Evaluate trained U-Net on PET/CT data")
+    parser.add_argument(
+        "--model", type=str, required=True, help="Path to trained model (.keras file)"
     )
     parser.add_argument(
-        "--model",
-        type=str,
-        required=True,
-        help="Path to trained model (.keras file)"
+        "--data-dir", type=str, default="data/synthetic", help="Directory containing patient data"
     )
     parser.add_argument(
-        "--data-dir",
-        type=str,
-        default="data/synthetic",
-        help="Directory containing patient data"
+        "--output", type=str, default="results/evaluation", help="Output directory for results"
     )
     parser.add_argument(
-        "--output",
-        type=str,
-        default="results/evaluation",
-        help="Output directory for results"
+        "--image-size", type=int, default=256, help="Input image size (must match training)"
     )
     parser.add_argument(
-        "--image-size",
-        type=int,
-        default=256,
-        help="Input image size (must match training)"
-    )
-    parser.add_argument(
-        "--num-visualizations",
-        type=int,
-        default=10,
-        help="Number of slices to visualize"
+        "--num-visualizations", type=int, default=10, help="Number of slices to visualize"
     )
 
     args = parser.parse_args()
@@ -470,6 +486,7 @@ def main():
     except Exception as e:
         print(f"\n[!] Evaluation failed: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 

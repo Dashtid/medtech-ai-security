@@ -21,6 +21,7 @@ try:
 except ImportError:
     print("[!] tcia-utils not installed. Installing...")
     import subprocess
+
     subprocess.check_call([sys.executable, "-m", "pip", "install", "tcia-utils"])
     from tcia_utils import nbia
 
@@ -46,7 +47,7 @@ def explore_tcia_collection(collection_name: str = "FDG-PET-CT-Lesions"):
 
         # Show modalities available
         if series:
-            modalities = set(s['Modality'] for s in series if 'Modality' in s)
+            modalities = set(s["Modality"] for s in series if "Modality" in s)
             print(f"[*] Available modalities: {', '.join(modalities)}")
 
         return patients, series
@@ -59,14 +60,12 @@ def explore_tcia_collection(collection_name: str = "FDG-PET-CT-Lesions"):
             collections = nbia.getCollections()
             for col in collections[:20]:  # Show first 20
                 print(f"    - {col}")
-        except:
-            pass
+        except Exception as e:
+            print(f"    [!] Could not fetch collections: {e}")
         return None, None
 
 
-def download_patient_subset(collection_name: str,
-                            output_dir: Path,
-                            max_patients: int = 10):
+def download_patient_subset(collection_name: str, output_dir: Path, max_patients: int = 10):
     """Download subset of patients from TCIA.
 
     Args:
@@ -94,14 +93,11 @@ def download_patient_subset(collection_name: str,
         print(f"[*] Downloading {len(patients_to_download)} patients...")
 
         for idx, patient in enumerate(patients_to_download, 1):
-            patient_id = patient.get('PatientId', 'unknown')
+            patient_id = patient.get("PatientId", "unknown")
             print(f"\n[{idx}/{len(patients_to_download)}] Patient: {patient_id}")
 
             # Get series for this patient
-            series = nbia.getSeries(
-                collection=collection_name,
-                patientId=patient_id
-            )
+            series = nbia.getSeries(collection=collection_name, patientId=patient_id)
 
             if not series:
                 print(f"    [!] No series found for patient {patient_id}")
@@ -111,8 +107,8 @@ def download_patient_subset(collection_name: str,
 
             # Download each series
             for series_idx, s in enumerate(series, 1):
-                series_uid = s.get('SeriesInstanceUID')
-                modality = s.get('Modality', 'unknown')
+                series_uid = s.get("SeriesInstanceUID")
+                modality = s.get("Modality", "unknown")
 
                 if not series_uid:
                     continue
@@ -125,17 +121,13 @@ def download_patient_subset(collection_name: str,
 
                 try:
                     # Download series
-                    nbia.downloadSeries(
-                        series_uid,
-                        path=str(patient_dir),
-                        input_type="list"
-                    )
+                    nbia.downloadSeries(series_uid, path=str(patient_dir), input_type="list")
                     print(f"        [+] Downloaded to {patient_dir}")
 
                 except Exception as e:
                     print(f"        [!] Error downloading series: {e}")
 
-        print(f"\n[+] Download complete!")
+        print("\n[+] Download complete!")
         print(f"    Data saved to: {output_dir}")
 
     except Exception as e:
@@ -148,31 +140,23 @@ def download_patient_subset(collection_name: str,
 
 def main():
     """Main function."""
-    parser = argparse.ArgumentParser(
-        description="Download FDG-PET/CT data from TCIA"
-    )
+    parser = argparse.ArgumentParser(description="Download FDG-PET/CT data from TCIA")
     parser.add_argument(
-        "--output",
-        type=str,
-        default="data/tcia",
-        help="Output directory for downloaded data"
+        "--output", type=str, default="data/tcia", help="Output directory for downloaded data"
     )
     parser.add_argument(
         "--max-patients",
         type=int,
         default=10,
-        help="Maximum number of patients to download (default: 10)"
+        help="Maximum number of patients to download (default: 10)",
     )
     parser.add_argument(
-        "--collection",
-        type=str,
-        default="FDG-PET-CT-Lesions",
-        help="TCIA collection name"
+        "--collection", type=str, default="FDG-PET-CT-Lesions", help="TCIA collection name"
     )
     parser.add_argument(
         "--explore-only",
         action="store_true",
-        help="Only explore collection metadata, don't download"
+        help="Only explore collection metadata, don't download",
     )
 
     args = parser.parse_args()
@@ -199,7 +183,7 @@ def main():
     download_patient_subset(
         collection_name=args.collection,
         output_dir=Path(args.output),
-        max_patients=args.max_patients
+        max_patients=args.max_patients,
     )
 
 

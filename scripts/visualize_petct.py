@@ -69,9 +69,9 @@ def create_pet_colormap():
     Returns:
         Matplotlib colormap
     """
-    colors = ['black', 'darkblue', 'blue', 'cyan', 'green', 'yellow', 'orange', 'red', 'white']
+    colors = ["black", "darkblue", "blue", "cyan", "green", "yellow", "orange", "red", "white"]
     n_bins = 256
-    cmap = LinearSegmentedColormap.from_list('pet', colors, N=n_bins)
+    cmap = LinearSegmentedColormap.from_list("pet", colors, N=n_bins)
     return cmap
 
 
@@ -90,46 +90,47 @@ def visualize_slice(ct_slice, suv_slice, seg_slice, slice_idx, output_path=None)
     # CT
     ax = axes[0, 0]
     ct_norm = normalize_ct(ct_slice)
-    ax.imshow(ct_norm, cmap='gray', origin='lower')
-    ax.set_title(f'CT (Slice {slice_idx})', fontsize=12, weight='bold')
-    ax.axis('off')
+    ax.imshow(ct_norm, cmap="gray", origin="lower")
+    ax.set_title(f"CT (Slice {slice_idx})", fontsize=12, weight="bold")
+    ax.axis("off")
 
     # PET/SUV
     ax = axes[0, 1]
     suv_norm = normalize_suv(suv_slice)
     pet_cmap = create_pet_colormap()
-    im_pet = ax.imshow(suv_norm, cmap=pet_cmap, origin='lower')
-    ax.set_title(f'PET/SUV (Slice {slice_idx})', fontsize=12, weight='bold')
-    ax.axis('off')
-    plt.colorbar(im_pet, ax=ax, fraction=0.046, pad=0.04, label='SUV (norm)')
+    im_pet = ax.imshow(suv_norm, cmap=pet_cmap, origin="lower")
+    ax.set_title(f"PET/SUV (Slice {slice_idx})", fontsize=12, weight="bold")
+    ax.axis("off")
+    plt.colorbar(im_pet, ax=ax, fraction=0.046, pad=0.04, label="SUV (norm)")
 
     # CT + Segmentation overlay
     ax = axes[1, 0]
-    ax.imshow(ct_norm, cmap='gray', origin='lower')
+    ax.imshow(ct_norm, cmap="gray", origin="lower")
     # Overlay segmentation in red
     seg_overlay = np.ma.masked_where(seg_slice == 0, seg_slice)
-    ax.imshow(seg_overlay, cmap='Reds', alpha=0.5, origin='lower')
-    ax.set_title('CT + Segmentation', fontsize=12, weight='bold')
-    ax.axis('off')
+    ax.imshow(seg_overlay, cmap="Reds", alpha=0.5, origin="lower")
+    ax.set_title("CT + Segmentation", fontsize=12, weight="bold")
+    ax.axis("off")
 
     # PET + Segmentation overlay
     ax = axes[1, 1]
-    ax.imshow(suv_norm, cmap=pet_cmap, origin='lower')
+    ax.imshow(suv_norm, cmap=pet_cmap, origin="lower")
     # Overlay segmentation contours
-    from matplotlib.patches import Circle
+
     if seg_slice.max() > 0:
         # Draw contours
         from scipy import ndimage
+
         contours = ndimage.binary_dilation(seg_slice) ^ seg_slice
         contours_overlay = np.ma.masked_where(contours == 0, contours)
-        ax.imshow(contours_overlay, cmap='spring', alpha=1.0, origin='lower')
-    ax.set_title('PET + Segmentation Contours', fontsize=12, weight='bold')
-    ax.axis('off')
+        ax.imshow(contours_overlay, cmap="spring", alpha=1.0, origin="lower")
+    ax.set_title("PET + Segmentation Contours", fontsize=12, weight="bold")
+    ax.axis("off")
 
     plt.tight_layout()
 
     if output_path:
-        plt.savefig(output_path, dpi=150, bbox_inches='tight')
+        plt.savefig(output_path, dpi=150, bbox_inches="tight")
         print(f"    [+] Saved: {output_path}")
     else:
         plt.show()
@@ -174,9 +175,9 @@ def visualize_patient(patient_dir, output_dir=None, num_slices=5):
     print(f"\n[*] Visualizing {patient_dir.name}...")
 
     # Load volumes
-    ct = load_nifti(patient_dir / 'CT.nii.gz')
-    suv = load_nifti(patient_dir / 'SUV.nii.gz')
-    seg = load_nifti(patient_dir / 'SEG.nii.gz')
+    ct = load_nifti(patient_dir / "CT.nii.gz")
+    suv = load_nifti(patient_dir / "SUV.nii.gz")
+    seg = load_nifti(patient_dir / "SEG.nii.gz")
 
     print(f"    Loaded volumes: CT {ct.shape}, SUV {suv.shape}, SEG {seg.shape}")
 
@@ -201,35 +202,24 @@ def visualize_patient(patient_dir, output_dir=None, num_slices=5):
 
         visualize_slice(ct_slice, suv_slice, seg_slice, slice_idx, output_path)
 
-    print(f"    [+] Visualization complete!")
+    print("    [+] Visualization complete!")
 
 
 def main():
     """Main function."""
-    parser = argparse.ArgumentParser(
-        description="Visualize PET/CT data with segmentation"
-    )
+    parser = argparse.ArgumentParser(description="Visualize PET/CT data with segmentation")
     parser.add_argument(
-        "--data-dir",
-        type=str,
-        required=True,
-        help="Directory containing patient folders"
+        "--data-dir", type=str, required=True, help="Directory containing patient folders"
     )
+    parser.add_argument("--patient", type=str, help="Specific patient to visualize (default: all)")
     parser.add_argument(
-        "--patient",
-        type=str,
-        help="Specific patient to visualize (default: all)"
-    )
-    parser.add_argument(
-        "--output",
-        type=str,
-        help="Output directory for saving figures (default: display only)"
+        "--output", type=str, help="Output directory for saving figures (default: display only)"
     )
     parser.add_argument(
         "--num-slices",
         type=int,
         default=5,
-        help="Number of slices to visualize per patient (default: 5)"
+        help="Number of slices to visualize per patient (default: 5)",
     )
 
     args = parser.parse_args()
@@ -242,7 +232,7 @@ def main():
         return
 
     print("[+] PET/CT Visualization Tool")
-    print("="*70)
+    print("=" * 70)
     print(f"Data directory: {data_dir}")
     if output_dir:
         print(f"Output directory: {output_dir}")
@@ -255,8 +245,9 @@ def main():
     if args.patient:
         patient_dirs = [data_dir / args.patient]
     else:
-        patient_dirs = sorted([d for d in data_dir.iterdir()
-                               if d.is_dir() and d.name.startswith('patient')])
+        patient_dirs = sorted(
+            [d for d in data_dir.iterdir() if d.is_dir() and d.name.startswith("patient")]
+        )
 
     if not patient_dirs:
         print(f"[!] No patient directories found in {data_dir}")
@@ -272,7 +263,7 @@ def main():
 
         visualize_patient(patient_dir, output_dir, args.num_slices)
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print(f"[+] Complete! Visualized {len(patient_dirs)} patient(s)")
     if output_dir:
         print(f"[+] Figures saved to: {output_dir}")

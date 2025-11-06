@@ -28,7 +28,7 @@ class PETCTPreprocessor:
         ct_window_center: float = 0.0,
         ct_window_width: float = 400.0,
         suv_max: float = 15.0,
-        normalize_method: str = "min-max"
+        normalize_method: str = "min-max",
     ):
         self.target_size = target_size
         self.ct_window_center = ct_window_center
@@ -67,10 +67,7 @@ class PETCTPreprocessor:
         return suv_normalized.astype(np.float32)
 
     def resize_2d(
-        self,
-        ct: np.ndarray,
-        suv: np.ndarray,
-        seg: Optional[np.ndarray] = None
+        self, ct: np.ndarray, suv: np.ndarray, seg: Optional[np.ndarray] = None
     ) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
         """Resize 2D slices to target size.
 
@@ -88,23 +85,17 @@ class PETCTPreprocessor:
         try:
             from skimage.transform import resize as sk_resize
         except ImportError:
-            raise ImportError("scikit-image required for resizing. Install with: pip install scikit-image")
+            raise ImportError(
+                "scikit-image required for resizing. Install with: pip install scikit-image"
+            )
 
         # Resize CT and SUV with bilinear interpolation
         ct_resized = sk_resize(
-            ct,
-            self.target_size,
-            order=1,  # Bilinear
-            preserve_range=True,
-            anti_aliasing=True
+            ct, self.target_size, order=1, preserve_range=True, anti_aliasing=True  # Bilinear
         ).astype(ct.dtype)
 
         suv_resized = sk_resize(
-            suv,
-            self.target_size,
-            order=1,  # Bilinear
-            preserve_range=True,
-            anti_aliasing=True
+            suv, self.target_size, order=1, preserve_range=True, anti_aliasing=True  # Bilinear
         ).astype(suv.dtype)
 
         # Resize segmentation with nearest neighbor
@@ -115,16 +106,13 @@ class PETCTPreprocessor:
                 self.target_size,
                 order=0,  # Nearest neighbor
                 preserve_range=True,
-                anti_aliasing=False
+                anti_aliasing=False,
             ).astype(seg.dtype)
 
         return ct_resized, suv_resized, seg_resized
 
     def preprocess_2d_slice(
-        self,
-        ct: np.ndarray,
-        suv: np.ndarray,
-        seg: Optional[np.ndarray] = None
+        self, ct: np.ndarray, suv: np.ndarray, seg: Optional[np.ndarray] = None
     ) -> Tuple[np.ndarray, Optional[np.ndarray]]:
         """Preprocess a single 2D slice.
 
@@ -159,10 +147,7 @@ class PETCTPreprocessor:
         return multi_modal_input, seg_processed
 
     def preprocess_batch_2d(
-        self,
-        ct_batch: np.ndarray,
-        suv_batch: np.ndarray,
-        seg_batch: Optional[np.ndarray] = None
+        self, ct_batch: np.ndarray, suv_batch: np.ndarray, seg_batch: Optional[np.ndarray] = None
     ) -> Tuple[np.ndarray, Optional[np.ndarray]]:
         """Preprocess a batch of 2D slices.
 
@@ -201,10 +186,7 @@ class PETCTPreprocessor:
         return inputs_batch, segs_batch
 
     def preprocess_3d_volume(
-        self,
-        ct: np.ndarray,
-        suv: np.ndarray,
-        seg: Optional[np.ndarray] = None
+        self, ct: np.ndarray, suv: np.ndarray, seg: Optional[np.ndarray] = None
     ) -> Tuple[np.ndarray, Optional[np.ndarray]]:
         """Preprocess a 3D volume.
 
@@ -241,12 +223,12 @@ class PETCTPreprocessor:
             Dictionary of window presets
         """
         return {
-            'soft_tissue': {'center': 0, 'width': 400},
-            'lung': {'center': -600, 'width': 1500},
-            'bone': {'center': 300, 'width': 1500},
-            'brain': {'center': 40, 'width': 80},
-            'liver': {'center': 60, 'width': 150},
-            'mediastinum': {'center': 50, 'width': 350}
+            "soft_tissue": {"center": 0, "width": 400},
+            "lung": {"center": -600, "width": 1500},
+            "bone": {"center": 300, "width": 1500},
+            "brain": {"center": 40, "width": 80},
+            "liver": {"center": 60, "width": 150},
+            "mediastinum": {"center": 50, "width": 350},
         }
 
     def set_ct_window(self, preset: str):
@@ -258,12 +240,12 @@ class PETCTPreprocessor:
         presets = self.get_ct_window_presets()
 
         if preset not in presets:
-            available = ', '.join(presets.keys())
+            available = ", ".join(presets.keys())
             raise ValueError(f"Unknown preset '{preset}'. Available: {available}")
 
         window = presets[preset]
-        self.ct_window_center = window['center']
-        self.ct_window_width = window['width']
+        self.ct_window_center = window["center"]
+        self.ct_window_width = window["width"]
 
         # Update window bounds
         self.ct_min = self.ct_window_center - self.ct_window_width / 2

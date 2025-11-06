@@ -1,6 +1,5 @@
 """Data loading utilities for medical imaging datasets."""
 
-import os
 from pathlib import Path
 from typing import List, Tuple, Optional
 import numpy as np
@@ -50,7 +49,7 @@ class MedicalImageLoader:
         Returns:
             Image as numpy array (H, W) or (H, W, C)
         """
-        if image_path.endswith(('.nii', '.nii.gz')):
+        if image_path.endswith((".nii", ".nii.gz")):
             # Load NIfTI file
             image = sitk.ReadImage(image_path)
             image = sitk.GetArrayFromImage(image)
@@ -87,9 +86,7 @@ class MedicalImageLoader:
         Returns:
             List of image paths
         """
-        image_paths = sorted(
-            self.data_dir.glob(f"*{self.image_extension}")
-        )
+        image_paths = sorted(self.data_dir.glob(f"*{self.image_extension}"))
         return image_paths
 
     def get_mask_paths(self) -> Optional[List[Path]]:
@@ -101,14 +98,11 @@ class MedicalImageLoader:
         if not self.mask_dir:
             return None
 
-        mask_paths = sorted(
-            self.mask_dir.glob(f"*{self.mask_extension}")
-        )
+        mask_paths = sorted(self.mask_dir.glob(f"*{self.mask_extension}"))
         return mask_paths
 
     def load_dataset_2d(
-        self,
-        max_samples: Optional[int] = None
+        self, max_samples: Optional[int] = None
     ) -> Tuple[np.ndarray, Optional[np.ndarray]]:
         """Load entire 2D dataset into memory.
 
@@ -135,8 +129,7 @@ class MedicalImageLoader:
             # Load corresponding mask if available
             if self.mask_dir:
                 mask_path = self.mask_dir / img_path.name.replace(
-                    self.image_extension,
-                    self.mask_extension
+                    self.image_extension, self.mask_extension
                 )
                 if mask_path.exists():
                     mask = self.load_2d_mask(str(mask_path))

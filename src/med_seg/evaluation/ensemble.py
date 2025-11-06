@@ -1,15 +1,12 @@
 """Multi-expert ensemble evaluation for medical image segmentation."""
 
-from typing import List, Dict, Tuple
+from typing import List, Dict
 import numpy as np
 
-from med_seg.evaluation.metrics import calculate_dice_scores, dice_coefficient_np
+from med_seg.evaluation.metrics import calculate_dice_scores
 
 
-def ensemble_predictions(
-    predictions: List[np.ndarray],
-    method: str = 'mean'
-) -> np.ndarray:
+def ensemble_predictions(predictions: List[np.ndarray], method: str = "mean") -> np.ndarray:
     """Ensemble multiple predictions.
 
     Args:
@@ -21,13 +18,13 @@ def ensemble_predictions(
     """
     predictions_array = np.array(predictions)
 
-    if method == 'mean':
+    if method == "mean":
         return np.mean(predictions_array, axis=0)
-    elif method == 'median':
+    elif method == "median":
         return np.median(predictions_array, axis=0)
-    elif method == 'max':
+    elif method == "max":
         return np.max(predictions_array, axis=0)
-    elif method == 'vote':
+    elif method == "vote":
         # Majority voting (assumes binary predictions)
         return (np.mean(predictions_array, axis=0) >= 0.5).astype(np.float32)
     else:
@@ -38,7 +35,7 @@ def multi_expert_evaluation(
     expert_predictions: List[np.ndarray],
     expert_ground_truths: List[np.ndarray],
     task_id: int = 1,
-    thresholds: List[float] = None
+    thresholds: List[float] = None,
 ) -> Dict[str, any]:
     """Evaluate multi-expert segmentations as in QUBIQ challenge.
 
@@ -70,10 +67,10 @@ def multi_expert_evaluation(
     print(f"[i] Task ID: {task_id}")
 
     # Ensemble predictions (average across experts)
-    ensembled_preds = ensemble_predictions(expert_predictions, method='mean')
+    ensembled_preds = ensemble_predictions(expert_predictions, method="mean")
 
     # Ensemble ground truths (average across experts)
-    ensembled_gt = ensemble_predictions(expert_ground_truths, method='mean')
+    ensembled_gt = ensemble_predictions(expert_ground_truths, method="mean")
 
     # Calculate DICE scores at all thresholds
     dice_results = calculate_dice_scores(ensembled_preds, ensembled_gt, thresholds)
@@ -94,14 +91,14 @@ def multi_expert_evaluation(
 
     print(f"[+] Average DICE score: {average_dice:.4f}")
     print(f"[+] Best threshold: {best_threshold:.2f} (DICE: {best_dice:.4f})")
-    print(f"\n[i] DICE scores per threshold:")
+    print("\n[i] DICE scores per threshold:")
     for threshold, avg_dice in zip(thresholds, threshold_averages):
         print(f"    Threshold {threshold:.1f}: {avg_dice:.4f}")
 
     return {
-        'average_dice': float(average_dice),
-        'dice_matrix': dice_matrix,
-        'best_threshold': float(best_threshold),
-        'best_dice': float(best_dice),
-        'threshold_averages': dict(zip(thresholds, threshold_averages.tolist()))
+        "average_dice": float(average_dice),
+        "dice_matrix": dice_matrix,
+        "best_threshold": float(best_threshold),
+        "best_dice": float(best_dice),
+        "threshold_averages": dict(zip(thresholds, threshold_averages.tolist())),
     }

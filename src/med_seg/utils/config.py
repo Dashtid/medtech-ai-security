@@ -19,7 +19,7 @@ def load_config(config_path: str) -> Dict[str, Any]:
     if not config_file.exists():
         raise FileNotFoundError(f"Configuration file not found: {config_path}")
 
-    with open(config_file, 'r') as f:
+    with open(config_file, "r") as f:
         config = yaml.safe_load(f)
 
     return config
@@ -35,7 +35,7 @@ def save_config(config: Dict[str, Any], output_path: str):
     output_file = Path(output_path)
     output_file.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(output_file, 'w') as f:
+    with open(output_file, "w") as f:
         yaml.dump(config, f, default_flow_style=False, sort_keys=False)
 
     print(f"[+] Configuration saved to {output_path}")

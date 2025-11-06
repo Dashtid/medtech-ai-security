@@ -69,13 +69,12 @@ class MedicalImagePreprocessor:
         try:
             from skimage.transform import resize as sk_resize
         except ImportError:
-            raise ImportError("scikit-image required for resizing. Install with: pip install scikit-image")
+            raise ImportError(
+                "scikit-image required for resizing. Install with: pip install scikit-image"
+            )
 
         resized_image = sk_resize(
-            image,
-            self.target_size,
-            preserve_range=True,
-            anti_aliasing=True
+            image, self.target_size, preserve_range=True, anti_aliasing=True
         ).astype(image.dtype)
 
         resized_mask = None
@@ -85,15 +84,13 @@ class MedicalImagePreprocessor:
                 self.target_size,
                 order=0,  # Nearest neighbor for masks
                 preserve_range=True,
-                anti_aliasing=False
+                anti_aliasing=False,
             ).astype(mask.dtype)
 
         return resized_image, resized_mask
 
     def preprocess(
-        self,
-        image: np.ndarray,
-        mask: Optional[np.ndarray] = None
+        self, image: np.ndarray, mask: Optional[np.ndarray] = None
     ) -> Tuple[np.ndarray, Optional[np.ndarray]]:
         """Apply full preprocessing pipeline.
 
@@ -121,9 +118,7 @@ class MedicalImagePreprocessor:
         return image, mask
 
     def preprocess_batch(
-        self,
-        images: np.ndarray,
-        masks: Optional[np.ndarray] = None
+        self, images: np.ndarray, masks: Optional[np.ndarray] = None
     ) -> Tuple[np.ndarray, Optional[np.ndarray]]:
         """Preprocess a batch of images and masks.
 

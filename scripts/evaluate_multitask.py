@@ -21,11 +21,10 @@ from pathlib import Path
 import sys
 import json
 import numpy as np
-from typing import Dict, List
+from typing import Dict
 
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-import tensorflow as tf
 from tensorflow import keras
 import matplotlib.pyplot as plt
 from tqdm import tqdm
@@ -65,18 +64,16 @@ def evaluate_segmentation(y_true: np.ndarray, y_pred: np.ndarray) -> Dict:
     accuracy = (tp + tn) / (tp + tn + fp + fn)
 
     return {
-        'dice': float(dice),
-        'iou': float(iou),
-        'sensitivity': float(sensitivity),
-        'specificity': float(specificity),
-        'precision': float(precision),
-        'accuracy': float(accuracy)
+        "dice": float(dice),
+        "iou": float(iou),
+        "sensitivity": float(sensitivity),
+        "specificity": float(specificity),
+        "precision": float(precision),
+        "accuracy": float(accuracy),
     }
 
 
-def calculate_c_index(times: np.ndarray,
-                     events: np.ndarray,
-                     risk_scores: np.ndarray) -> float:
+def calculate_c_index(times: np.ndarray, events: np.ndarray, risk_scores: np.ndarray) -> float:
     """Calculate concordance index for survival prediction.
 
     Args:
@@ -110,9 +107,7 @@ def calculate_c_index(times: np.ndarray,
     return c_index
 
 
-def mc_dropout_predictions(model: keras.Model,
-                          x: np.ndarray,
-                          n_samples: int = 30) -> Dict:
+def mc_dropout_predictions(model: keras.Model, x: np.ndarray, n_samples: int = 30) -> Dict:
     """Get predictions with uncertainty via MC Dropout.
 
     Args:
@@ -128,23 +123,21 @@ def mc_dropout_predictions(model: keras.Model,
 
     for _ in range(n_samples):
         pred = model(x, training=True)
-        seg_preds.append(pred['segmentation'].numpy())
-        surv_preds.append(pred['survival'].numpy())
+        seg_preds.append(pred["segmentation"].numpy())
+        surv_preds.append(pred["survival"].numpy())
 
     seg_preds = np.array(seg_preds)  # (n_samples, batch, H, W, 1)
     surv_preds = np.array(surv_preds)  # (n_samples, batch, 1)
 
     return {
-        'seg_mean': np.mean(seg_preds, axis=0),
-        'seg_std': np.std(seg_preds, axis=0),
-        'surv_mean': np.mean(surv_preds, axis=0),
-        'surv_std': np.std(surv_preds, axis=0)
+        "seg_mean": np.mean(seg_preds, axis=0),
+        "seg_std": np.std(seg_preds, axis=0),
+        "surv_mean": np.mean(surv_preds, axis=0),
+        "surv_std": np.std(surv_preds, axis=0),
     }
 
 
-def evaluate_model(model: keras.Model,
-                  data_gen,
-                  n_mc_samples: int = 30) -> Dict:
+def evaluate_model(model: keras.Model, data_gen, n_mc_samples: int = 30) -> Dict:
     """Comprehensive model evaluation.
 
     Args:
@@ -158,8 +151,8 @@ def evaluate_model(model: keras.Model,
     print("[*] Running evaluation...")
 
     seg_metrics_list = []
-    survival_data = {'times': [], 'events': [], 'risks': [], 'risk_stds': []}
-    uncertainty_data = {'seg_stds': [], 'seg_errors': []}
+    survival_data = {"times": [], "events": [], "risks": [], "risk_stds": []}
+    uncertainty_data = {"seg_stds": [], "seg_errors": []}
 
     for batch_idx in tqdm(range(len(data_gen)), desc="Evaluating"):
         x_batch, y_batch = data_gen[batch_idx]
@@ -170,80 +163,80 @@ def evaluate_model(model: keras.Model,
         # Evaluate each sample in batch
         for i in range(len(x_batch)):
             # Segmentation
-            y_true_seg = y_batch['segmentation'][i, ..., 0]
-            y_pred_seg = mc_preds['seg_mean'][i, ..., 0]
-            y_std_seg = mc_preds['seg_std'][i, ..., 0]
+            y_true_seg = y_batch["segmentation"][i, ..., 0]
+            y_pred_seg = mc_preds["seg_mean"][i, ..., 0]
+            y_std_seg = mc_preds["seg_std"][i, ..., 0]
 
             seg_metrics = evaluate_segmentation(y_true_seg, y_pred_seg)
             seg_metrics_list.append(seg_metrics)
 
             # Uncertainty analysis
             seg_error = np.abs(y_pred_seg - y_true_seg)
-            uncertainty_data['seg_stds'].extend(y_std_seg.flatten())
-            uncertainty_data['seg_errors'].extend(seg_error.flatten())
+            uncertainty_data["seg_stds"].extend(y_std_seg.flatten())
+            uncertainty_data["seg_errors"].extend(seg_error.flatten())
 
             # Survival
-            time, event = y_batch['survival'][i]
-            risk = mc_preds['surv_mean'][i, 0]
-            risk_std = mc_preds['surv_std'][i, 0]
+            time, event = y_batch["survival"][i]
+            risk = mc_preds["surv_mean"][i, 0]
+            risk_std = mc_preds["surv_std"][i, 0]
 
-            survival_data['times'].append(time)
-            survival_data['events'].append(event)
-            survival_data['risks'].append(risk)
-            survival_data['risk_stds'].append(risk_std)
+            survival_data["times"].append(time)
+            survival_data["events"].append(event)
+            survival_data["risks"].append(risk)
+            survival_data["risk_stds"].append(risk_std)
 
     # Aggregate segmentation metrics
     seg_results = {}
     for key in seg_metrics_list[0].keys():
         values = [m[key] for m in seg_metrics_list]
         seg_results[key] = {
-            'mean': float(np.mean(values)),
-            'std': float(np.std(values)),
-            'median': float(np.median(values)),
-            'min': float(np.min(values)),
-            'max': float(np.max(values))
+            "mean": float(np.mean(values)),
+            "std": float(np.std(values)),
+            "median": float(np.median(values)),
+            "min": float(np.min(values)),
+            "max": float(np.max(values)),
         }
 
     # Survival C-index
     c_index = calculate_c_index(
-        np.array(survival_data['times']),
-        np.array(survival_data['events']),
-        np.array(survival_data['risks'])
+        np.array(survival_data["times"]),
+        np.array(survival_data["events"]),
+        np.array(survival_data["risks"]),
     )
 
     # Uncertainty calibration
-    uncertainty_data['seg_stds'] = np.array(uncertainty_data['seg_stds'])
-    uncertainty_data['seg_errors'] = np.array(uncertainty_data['seg_errors'])
+    uncertainty_data["seg_stds"] = np.array(uncertainty_data["seg_stds"])
+    uncertainty_data["seg_errors"] = np.array(uncertainty_data["seg_errors"])
 
     # Expected calibration error (ECE) - simplified
     n_bins = 10
     bin_boundaries = np.linspace(0, 1, n_bins + 1)
     ece = 0
     for i in range(n_bins):
-        mask = (uncertainty_data['seg_stds'] >= bin_boundaries[i]) & \
-               (uncertainty_data['seg_stds'] < bin_boundaries[i+1])
+        mask = (uncertainty_data["seg_stds"] >= bin_boundaries[i]) & (
+            uncertainty_data["seg_stds"] < bin_boundaries[i + 1]
+        )
         if np.sum(mask) > 0:
-            avg_confidence = np.mean(uncertainty_data['seg_stds'][mask])
-            avg_error = np.mean(uncertainty_data['seg_errors'][mask])
+            avg_confidence = np.mean(uncertainty_data["seg_stds"][mask])
+            avg_error = np.mean(uncertainty_data["seg_errors"][mask])
             ece += np.abs(avg_confidence - avg_error) * np.sum(mask)
-    ece /= len(uncertainty_data['seg_stds'])
+    ece /= len(uncertainty_data["seg_stds"])
 
     results = {
-        'segmentation': seg_results,
-        'survival': {
-            'c_index': float(c_index),
-            'mean_risk': float(np.mean(survival_data['risks'])),
-            'std_risk': float(np.std(survival_data['risks'])),
-            'mean_uncertainty': float(np.mean(survival_data['risk_stds']))
+        "segmentation": seg_results,
+        "survival": {
+            "c_index": float(c_index),
+            "mean_risk": float(np.mean(survival_data["risks"])),
+            "std_risk": float(np.std(survival_data["risks"])),
+            "mean_uncertainty": float(np.mean(survival_data["risk_stds"])),
         },
-        'uncertainty': {
-            'ece': float(ece),
-            'mean_seg_uncertainty': float(np.mean(uncertainty_data['seg_stds'])),
-            'correlation_uncertainty_error': float(np.corrcoef(
-                uncertainty_data['seg_stds'],
-                uncertainty_data['seg_errors']
-            )[0, 1])
-        }
+        "uncertainty": {
+            "ece": float(ece),
+            "mean_seg_uncertainty": float(np.mean(uncertainty_data["seg_stds"])),
+            "correlation_uncertainty_error": float(
+                np.corrcoef(uncertainty_data["seg_stds"], uncertainty_data["seg_errors"])[0, 1]
+            ),
+        },
     }
 
     return results, uncertainty_data
@@ -261,60 +254,76 @@ def create_visualizations(results: Dict, uncertainty_data: Dict, output_dir: Pat
 
     # 1. Metrics summary plot
     fig, axes = plt.subplots(2, 3, figsize=(18, 10))
-    fig.suptitle('Multi-Task Model Evaluation Summary', fontsize=16, fontweight='bold')
+    fig.suptitle("Multi-Task Model Evaluation Summary", fontsize=16, fontweight="bold")
 
-    metrics = ['dice', 'iou', 'sensitivity', 'specificity', 'precision', 'accuracy']
+    metrics = ["dice", "iou", "sensitivity", "specificity", "precision", "accuracy"]
     for idx, metric in enumerate(metrics):
         ax = axes[idx // 3, idx % 3]
-        data = results['segmentation'][metric]
+        data = results["segmentation"][metric]
 
-        ax.bar(['Value'], [data['mean']], yerr=[data['std']],
-              color='#2E86AB', alpha=0.8, capsize=10)
+        ax.bar(
+            ["Value"], [data["mean"]], yerr=[data["std"]], color="#2E86AB", alpha=0.8, capsize=10
+        )
         ax.set_ylabel(metric.upper(), fontsize=11)
-        ax.set_title(f"{metric.upper()}: {data['mean']:.4f} ± {data['std']:.4f}",
-                    fontsize=12, fontweight='bold')
+        ax.set_title(
+            f"{metric.upper()}: {data['mean']:.4f} ± {data['std']:.4f}",
+            fontsize=12,
+            fontweight="bold",
+        )
         ax.set_ylim([0, 1])
-        ax.grid(True, alpha=0.3, axis='y')
+        ax.grid(True, alpha=0.3, axis="y")
 
     plt.tight_layout()
-    plt.savefig(output_dir / 'segmentation_metrics.png', dpi=150, bbox_inches='tight')
+    plt.savefig(output_dir / "segmentation_metrics.png", dpi=150, bbox_inches="tight")
     plt.close()
 
     # 2. Uncertainty calibration plot
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
 
     # Scatter plot: uncertainty vs error
-    ax1.scatter(uncertainty_data['seg_stds'], uncertainty_data['seg_errors'],
-               alpha=0.1, s=1, color='#2E86AB')
-    ax1.set_xlabel('Prediction Uncertainty (Std Dev)', fontsize=11)
-    ax1.set_ylabel('Prediction Error', fontsize=11)
-    ax1.set_title(f"Uncertainty vs Error\n(Correlation: {results['uncertainty']['correlation_uncertainty_error']:.3f})",
-                 fontsize=12, fontweight='bold')
+    ax1.scatter(
+        uncertainty_data["seg_stds"],
+        uncertainty_data["seg_errors"],
+        alpha=0.1,
+        s=1,
+        color="#2E86AB",
+    )
+    ax1.set_xlabel("Prediction Uncertainty (Std Dev)", fontsize=11)
+    ax1.set_ylabel("Prediction Error", fontsize=11)
+    ax1.set_title(
+        f"Uncertainty vs Error\n(Correlation: {results['uncertainty']['correlation_uncertainty_error']:.3f})",
+        fontsize=12,
+        fontweight="bold",
+    )
     ax1.grid(True, alpha=0.3)
 
     # Calibration bins
     n_bins = 10
-    bin_boundaries = np.linspace(0, uncertainty_data['seg_stds'].max(), n_bins + 1)
+    bin_boundaries = np.linspace(0, uncertainty_data["seg_stds"].max(), n_bins + 1)
     bin_centers = []
     bin_errors = []
     for i in range(n_bins):
-        mask = (uncertainty_data['seg_stds'] >= bin_boundaries[i]) & \
-               (uncertainty_data['seg_stds'] < bin_boundaries[i+1])
+        mask = (uncertainty_data["seg_stds"] >= bin_boundaries[i]) & (
+            uncertainty_data["seg_stds"] < bin_boundaries[i + 1]
+        )
         if np.sum(mask) > 10:
-            bin_centers.append((bin_boundaries[i] + bin_boundaries[i+1]) / 2)
-            bin_errors.append(np.mean(uncertainty_data['seg_errors'][mask]))
+            bin_centers.append((bin_boundaries[i] + bin_boundaries[i + 1]) / 2)
+            bin_errors.append(np.mean(uncertainty_data["seg_errors"][mask]))
 
-    ax2.plot(bin_centers, bin_errors, 'o-', color='#2E86AB', linewidth=2, markersize=8)
-    ax2.plot([0, max(bin_centers)], [0, max(bin_centers)], 'r--', label='Perfect calibration')
-    ax2.set_xlabel('Mean Uncertainty in Bin', fontsize=11)
-    ax2.set_ylabel('Mean Error in Bin', fontsize=11)
-    ax2.set_title(f"Calibration Plot\n(ECE: {results['uncertainty']['ece']:.4f})",
-                 fontsize=12, fontweight='bold')
+    ax2.plot(bin_centers, bin_errors, "o-", color="#2E86AB", linewidth=2, markersize=8)
+    ax2.plot([0, max(bin_centers)], [0, max(bin_centers)], "r--", label="Perfect calibration")
+    ax2.set_xlabel("Mean Uncertainty in Bin", fontsize=11)
+    ax2.set_ylabel("Mean Error in Bin", fontsize=11)
+    ax2.set_title(
+        f"Calibration Plot\n(ECE: {results['uncertainty']['ece']:.4f})",
+        fontsize=12,
+        fontweight="bold",
+    )
     ax2.legend()
     ax2.grid(True, alpha=0.3)
 
     plt.tight_layout()
-    plt.savefig(output_dir / 'uncertainty_calibration.png', dpi=150, bbox_inches='tight')
+    plt.savefig(output_dir / "uncertainty_calibration.png", dpi=150, bbox_inches="tight")
     plt.close()
 
     print(f"[+] Saved visualizations to {output_dir}")
@@ -324,14 +333,16 @@ def main():
     parser = argparse.ArgumentParser(description="Comprehensive multi-task model evaluation")
     parser.add_argument("--model", type=str, required=True, help="Path to trained model")
     parser.add_argument("--data-dir", type=str, required=True, help="Data directory")
-    parser.add_argument("--output", type=str, default="results/multitask_evaluation", help="Output directory")
+    parser.add_argument(
+        "--output", type=str, default="results/multitask_evaluation", help="Output directory"
+    )
     parser.add_argument("--n-mc-samples", type=int, default=30, help="Number of MC Dropout samples")
     parser.add_argument("--batch-size", type=int, default=8, help="Batch size")
 
     args = parser.parse_args()
 
     print("\n[+] Comprehensive Multi-Task Model Evaluation")
-    print("="*70)
+    print("=" * 70)
     print(f"Model: {args.model}")
     print(f"Data: {args.data_dir}")
     print(f"MC samples: {args.n_mc_samples}")
@@ -351,7 +362,7 @@ def main():
         data_dir=args.data_dir,
         preprocessor=preprocessor,
         batch_size=args.batch_size,
-        train_fraction=0.7
+        train_fraction=0.7,
     )
 
     # Evaluate
@@ -359,12 +370,12 @@ def main():
     results, uncertainty_data = evaluate_model(model, val_gen, args.n_mc_samples)
 
     # Print results
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("EVALUATION RESULTS")
-    print("="*70)
+    print("=" * 70)
 
     print("\n[*] Segmentation Metrics:")
-    for metric, values in results['segmentation'].items():
+    for metric, values in results["segmentation"].items():
         print(f"  {metric.upper()}: {values['mean']:.4f} ± {values['std']:.4f}")
 
     print("\n[*] Survival Prediction:")
@@ -373,11 +384,13 @@ def main():
 
     print("\n[*] Uncertainty Calibration:")
     print(f"  Expected Calibration Error (ECE): {results['uncertainty']['ece']:.4f}")
-    print(f"  Correlation (uncertainty-error): {results['uncertainty']['correlation_uncertainty_error']:.4f}")
+    print(
+        f"  Correlation (uncertainty-error): {results['uncertainty']['correlation_uncertainty_error']:.4f}"
+    )
 
     # Save results
-    results_path = output_dir / 'evaluation_results.json'
-    with open(results_path, 'w') as f:
+    results_path = output_dir / "evaluation_results.json"
+    with open(results_path, "w") as f:
         json.dump(results, f, indent=2)
     print(f"\n[+] Saved results: {results_path}")
 
@@ -385,7 +398,7 @@ def main():
     print("\n[4/4] Creating visualizations...")
     create_visualizations(results, uncertainty_data, output_dir)
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("[+] Evaluation complete!")
     print(f"\n[*] Results saved to: {output_dir}")
 

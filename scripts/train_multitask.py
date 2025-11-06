@@ -15,9 +15,8 @@ from pathlib import Path
 import sys
 
 # Add project to path
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-import tensorflow as tf
 from tensorflow import keras
 
 from med_seg.models.multitask_unet import MultiTaskUNet
@@ -43,44 +42,31 @@ def create_callbacks(output_dir):
     callbacks = [
         # Save best model based on validation segmentation DICE
         keras.callbacks.ModelCheckpoint(
-            filepath=str(output_dir / 'best_model.keras'),
-            monitor='val_segmentation_dice_coefficient',
+            filepath=str(output_dir / "best_model.keras"),
+            monitor="val_segmentation_dice_coefficient",
             save_best_only=True,
-            mode='max',
-            verbose=1
+            mode="max",
+            verbose=1,
         ),
-
         # Early stopping based on combined validation loss
         keras.callbacks.EarlyStopping(
-            monitor='val_loss',
-            patience=15,
-            restore_best_weights=True,
-            verbose=1
+            monitor="val_loss", patience=15, restore_best_weights=True, verbose=1
         ),
-
         # Reduce learning rate on plateau
         keras.callbacks.ReduceLROnPlateau(
-            monitor='val_loss',
-            factor=0.5,
-            patience=7,
-            min_lr=1e-7,
-            verbose=1
+            monitor="val_loss", factor=0.5, patience=7, min_lr=1e-7, verbose=1
         ),
-
         # TensorBoard logging
         keras.callbacks.TensorBoard(
-            log_dir=str(output_dir / 'logs'),
+            log_dir=str(output_dir / "logs"),
             histogram_freq=1,
             write_graph=True,
-            update_freq='epoch'
+            update_freq="epoch",
         ),
-
         # CSV logger
         keras.callbacks.CSVLogger(
-            filename=str(output_dir / 'training_log.csv'),
-            separator=',',
-            append=False
-        )
+            filename=str(output_dir / "training_log.csv"), separator=",", append=False
+        ),
     ]
 
     return callbacks
@@ -93,7 +79,7 @@ def train(args):
         args: Command-line arguments
     """
     print("\n[+] Multi-Task PET/CT U-Net Training")
-    print("="*70)
+    print("=" * 70)
     print(f"Data directory: {args.data_dir}")
     print(f"Output directory: {args.output}")
     print(f"Epochs: {args.epochs}")
@@ -110,7 +96,7 @@ def train(args):
         target_size=(args.image_size, args.image_size),
         ct_window_center=0,
         ct_window_width=400,
-        suv_max=15
+        suv_max=15,
     )
 
     # Create data generators
@@ -120,7 +106,7 @@ def train(args):
         preprocessor=preprocessor,
         batch_size=args.batch_size,
         train_fraction=0.7,
-        augment_train=True
+        augment_train=True,
     )
 
     print(f"  Training batches: {len(train_gen)}")
@@ -131,18 +117,18 @@ def train(args):
     model_builder = MultiTaskUNet(
         input_size=args.image_size,
         input_channels=2,  # PET + CT
-        num_classes=1,     # Binary segmentation
+        num_classes=1,  # Binary segmentation
         base_filters=args.base_filters,
         depth=args.depth,
         use_batch_norm=True,
         dropout_rate=args.dropout,
-        survival_hidden_units=(256, 128, 64)
+        survival_hidden_units=(256, 128, 64),
     )
 
     model = model_builder.build()
 
     # Print model summary
-    print(f"\n  Model architecture:")
+    print("\n  Model architecture:")
     model.summary(print_fn=lambda x: print(f"    {x}"))
 
     # Compile model with multi-task losses
@@ -155,34 +141,28 @@ def train(args):
     surv_loss_fn = cox_ph_loss
 
     # Loss weights
-    losses = {
-        'segmentation': seg_loss_fn,
-        'survival': surv_loss_fn
-    }
+    losses = {"segmentation": seg_loss_fn, "survival": surv_loss_fn}
 
-    loss_weights = {
-        'segmentation': args.seg_weight,
-        'survival': args.surv_weight
-    }
+    loss_weights = {"segmentation": args.seg_weight, "survival": args.surv_weight}
 
     # Metrics for each output
     metrics = {
-        'segmentation': [dice_coefficient, iou_score, 'accuracy'],
-        'survival': [concordance_index]
+        "segmentation": [dice_coefficient, iou_score, "accuracy"],
+        "survival": [concordance_index],
     }
 
     model.compile(
         optimizer=keras.optimizers.Adam(learning_rate=args.lr),
         loss=losses,
         loss_weights=loss_weights,
-        metrics=metrics
+        metrics=metrics,
     )
 
     print(f"  Optimizer: Adam (lr={args.lr})")
     print(f"  Segmentation loss: Focal Tversky (weight={args.seg_weight})")
     print(f"  Survival loss: Cox PH (weight={args.surv_weight})")
-    print(f"  Segmentation metrics: DICE, IoU, Accuracy")
-    print(f"  Survival metrics: C-index")
+    print("  Segmentation metrics: DICE, IoU, Accuracy")
+    print("  Survival metrics: C-index")
 
     # Create callbacks
     print("\n[5/7] Setting up callbacks...")
@@ -191,120 +171,75 @@ def train(args):
 
     # Train model
     print("\n[6/7] Training multi-task model...")
-    print("="*70)
+    print("=" * 70)
 
     history = model.fit(
-        train_gen,
-        validation_data=val_gen,
-        epochs=args.epochs,
-        callbacks=callbacks,
-        verbose=1
+        train_gen, validation_data=val_gen, epochs=args.epochs, callbacks=callbacks, verbose=1
     )
 
     # Save final model
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("[7/7] Saving models...")
 
-    final_model_path = Path(args.output) / 'final_model.keras'
+    final_model_path = Path(args.output) / "final_model.keras"
     model.save(final_model_path)
     print(f"[+] Final model saved: {final_model_path}")
 
-    best_model_path = Path(args.output) / 'best_model.keras'
+    best_model_path = Path(args.output) / "best_model.keras"
     print(f"[+] Best model saved: {best_model_path}")
 
     # Print final metrics
-    print(f"\n[*] Final training metrics:")
+    print("\n[*] Final training metrics:")
     for key, values in history.history.items():
-        if not key.startswith('val_'):
+        if not key.startswith("val_"):
             print(f"    {key}: {values[-1]:.4f}")
 
-    print(f"\n[*] Final validation metrics:")
+    print("\n[*] Final validation metrics:")
     for key, values in history.history.items():
-        if key.startswith('val_'):
+        if key.startswith("val_"):
             print(f"    {key}: {values[-1]:.4f}")
 
-    print(f"\n[*] View training progress:")
+    print("\n[*] View training progress:")
     print(f"    tensorboard --logdir {Path(args.output) / 'logs'}")
 
     print("\n[+] Multi-task training complete!")
     print("\n[*] Next steps:")
-    print(f"    1. Evaluate uncertainty: python scripts/inference_with_uncertainty.py")
-    print(f"    2. Optimize model: python scripts/optimize_model.py")
-    print(f"    3. Benchmark: python scripts/benchmark_inference.py")
+    print("    1. Evaluate uncertainty: python scripts/inference_with_uncertainty.py")
+    print("    2. Optimize model: python scripts/optimize_model.py")
+    print("    3. Benchmark: python scripts/benchmark_inference.py")
 
     return model, history
 
 
 def main():
     """Main function."""
-    parser = argparse.ArgumentParser(
-        description="Train Multi-Task U-Net (Segmentation + Survival)"
-    )
+    parser = argparse.ArgumentParser(description="Train Multi-Task U-Net (Segmentation + Survival)")
     parser.add_argument(
         "--data-dir",
         type=str,
         required=True,
-        help="Directory containing patient data and survival_data.json"
+        help="Directory containing patient data and survival_data.json",
     )
     parser.add_argument(
         "--output",
         type=str,
         default="models/multitask_unet",
-        help="Output directory for models and logs"
+        help="Output directory for models and logs",
+    )
+    parser.add_argument("--epochs", type=int, default=30, help="Number of training epochs")
+    parser.add_argument("--batch-size", type=int, default=8, help="Batch size")
+    parser.add_argument("--image-size", type=int, default=256, help="Input image size (square)")
+    parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate")
+    parser.add_argument(
+        "--base-filters", type=int, default=64, help="Number of base filters in U-Net"
+    )
+    parser.add_argument("--depth", type=int, default=4, help="Depth of U-Net")
+    parser.add_argument("--dropout", type=float, default=0.3, help="Dropout rate for MC Dropout")
+    parser.add_argument(
+        "--seg-weight", type=float, default=0.6, help="Weight for segmentation loss (0-1)"
     )
     parser.add_argument(
-        "--epochs",
-        type=int,
-        default=30,
-        help="Number of training epochs"
-    )
-    parser.add_argument(
-        "--batch-size",
-        type=int,
-        default=8,
-        help="Batch size"
-    )
-    parser.add_argument(
-        "--image-size",
-        type=int,
-        default=256,
-        help="Input image size (square)"
-    )
-    parser.add_argument(
-        "--lr",
-        type=float,
-        default=1e-4,
-        help="Learning rate"
-    )
-    parser.add_argument(
-        "--base-filters",
-        type=int,
-        default=64,
-        help="Number of base filters in U-Net"
-    )
-    parser.add_argument(
-        "--depth",
-        type=int,
-        default=4,
-        help="Depth of U-Net"
-    )
-    parser.add_argument(
-        "--dropout",
-        type=float,
-        default=0.3,
-        help="Dropout rate for MC Dropout"
-    )
-    parser.add_argument(
-        "--seg-weight",
-        type=float,
-        default=0.6,
-        help="Weight for segmentation loss (0-1)"
-    )
-    parser.add_argument(
-        "--surv-weight",
-        type=float,
-        default=0.4,
-        help="Weight for survival loss (0-1)"
+        "--surv-weight", type=float, default=0.4, help="Weight for survival loss (0-1)"
     )
 
     args = parser.parse_args()
@@ -315,11 +250,11 @@ def main():
         print(f"[!] Error: Data directory not found: {data_dir}")
         return 1
 
-    survival_file = data_dir / 'survival_data.json'
+    survival_file = data_dir / "survival_data.json"
     if not survival_file.exists():
         print(f"[!] Error: Survival data not found: {survival_file}")
-        print(f"[*] Generate survival data first:")
-        print(f"    python scripts/generate_survival_data.py --data-dir data/synthetic_v2")
+        print("[*] Generate survival data first:")
+        print("    python scripts/generate_survival_data.py --data-dir data/synthetic_v2")
         return 1
 
     try:
@@ -334,6 +269,7 @@ def main():
     except Exception as e:
         print(f"\n[!] Training failed: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 

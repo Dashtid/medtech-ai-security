@@ -34,35 +34,37 @@ def create_synthetic_ct_volume(shape=(200, 200, 150)):
         for y in range(h):
             for x in range(w):
                 # Ellipse equation for body
-                if ((x - w/2)**2 / (w/2.5)**2 + (y - h/2)**2 / (h/2.8)**2) < 1:
+                if ((x - w / 2) ** 2 / (w / 2.5) ** 2 + (y - h / 2) ** 2 / (h / 2.8) ** 2) < 1:
                     # Soft tissue: -50 to +50 HU
                     ct[x, y, z] = np.random.normal(0, 20)
 
     # Add some organs with different densities
     # Liver region (40-60 HU)
-    liver_z = slice(int(d*0.4), int(d*0.6))
-    liver_x = slice(int(w*0.4), int(w*0.7))
-    liver_y = slice(int(h*0.3), int(h*0.6))
-    ct[liver_x, liver_y, liver_z] = np.random.normal(50, 10,
-                                                      size=ct[liver_x, liver_y, liver_z].shape)
+    liver_z = slice(int(d * 0.4), int(d * 0.6))
+    liver_x = slice(int(w * 0.4), int(w * 0.7))
+    liver_y = slice(int(h * 0.3), int(h * 0.6))
+    ct[liver_x, liver_y, liver_z] = np.random.normal(
+        50, 10, size=ct[liver_x, liver_y, liver_z].shape
+    )
 
     # Lungs (with some air, -800 to -600 HU)
-    lung_z = slice(int(d*0.5), int(d*0.8))
-    lung_left_x = slice(int(w*0.25), int(w*0.45))
-    lung_right_x = slice(int(w*0.55), int(w*0.75))
-    lung_y = slice(int(h*0.2), int(h*0.7))
+    lung_z = slice(int(d * 0.5), int(d * 0.8))
+    lung_left_x = slice(int(w * 0.25), int(w * 0.45))
+    lung_right_x = slice(int(w * 0.55), int(w * 0.75))
+    lung_y = slice(int(h * 0.2), int(h * 0.7))
 
-    ct[lung_left_x, lung_y, lung_z] = np.random.normal(-700, 50,
-                                                        size=ct[lung_left_x, lung_y, lung_z].shape)
-    ct[lung_right_x, lung_y, lung_z] = np.random.normal(-700, 50,
-                                                         size=ct[lung_right_x, lung_y, lung_z].shape)
+    ct[lung_left_x, lung_y, lung_z] = np.random.normal(
+        -700, 50, size=ct[lung_left_x, lung_y, lung_z].shape
+    )
+    ct[lung_right_x, lung_y, lung_z] = np.random.normal(
+        -700, 50, size=ct[lung_right_x, lung_y, lung_z].shape
+    )
 
     # Add some bones (200-400 HU)
     # Spine
-    spine_x = slice(int(w*0.45), int(w*0.55))
-    spine_y = slice(int(h*0.6), int(h*0.8))
-    ct[spine_x, spine_y, :] = np.random.normal(300, 50,
-                                                size=ct[spine_x, spine_y, :].shape)
+    spine_x = slice(int(w * 0.45), int(w * 0.55))
+    spine_y = slice(int(h * 0.6), int(h * 0.8))
+    ct[spine_x, spine_y, :] = np.random.normal(300, 50, size=ct[spine_x, spine_y, :].shape)
 
     # Add noise
     ct += np.random.normal(0, 5, shape)
@@ -96,9 +98,9 @@ def create_synthetic_pet_volume(shape=(200, 200, 150), ct_volume=None):
     w, h, d = shape
     for i in range(num_tumors):
         # Random tumor location (avoid edges)
-        cx = np.random.randint(int(w*0.2), int(w*0.8))
-        cy = np.random.randint(int(h*0.2), int(h*0.8))
-        cz = np.random.randint(int(d*0.3), int(d*0.7))
+        cx = np.random.randint(int(w * 0.2), int(w * 0.8))
+        cy = np.random.randint(int(h * 0.2), int(h * 0.8))
+        cz = np.random.randint(int(d * 0.3), int(d * 0.7))
 
         # Random tumor size (5-15mm diameter)
         radius = np.random.randint(3, 8)
@@ -109,28 +111,32 @@ def create_synthetic_pet_volume(shape=(200, 200, 150), ct_volume=None):
         print(f"        Tumor {i+1}: center=({cx},{cy},{cz}), radius={radius}, SUV={tumor_suv:.1f}")
 
         # Create spherical tumor
-        for x in range(max(0, cx-radius), min(w, cx+radius+1)):
-            for y in range(max(0, cy-radius), min(h, cy+radius+1)):
-                for z in range(max(0, cz-radius), min(d, cz+radius+1)):
-                    dist = np.sqrt((x-cx)**2 + (y-cy)**2 + (z-cz)**2)
+        for x in range(max(0, cx - radius), min(w, cx + radius + 1)):
+            for y in range(max(0, cy - radius), min(h, cy + radius + 1)):
+                for z in range(max(0, cz - radius), min(d, cz + radius + 1)):
+                    dist = np.sqrt((x - cx) ** 2 + (y - cy) ** 2 + (z - cz) ** 2)
                     if dist <= radius:
                         # Gaussian falloff from center
-                        intensity = np.exp(-(dist**2) / (2*(radius/2)**2))
+                        intensity = np.exp(-(dist**2) / (2 * (radius / 2) ** 2))
                         pet[x, y, z] = tumor_suv * intensity + pet[x, y, z] * (1 - intensity)
                         mask[x, y, z] = 1
 
     # Add some physiological uptake (brain, heart, bladder)
     # Brain (SUV 5-8)
-    brain_z = slice(int(d*0.85), int(d*0.95))
-    brain_region = (slice(int(w*0.35), int(w*0.65)),
-                   slice(int(h*0.35), int(h*0.65)),
-                   brain_z)
+    brain_z = slice(int(d * 0.85), int(d * 0.95))
+    brain_region = (
+        slice(int(w * 0.35), int(w * 0.65)),
+        slice(int(h * 0.35), int(h * 0.65)),
+        brain_z,
+    )
     pet[brain_region] = np.random.normal(6.5, 1, size=pet[brain_region].shape)
 
     # Heart (SUV 3-5)
-    heart_region = (slice(int(w*0.45), int(w*0.60)),
-                   slice(int(h*0.40), int(h*0.55)),
-                   slice(int(d*0.60), int(d*0.70)))
+    heart_region = (
+        slice(int(w * 0.45), int(w * 0.60)),
+        slice(int(h * 0.40), int(h * 0.55)),
+        slice(int(d * 0.60), int(d * 0.70)),
+    )
     pet[heart_region] = np.random.normal(4, 0.5, size=pet[heart_region].shape)
 
     # Ensure non-negative
@@ -197,27 +203,17 @@ def create_synthetic_patient(patient_id, output_dir, shape=(200, 200, 150)):
 
 def main():
     """Main function."""
-    parser = argparse.ArgumentParser(
-        description="Create synthetic PET/CT data for testing"
-    )
+    parser = argparse.ArgumentParser(description="Create synthetic PET/CT data for testing")
+    parser.add_argument("--output", type=str, default="data/synthetic", help="Output directory")
     parser.add_argument(
-        "--output",
-        type=str,
-        default="data/synthetic",
-        help="Output directory"
-    )
-    parser.add_argument(
-        "--num-patients",
-        type=int,
-        default=3,
-        help="Number of synthetic patients to create"
+        "--num-patients", type=int, default=3, help="Number of synthetic patients to create"
     )
     parser.add_argument(
         "--shape",
         type=int,
         nargs=3,
         default=[200, 200, 150],
-        help="Volume shape (width height depth)"
+        help="Volume shape (width height depth)",
     )
 
     args = parser.parse_args()

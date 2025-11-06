@@ -4,11 +4,7 @@ import tensorflow as tf
 from tensorflow.keras import backend as K
 
 
-def precision(
-    y_true: tf.Tensor,
-    y_pred: tf.Tensor,
-    threshold: float = 0.5
-) -> tf.Tensor:
+def precision(y_true: tf.Tensor, y_pred: tf.Tensor, threshold: float = 0.5) -> tf.Tensor:
     """Calculate precision metric.
 
     Precision measures the proportion of positive predictions that are correct.
@@ -35,11 +31,7 @@ def precision(
     return precision_score
 
 
-def recall(
-    y_true: tf.Tensor,
-    y_pred: tf.Tensor,
-    threshold: float = 0.5
-) -> tf.Tensor:
+def recall(y_true: tf.Tensor, y_pred: tf.Tensor, threshold: float = 0.5) -> tf.Tensor:
     """Calculate recall (sensitivity) metric.
 
     Recall measures the proportion of actual positives that are correctly identified.
@@ -66,11 +58,7 @@ def recall(
     return recall_score
 
 
-def specificity(
-    y_true: tf.Tensor,
-    y_pred: tf.Tensor,
-    threshold: float = 0.5
-) -> tf.Tensor:
+def specificity(y_true: tf.Tensor, y_pred: tf.Tensor, threshold: float = 0.5) -> tf.Tensor:
     """Calculate specificity metric.
 
     Specificity measures the proportion of actual negatives that are correctly identified.
@@ -98,10 +86,7 @@ def specificity(
 
 
 def iou_score(
-    y_true: tf.Tensor,
-    y_pred: tf.Tensor,
-    threshold: float = 0.5,
-    smooth: float = 1e-7
+    y_true: tf.Tensor, y_pred: tf.Tensor, threshold: float = 0.5, smooth: float = 1e-7
 ) -> tf.Tensor:
     """Calculate Intersection over Union (IoU) score.
 
@@ -135,11 +120,7 @@ def iou_score(
     return iou
 
 
-def f1_score(
-    y_true: tf.Tensor,
-    y_pred: tf.Tensor,
-    threshold: float = 0.5
-) -> tf.Tensor:
+def f1_score(y_true: tf.Tensor, y_pred: tf.Tensor, threshold: float = 0.5) -> tf.Tensor:
     """Calculate F1 score (equivalent to DICE for binary segmentation).
 
     F1 score is the harmonic mean of precision and recall.
@@ -162,9 +143,7 @@ def f1_score(
 
 
 def hausdorff_distance_approx(
-    y_true: tf.Tensor,
-    y_pred: tf.Tensor,
-    threshold: float = 0.5
+    y_true: tf.Tensor, y_pred: tf.Tensor, threshold: float = 0.5
 ) -> tf.Tensor:
     """Approximate Hausdorff distance for segmentation.
 
@@ -192,10 +171,12 @@ def hausdorff_distance_approx(
     # Here we use a simple edge-based approximation
 
     # Calculate edges using simple gradient
-    true_edges = K.abs(y_true[:, 1:, :, :] - y_true[:, :-1, :, :]) + \
-                 K.abs(y_true[:, :, 1:, :] - y_true[:, :, :-1, :])
-    pred_edges = K.abs(y_pred_binary[:, 1:, :, :] - y_pred_binary[:, :-1, :, :]) + \
-                 K.abs(y_pred_binary[:, :, 1:, :] - y_pred_binary[:, :, :-1, :])
+    true_edges = K.abs(y_true[:, 1:, :, :] - y_true[:, :-1, :, :]) + K.abs(
+        y_true[:, :, 1:, :] - y_true[:, :, :-1, :]
+    )
+    pred_edges = K.abs(y_pred_binary[:, 1:, :, :] - y_pred_binary[:, :-1, :, :]) + K.abs(
+        y_pred_binary[:, :, 1:, :] - y_pred_binary[:, :, :-1, :]
+    )
 
     # Simplified distance metric
     distance = K.mean(K.abs(true_edges - pred_edges))
@@ -229,6 +210,7 @@ class SegmentationMetrics:
     def dice(self, y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
         """DICE coefficient metric."""
         from med_seg.training.losses import dice_coefficient
+
         return dice_coefficient(y_true, y_pred)
 
     def iou(self, y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:

@@ -38,7 +38,7 @@ class PETCTDataGenerator(tf.keras.utils.Sequence):
         shuffle: bool = True,
         augment: bool = False,
         tumor_only: bool = True,
-        min_tumor_voxels: int = 10
+        min_tumor_voxels: int = 10,
     ):
         self.loader = loader
         self.preprocessor = preprocessor
@@ -64,16 +64,14 @@ class PETCTDataGenerator(tf.keras.utils.Sequence):
             if self.tumor_only:
                 # Get slices with tumors
                 tumor_slices = self.loader.get_tumor_slices(
-                    patient_idx,
-                    axis=self.axis,
-                    min_tumor_voxels=self.min_tumor_voxels
+                    patient_idx, axis=self.axis, min_tumor_voxels=self.min_tumor_voxels
                 )
                 for slice_idx in tumor_slices:
                     self.slice_index.append((patient_idx, slice_idx))
             else:
                 # Get all slices
                 data = self.loader.load_patient_3d(patient_idx)
-                num_slices = data['ct'].shape[self.axis]
+                num_slices = data["ct"].shape[self.axis]
                 for slice_idx in range(num_slices):
                     self.slice_index.append((patient_idx, slice_idx))
 
@@ -123,9 +121,7 @@ class PETCTDataGenerator(tf.keras.utils.Sequence):
         seg_slices = np.array(seg_slices)
 
         # Preprocess batch
-        inputs, targets = self.preprocessor.preprocess_batch_2d(
-            ct_slices, suv_slices, seg_slices
-        )
+        inputs, targets = self.preprocessor.preprocess_batch_2d(ct_slices, suv_slices, seg_slices)
 
         # Apply augmentation if enabled
         if self.augment:
@@ -134,9 +130,7 @@ class PETCTDataGenerator(tf.keras.utils.Sequence):
         return inputs, targets
 
     def _augment_batch(
-        self,
-        inputs: np.ndarray,
-        targets: np.ndarray
+        self, inputs: np.ndarray, targets: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Apply data augmentation to batch.
 
@@ -208,10 +202,7 @@ class PETCTDataGenerator(tf.keras.utils.Sequence):
             weight_background = 1.0
             weight_tumor = 1.0
 
-        return {
-            0: weight_background,
-            1: weight_tumor
-        }
+        return {0: weight_background, 1: weight_tumor}
 
 
 def create_petct_generators(
@@ -221,7 +212,7 @@ def create_petct_generators(
     batch_size: int = 8,
     target_size: Optional[Tuple[int, int]] = (256, 256),
     augment_train: bool = True,
-    tumor_only: bool = True
+    tumor_only: bool = True,
 ) -> Tuple[PETCTDataGenerator, PETCTDataGenerator]:
     """Create train and validation data generators.
 
@@ -238,7 +229,6 @@ def create_petct_generators(
         Tuple of (train_generator, val_generator)
     """
     # Create loader (will be filtered by train/val splits)
-    from pathlib import Path
 
     # TODO: Implement train/val split filtering
     # For now, use all data
@@ -246,10 +236,7 @@ def create_petct_generators(
 
     # Create preprocessor
     preprocessor = PETCTPreprocessor(
-        target_size=target_size,
-        ct_window_center=0,
-        ct_window_width=400,
-        suv_max=15
+        target_size=target_size, ct_window_center=0, ct_window_width=400, suv_max=15
     )
 
     # Create generators
@@ -259,7 +246,7 @@ def create_petct_generators(
         batch_size=batch_size,
         shuffle=True,
         augment=augment_train,
-        tumor_only=tumor_only
+        tumor_only=tumor_only,
     )
 
     val_gen = PETCTDataGenerator(
@@ -268,7 +255,7 @@ def create_petct_generators(
         batch_size=batch_size,
         shuffle=False,
         augment=False,
-        tumor_only=tumor_only
+        tumor_only=tumor_only,
     )
 
     return train_gen, val_gen

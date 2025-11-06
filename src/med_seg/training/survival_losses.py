@@ -7,7 +7,6 @@ the Cox proportional hazards model used in medical outcome prediction.
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import backend as K
-from typing import Tuple
 
 
 def cox_ph_loss(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
@@ -42,8 +41,8 @@ def cox_ph_loss(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
     risk_score = tf.squeeze(y_pred, axis=-1)  # (batch_size,)
 
     # Sort by time (descending) to compute risk sets efficiently
-    indices = tf.argsort(time, direction='DESCENDING')
-    time_sorted = tf.gather(time, indices)
+    indices = tf.argsort(time, direction="DESCENDING")
+    tf.gather(time, indices)
     event_sorted = tf.gather(event, indices)
     risk_sorted = tf.gather(risk_score, indices)
 
@@ -104,23 +103,20 @@ def concordance_index(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
     risk_score = tf.squeeze(y_pred, axis=-1)
 
     # Get all pairs where i experiences event and has time < time_j
-    batch_size = tf.shape(time)[0]
+    tf.shape(time)[0]
 
     # Expand dimensions for broadcasting
     time_i = tf.expand_dims(time, axis=1)  # (batch, 1)
     time_j = tf.expand_dims(time, axis=0)  # (1, batch)
 
     event_i = tf.expand_dims(event, axis=1)
-    event_j = tf.expand_dims(event, axis=0)
+    tf.expand_dims(event, axis=0)
 
     risk_i = tf.expand_dims(risk_score, axis=1)
     risk_j = tf.expand_dims(risk_score, axis=0)
 
     # Valid pairs: i had event and time_i < time_j
-    valid_pair = tf.logical_and(
-        tf.cast(event_i, tf.bool),
-        time_i < time_j
-    )
+    valid_pair = tf.logical_and(tf.cast(event_i, tf.bool), time_i < time_j)
 
     # Concordant pairs: risk_i > risk_j (higher risk for earlier event)
     concordant = tf.logical_and(valid_pair, risk_i > risk_j)
@@ -138,9 +134,9 @@ def concordance_index(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
     return c_index
 
 
-def combined_multitask_loss(segmentation_weight: float = 0.5,
-                            survival_weight: float = 0.5,
-                            segmentation_loss_fn=None):
+def combined_multitask_loss(
+    segmentation_weight: float = 0.5, survival_weight: float = 0.5, segmentation_loss_fn=None
+):
     """Create combined loss for multi-task learning.
 
     Combines segmentation loss (e.g., Focal Tversky) with survival loss (Cox).
@@ -166,6 +162,7 @@ def combined_multitask_loss(segmentation_weight: float = 0.5,
     if segmentation_loss_fn is None:
         # Default to binary cross-entropy
         from tensorflow.keras.losses import binary_crossentropy
+
         segmentation_loss_fn = binary_crossentropy
 
     def loss(y_true, y_pred):
@@ -179,20 +176,13 @@ def combined_multitask_loss(segmentation_weight: float = 0.5,
             Combined loss value
         """
         # Segmentation loss
-        seg_loss = segmentation_loss_fn(
-            y_true['segmentation'],
-            y_pred['segmentation']
-        )
+        seg_loss = segmentation_loss_fn(y_true["segmentation"], y_pred["segmentation"])
 
         # Survival loss
-        surv_loss = cox_ph_loss(
-            y_true['survival'],
-            y_pred['survival']
-        )
+        surv_loss = cox_ph_loss(y_true["survival"], y_pred["survival"])
 
         # Weighted combination
-        total_loss = (segmentation_weight * seg_loss +
-                     survival_weight * surv_loss)
+        total_loss = segmentation_weight * seg_loss + survival_weight * surv_loss
 
         return total_loss
 
@@ -205,10 +195,10 @@ class SurvivalMetrics(keras.metrics.Metric):
     This allows tracking C-index during training via callbacks.
     """
 
-    def __init__(self, name='c_index', **kwargs):
+    def __init__(self, name="c_index", **kwargs):
         super().__init__(name=name, **kwargs)
-        self.c_index_sum = self.add_weight(name='c_index_sum', initializer='zeros')
-        self.count = self.add_weight(name='count', initializer='zeros')
+        self.c_index_sum = self.add_weight(name="c_index_sum", initializer="zeros")
+        self.count = self.add_weight(name="count", initializer="zeros")
 
     def update_state(self, y_true, y_pred, sample_weight=None):
         """Update metric state with batch results."""
@@ -242,7 +232,7 @@ def create_c_index_metric():
     Returns:
         C-index metric
     """
-    return SurvivalMetrics(name='c_index')
+    return SurvivalMetrics(name="c_index")
 
 
 if __name__ == "__main__":

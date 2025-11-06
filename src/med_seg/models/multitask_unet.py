@@ -10,7 +10,7 @@ This module implements a multi-task U-Net architecture with:
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
-from typing import Tuple, Optional
+from typing import Tuple
 
 
 class MCDropout(layers.Dropout):
@@ -45,15 +45,17 @@ class MultiTaskUNet:
     while task-specific heads enable specialization.
     """
 
-    def __init__(self,
-                 input_size: int = 256,
-                 input_channels: int = 2,
-                 num_classes: int = 1,
-                 base_filters: int = 64,
-                 depth: int = 4,
-                 use_batch_norm: bool = True,
-                 dropout_rate: float = 0.3,
-                 survival_hidden_units: Tuple[int, ...] = (256, 128, 64)):
+    def __init__(
+        self,
+        input_size: int = 256,
+        input_channels: int = 2,
+        num_classes: int = 1,
+        base_filters: int = 64,
+        depth: int = 4,
+        use_batch_norm: bool = True,
+        dropout_rate: float = 0.3,
+        survival_hidden_units: Tuple[int, ...] = (256, 128, 64),
+    ):
         """Initialize Multi-Task U-Net.
 
         Args:
@@ -75,10 +77,7 @@ class MultiTaskUNet:
         self.dropout_rate = dropout_rate
         self.survival_hidden_units = survival_hidden_units
 
-    def _conv_block(self,
-                    x: tf.Tensor,
-                    filters: int,
-                    name_prefix: str) -> tf.Tensor:
+    def _conv_block(self, x: tf.Tensor, filters: int, name_prefix: str) -> tf.Tensor:
         """Convolutional block (Conv → BN → ReLU → Conv → BN → ReLU).
 
         Args:
@@ -89,17 +88,15 @@ class MultiTaskUNet:
         Returns:
             Output tensor
         """
-        x = layers.Conv2D(filters, 3, padding='same',
-                         name=f'{name_prefix}_conv1')(x)
+        x = layers.Conv2D(filters, 3, padding="same", name=f"{name_prefix}_conv1")(x)
         if self.use_batch_norm:
-            x = layers.BatchNormalization(name=f'{name_prefix}_bn1')(x)
-        x = layers.Activation('relu', name=f'{name_prefix}_relu1')(x)
+            x = layers.BatchNormalization(name=f"{name_prefix}_bn1")(x)
+        x = layers.Activation("relu", name=f"{name_prefix}_relu1")(x)
 
-        x = layers.Conv2D(filters, 3, padding='same',
-                         name=f'{name_prefix}_conv2')(x)
+        x = layers.Conv2D(filters, 3, padding="same", name=f"{name_prefix}_conv2")(x)
         if self.use_batch_norm:
-            x = layers.BatchNormalization(name=f'{name_prefix}_bn2')(x)
-        x = layers.Activation('relu', name=f'{name_prefix}_relu2')(x)
+            x = layers.BatchNormalization(name=f"{name_prefix}_bn2")(x)
+        x = layers.Activation("relu", name=f"{name_prefix}_relu2")(x)
 
         return x
 
@@ -110,8 +107,9 @@ class MultiTaskUNet:
             Keras Model with two outputs: (segmentation_mask, survival_risk)
         """
         # Input
-        inputs = layers.Input(shape=(self.input_size, self.input_size, self.input_channels),
-                            name='input_petct')
+        inputs = layers.Input(
+            shape=(self.input_size, self.input_size, self.input_channels), name="input_petct"
+        )
 
         # =====================================================================
         # SHARED ENCODER (Contracting Path)
@@ -120,16 +118,16 @@ class MultiTaskUNet:
         x = inputs
 
         for i in range(self.depth):
-            filters = self.base_filters * (2 ** i)
-            x = self._conv_block(x, filters, f'encoder_block{i+1}')
+            filters = self.base_filters * (2**i)
+            x = self._conv_block(x, filters, f"encoder_block{i+1}")
             encoder_outputs.append(x)
 
             if i < self.depth - 1:  # No pooling on last block
-                x = layers.MaxPooling2D(2, name=f'encoder_pool{i+1}')(x)
+                x = layers.MaxPooling2D(2, name=f"encoder_pool{i+1}")(x)
 
         # Bottleneck
-        filters = self.base_filters * (2 ** self.depth)
-        bottleneck = self._conv_block(x, filters, 'bottleneck')
+        filters = self.base_filters * (2**self.depth)
+        bottleneck = self._conv_block(x, filters, "bottleneck")
 
         # =====================================================================
         # TASK 1: SEGMENTATION DECODER (Expanding Path with MC Dropout)
@@ -137,25 +135,28 @@ class MultiTaskUNet:
         x_seg = bottleneck
 
         for i in range(self.depth - 1, -1, -1):
-            filters = self.base_filters * (2 ** i)
+            filters = self.base_filters * (2**i)
 
-            # Upsampling
-            x_seg = layers.Conv2DTranspose(filters, 2, strides=2, padding='same',
-                                          name=f'seg_upsample{i+1}')(x_seg)
+            # Upsampling (skip for first iteration since bottleneck is same size as last encoder output)
+            if i < self.depth - 1:
+                x_seg = layers.Conv2DTranspose(
+                    filters, 2, strides=2, padding="same", name=f"seg_upsample{i+1}"
+                )(x_seg)
 
             # Skip connection from encoder
-            x_seg = layers.Concatenate(name=f'seg_concat{i+1}')([x_seg, encoder_outputs[i]])
+            x_seg = layers.Concatenate(name=f"seg_concat{i+1}")([x_seg, encoder_outputs[i]])
 
             # Convolutional block
-            x_seg = self._conv_block(x_seg, filters, f'seg_decoder{i+1}')
+            x_seg = self._conv_block(x_seg, filters, f"seg_decoder{i+1}")
 
             # MC Dropout for uncertainty quantification
             if self.dropout_rate > 0:
-                x_seg = MCDropout(self.dropout_rate, name=f'seg_mc_dropout{i+1}')(x_seg)
+                x_seg = MCDropout(self.dropout_rate, name=f"seg_mc_dropout{i+1}")(x_seg)
 
         # Segmentation output
-        segmentation_output = layers.Conv2D(self.num_classes, 1, activation='sigmoid',
-                                           name='segmentation_output')(x_seg)
+        segmentation_output = layers.Conv2D(
+            self.num_classes, 1, activation="sigmoid", name="segmentation_output"
+        )(x_seg)
 
         # =====================================================================
         # TASK 2: SURVIVAL PREDICTION HEAD
@@ -163,30 +164,26 @@ class MultiTaskUNet:
         x_surv = bottleneck
 
         # Global average pooling to aggregate spatial information
-        x_surv = layers.GlobalAveragePooling2D(name='surv_global_pool')(x_surv)
+        x_surv = layers.GlobalAveragePooling2D(name="surv_global_pool")(x_surv)
 
         # Dense layers with dropout
         for i, units in enumerate(self.survival_hidden_units):
-            x_surv = layers.Dense(units, name=f'surv_dense{i+1}')(x_surv)
-            x_surv = layers.BatchNormalization(name=f'surv_bn{i+1}')(x_surv)
-            x_surv = layers.Activation('relu', name=f'surv_relu{i+1}')(x_surv)
-            x_surv = layers.Dropout(self.dropout_rate, name=f'surv_dropout{i+1}')(x_surv)
+            x_surv = layers.Dense(units, name=f"surv_dense{i+1}")(x_surv)
+            x_surv = layers.BatchNormalization(name=f"surv_bn{i+1}")(x_surv)
+            x_surv = layers.Activation("relu", name=f"surv_relu{i+1}")(x_surv)
+            x_surv = layers.Dropout(self.dropout_rate, name=f"surv_dropout{i+1}")(x_surv)
 
         # Survival output (log-hazard, linear activation)
         # Single neuron predicting risk score for Cox proportional hazards
-        survival_output = layers.Dense(1, activation='linear',
-                                      name='survival_output')(x_surv)
+        survival_output = layers.Dense(1, activation="linear", name="survival_output")(x_surv)
 
         # =====================================================================
         # CREATE MULTI-OUTPUT MODEL
         # =====================================================================
         model = keras.Model(
             inputs=inputs,
-            outputs={
-                'segmentation': segmentation_output,
-                'survival': survival_output
-            },
-            name='multitask_unet'
+            outputs={"segmentation": segmentation_output, "survival": survival_output},
+            name="multitask_unet",
         )
 
         return model
@@ -203,18 +200,20 @@ class MultiTaskUNet:
         # Extract only segmentation output
         single_task_model = keras.Model(
             inputs=multitask_model.input,
-            outputs=multitask_model.outputs['segmentation'],
-            name='unet_segmentation_only'
+            outputs=multitask_model.outputs["segmentation"],
+            name="unet_segmentation_only",
         )
 
         return single_task_model
 
 
-def create_multitask_unet(input_size: int = 256,
-                         input_channels: int = 2,
-                         base_filters: int = 64,
-                         depth: int = 4,
-                         dropout_rate: float = 0.3) -> keras.Model:
+def create_multitask_unet(
+    input_size: int = 256,
+    input_channels: int = 2,
+    base_filters: int = 64,
+    depth: int = 4,
+    dropout_rate: float = 0.3,
+) -> keras.Model:
     """Convenience function to create multi-task U-Net.
 
     Args:
@@ -232,7 +231,7 @@ def create_multitask_unet(input_size: int = 256,
         input_channels=input_channels,
         base_filters=base_filters,
         depth=depth,
-        dropout_rate=dropout_rate
+        dropout_rate=dropout_rate,
     )
 
     model = builder.build()
@@ -243,11 +242,7 @@ if __name__ == "__main__":
     # Test model creation
     print("Creating Multi-Task U-Net...")
     model = create_multitask_unet(
-        input_size=256,
-        input_channels=2,
-        base_filters=64,
-        depth=4,
-        dropout_rate=0.3
+        input_size=256, input_channels=2, base_filters=64, depth=4, dropout_rate=0.3
     )
 
     print("\nModel created successfully!")
