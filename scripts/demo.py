@@ -24,6 +24,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.med_seg.data.petct_loader import PETCTLoader
 from src.med_seg.data.petct_preprocessor import PETCTPreprocessor
+from src.med_seg.models.multitask_unet import MCDropout  # Import custom layer
 
 
 def print_header():
@@ -73,7 +74,7 @@ def load_patient_data(data_dir: str, patient_id: str, preprocessor):
 
     # Load all axial slices
     ct_batch, suv_batch, seg_batch = loader.extract_2d_slices(
-        patient_idx, axis="axial", slice_indices=None
+        patient_idx, axis=2, slice_indices=None  # axial slices
     )
 
     # Find tumor-containing slices
@@ -242,7 +243,11 @@ def main():
     # Load model
     print_section("Loading Model")
     print(f"  Model path: {args.model}")
-    model = keras.models.load_model(args.model, compile=False)
+    model = keras.models.load_model(
+        args.model,
+        custom_objects={"MCDropout": MCDropout},
+        compile=False
+    )
     print("  [OK] Model loaded successfully")
     print(f"  Total parameters: {model.count_params():,}")
 
@@ -251,7 +256,7 @@ def main():
     print(f"  Patient ID: {args.patient}")
     print(f"  Data directory: {args.data_dir}")
 
-    preprocessor = PETCTPreprocessor(target_size=(256, 256), normalize=True)
+    preprocessor = PETCTPreprocessor(target_size=(256, 256))
     inputs, targets, tumor_slices = load_patient_data(
         args.data_dir, args.patient, preprocessor
     )
