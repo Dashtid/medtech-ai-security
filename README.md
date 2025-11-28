@@ -44,7 +44,33 @@ See [PIVOT_PLAN.md](PIVOT_PLAN.md) for detailed transition roadmap and technical
 
 ## Project Status
 
-**Current Phase:** Foundation established, transitioning to medical device cybersecurity AI (2025-11-06)
+**Current Phase:** Phase 2 Complete - ML Risk Scoring (2025-11-28)
+
+### Medical Device Cybersecurity AI (NEW)
+
+**Phase 1 - Threat Intelligence (Complete):**
+- NVD scraper for medical device CVEs (100 CVEs collected)
+- CISA ICS-CERT advisory scraper
+- Claude.ai integration for vulnerability enrichment
+- Threat intelligence report generation
+
+**Phase 2 - ML Risk Scoring (Complete):**
+- ML-powered vulnerability risk scorer (Naive Bayes + KNN ensemble)
+- 75% test accuracy on medical device CVE dataset
+- Feature engineering: CVSS, CWE domains, device type, clinical impact
+- Automated risk prioritization with recommendations
+
+**CLI Tools Available:**
+```bash
+medsec-nvd      # Scrape NVD for medical device CVEs
+medsec-cisa     # Scrape CISA ICS-CERT advisories
+medsec-enrich   # Merge Claude.ai analysis with CVE data
+medsec-risk     # ML-powered vulnerability risk scoring
+```
+
+See [docs/THREAT_INTEL_USAGE.md](docs/THREAT_INTEL_USAGE.md) for detailed usage guide.
+
+### Biomedical AI Foundation (Complete)
 
 **Completed:**
 - Multi-task U-Net architecture (shared encoder + dual decoders)
