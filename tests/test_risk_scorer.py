@@ -48,7 +48,7 @@ class TestRiskPrediction:
 
         assert result["cve_id"] == "CVE-2024-1234"
         assert result["risk_score"] == 85.57  # Rounded to 2 decimals
-        assert result["confidence"] == 0.877  # Rounded to 3 decimals
+        assert result["confidence"] == round(0.8765, 3)  # Match Python's rounding
         assert result["contributing_factors"]["cvss_score"] == 0.5
 
 

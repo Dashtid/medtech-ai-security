@@ -88,7 +88,7 @@ class TestAdversarialAttacker:
 
     def test_fgsm_attack(self, attacker, sample_images, sample_labels):
         """Test FGSM attack."""
-        result = attacker.fgsm_attack(
+        result = attacker.fgsm(
             images=sample_images,
             labels=sample_labels,
             epsilon=0.03,
@@ -102,7 +102,7 @@ class TestAdversarialAttacker:
 
     def test_pgd_attack(self, attacker, sample_images, sample_labels):
         """Test PGD attack."""
-        result = attacker.pgd_attack(
+        result = attacker.pgd(
             images=sample_images,
             labels=sample_labels,
             epsilon=0.03,
@@ -116,7 +116,7 @@ class TestAdversarialAttacker:
 
     def test_adversarial_clipping(self, attacker, sample_images, sample_labels):
         """Test that adversarial examples are clipped correctly."""
-        result = attacker.fgsm_attack(
+        result = attacker.fgsm(
             images=sample_images,
             labels=sample_labels,
             epsilon=0.5,  # Large epsilon
@@ -154,7 +154,7 @@ class TestAdversarialDefender:
 
     def test_gaussian_blur_defense(self, defender, sample_images):
         """Test Gaussian blur defense."""
-        defended = defender.apply_gaussian_blur(
+        defended = defender.gaussian_blur(
             images=sample_images,
             sigma=1.0,
         )
@@ -165,7 +165,7 @@ class TestAdversarialDefender:
 
     def test_jpeg_compression_defense(self, defender, sample_images):
         """Test JPEG compression defense."""
-        defended = defender.apply_jpeg_compression(
+        defended = defender.jpeg_compression(
             images=sample_images,
             quality=75,
         )
@@ -177,7 +177,7 @@ class TestAdversarialDefender:
 
     def test_feature_squeezing_defense(self, defender, sample_images):
         """Test feature squeezing defense."""
-        defended = defender.apply_feature_squeezing(
+        defended = defender.feature_squeezing(
             images=sample_images,
             bit_depth=4,
         )
@@ -315,7 +315,7 @@ class TestIntegration:
 
         # Attack
         attacker = AdversarialAttacker(model=simple_model)
-        attack_result = attacker.fgsm_attack(
+        attack_result = attacker.fgsm(
             images=images,
             labels=labels,
             epsilon=0.05,
@@ -323,7 +323,7 @@ class TestIntegration:
 
         # Defend
         defender = AdversarialDefender(model=simple_model)
-        defended_images = defender.apply_gaussian_blur(
+        defended_images = defender.gaussian_blur(
             images=attack_result.adversarial_images,
             sigma=1.0,
         )
@@ -341,14 +341,14 @@ class TestIntegration:
         attacker = AdversarialAttacker(model=simple_model)
 
         # Run FGSM
-        fgsm_result = attacker.fgsm_attack(
+        fgsm_result = attacker.fgsm(
             images=images,
             labels=labels,
             epsilon=0.03,
         )
 
         # Run PGD
-        pgd_result = attacker.pgd_attack(
+        pgd_result = attacker.pgd(
             images=images,
             labels=labels,
             epsilon=0.03,

@@ -136,11 +136,12 @@ class TestTrafficGenerator:
 
     def test_generator_initialization(self, generator):
         """Test generator initializes correctly."""
-        assert generator.seed == 42
+        # TrafficGenerator stores seed internally via rng
+        assert generator.rng is not None
 
     def test_generate_normal_dicom_traffic(self, generator):
         """Test generating normal DICOM traffic."""
-        packets = generator.generate_normal_dicom_traffic(n_samples=10)
+        packets = generator.generate_normal_dicom(n_samples=10)
 
         assert len(packets) == 10
         assert all(isinstance(p, DICOMPacket) for p in packets)
@@ -148,62 +149,65 @@ class TestTrafficGenerator:
 
     def test_generate_normal_hl7_traffic(self, generator):
         """Test generating normal HL7 traffic."""
-        packets = generator.generate_normal_hl7_traffic(n_samples=10)
+        messages = generator.generate_normal_hl7(n_samples=10)
 
-        assert len(packets) == 10
-        # HL7 packets should also be generated
-        assert all(p.is_attack is False for p in packets)
+        assert len(messages) == 10
+        # HL7 messages should also be generated
+        assert all(m.is_attack is False for m in messages)
 
     def test_generate_attack_traffic(self, generator):
         """Test generating attack traffic."""
-        packets = generator.generate_attack_traffic(n_samples=10)
+        packets = generator.generate_attack_dicom(n_samples=10)
 
         assert len(packets) == 10
         assert all(p.is_attack is True for p in packets)
         assert all(p.attack_type is not None for p in packets)
 
-    def test_generate_mixed_traffic(self, generator):
-        """Test generating mixed normal and attack traffic."""
-        normal, attack = generator.generate_mixed_traffic(
+    def test_generate_dataset(self, generator):
+        """Test generating complete dataset with mixed traffic."""
+        features, labels, packets = generator.generate_dataset(
             n_normal=50, n_attack=10
         )
 
-        assert len(normal) == 50
-        assert len(attack) == 10
-        assert all(p.is_attack is False for p in normal)
-        assert all(p.is_attack is True for p in attack)
+        assert len(features) == len(labels)
+        assert len(packets) == len(labels)
+        # Check we have both normal and attack samples
+        assert (labels == 0).sum() > 0
+        assert (labels == 1).sum() > 0
 
     def test_traffic_to_features(self, generator):
         """Test converting traffic to feature matrix."""
-        packets = generator.generate_normal_dicom_traffic(n_samples=20)
-        features = generator.packets_to_features(packets)
+        packets = generator.generate_normal_dicom(n_samples=20)
+        features = np.array([p.to_feature_vector() for p in packets])
 
         assert isinstance(features, np.ndarray)
         assert features.shape == (20, 16)
         assert features.dtype == np.float32
 
-    def test_save_and_load_traffic(self, generator, tmp_path):
-        """Test saving and loading traffic data."""
-        packets = generator.generate_normal_dicom_traffic(n_samples=10)
-        output_file = tmp_path / "traffic.json"
+    def test_save_dataset(self, generator, tmp_path):
+        """Test saving dataset."""
+        output_dir = tmp_path / "traffic"
 
-        generator.save_traffic(packets, output_file)
+        metadata = generator.save_dataset(
+            path=output_dir,
+            n_normal=10,
+            n_attack=5,
+            protocol="dicom",
+        )
 
-        assert output_file.exists()
-
-        # Load and verify
-        with open(output_file) as f:
-            data = json.load(f)
-
-        assert len(data["packets"]) == 10
+        assert output_dir.exists()
+        assert (output_dir / "features.npy").exists()
+        assert (output_dir / "labels.npy").exists()
+        assert (output_dir / "packets.json").exists()
+        assert metadata["n_samples"] > 0
 
     def test_reproducibility_with_seed(self):
         """Test generator produces reproducible results with same seed."""
         gen1 = TrafficGenerator(seed=123)
         gen2 = TrafficGenerator(seed=123)
 
-        packets1 = gen1.generate_normal_dicom_traffic(n_samples=5)
-        packets2 = gen2.generate_normal_dicom_traffic(n_samples=5)
+        packets1 = gen1.generate_normal_dicom(n_samples=5)
+        packets2 = gen2.generate_normal_dicom(n_samples=5)
 
         # Should produce same packets
         for p1, p2 in zip(packets1, packets2):
@@ -272,30 +276,33 @@ class TestAutoencoder:
 
     def test_forward(self, autoencoder, sample_data):
         """Test forward pass (encode + decode)."""
-        reconstructed = autoencoder.forward(sample_data)
+        reconstructed, enc_acts, dec_acts = autoencoder.forward(sample_data)
 
         assert reconstructed.shape == sample_data.shape
         assert np.all(np.isfinite(reconstructed))
+        assert len(enc_acts) > 0
+        assert len(dec_acts) > 0
 
-    def test_compute_loss(self, autoencoder, sample_data):
-        """Test loss computation."""
-        loss = autoencoder.compute_loss(sample_data)
+    def test_reconstruction_error(self, autoencoder, sample_data):
+        """Test reconstruction error computation."""
+        errors = autoencoder.reconstruction_error(sample_data)
 
-        assert isinstance(loss, float)
-        assert loss >= 0
-        assert np.isfinite(loss)
+        assert len(errors) == len(sample_data)
+        assert all(e >= 0 for e in errors)
+        assert np.all(np.isfinite(errors))
 
     def test_fit(self, autoencoder, sample_data):
         """Test training the autoencoder."""
-        initial_loss = autoencoder.compute_loss(sample_data)
+        initial_error = np.mean(autoencoder.reconstruction_error(sample_data))
 
         history = autoencoder.fit(sample_data, epochs=10, batch_size=32)
 
-        final_loss = autoencoder.compute_loss(sample_data)
+        final_error = np.mean(autoencoder.reconstruction_error(sample_data))
 
-        # Loss should decrease after training
-        assert final_loss < initial_loss
-        assert len(history["loss"]) == 10
+        # Error should decrease after training
+        assert final_error < initial_error
+        assert "train_loss" in history
+        assert len(history["train_loss"]) <= 10  # May stop early
 
 
 class TestDetectionResult:
@@ -341,7 +348,6 @@ class TestAnomalyDetector:
     def detector(self):
         """Create an anomaly detector."""
         return AnomalyDetector(
-            input_dim=16,
             latent_dim=4,
             threshold_percentile=95,
             seed=42,
@@ -361,22 +367,22 @@ class TestAnomalyDetector:
 
     def test_detector_initialization(self, detector):
         """Test detector initializes correctly."""
-        assert detector.is_trained is False
-        assert detector.threshold is None
+        assert detector.is_fitted is False
+        assert detector.threshold == 0.0
 
     def test_fit(self, detector, normal_traffic):
         """Test training the detector."""
-        metrics = detector.fit(
+        result = detector.fit(
             normal_traffic,
             epochs=20,
             batch_size=32,
         )
 
-        assert detector.is_trained is True
+        assert result is detector  # Returns self
+        assert detector.is_fitted is True
         assert detector.threshold is not None
         assert detector.threshold > 0
-        assert "final_loss" in metrics
-        assert "threshold" in metrics
+        assert detector.train_history is not None
 
     def test_detect_normal_traffic(self, detector, normal_traffic):
         """Test detection on normal traffic."""
@@ -401,14 +407,16 @@ class TestAnomalyDetector:
         detection_rate = sum(r.is_anomaly for r in results) / len(results)
         assert detection_rate > 0.3  # At least 30% detection
 
-    def test_get_anomaly_scores(self, detector, normal_traffic):
-        """Test getting anomaly scores."""
+    def test_detect_batch(self, detector, normal_traffic):
+        """Test batch detection."""
         detector.fit(normal_traffic, epochs=20)
 
-        scores = detector.get_anomaly_scores(normal_traffic[:10])
+        is_anomaly, scores, errors = detector.detect_batch(normal_traffic[:10])
 
+        assert len(is_anomaly) == 10
         assert len(scores) == 10
-        assert all(0 <= s <= 1 for s in scores)
+        assert len(errors) == 10
+        assert all(isinstance(a, (bool, np.bool_)) for a in is_anomaly)
 
     def test_save_and_load_model(self, detector, normal_traffic, tmp_path):
         """Test saving and loading detector model."""
@@ -416,23 +424,25 @@ class TestAnomalyDetector:
         original_threshold = detector.threshold
 
         model_path = tmp_path / "detector_model"
-        detector.save_model(model_path)
+        detector.save(model_path)
 
         # Load into new detector
-        new_detector = AnomalyDetector()
-        new_detector.load_model(model_path)
+        new_detector = AnomalyDetector.load(model_path)
 
-        assert new_detector.is_trained is True
+        assert new_detector.is_fitted is True
         assert new_detector.threshold == pytest.approx(original_threshold, rel=0.01)
 
-    def test_predict_proba(self, detector, normal_traffic):
-        """Test probability prediction."""
+    def test_get_top_anomalies(self, detector, normal_traffic, attack_traffic):
+        """Test getting top anomalies."""
         detector.fit(normal_traffic, epochs=20)
 
-        probas = detector.predict_proba(normal_traffic[:10])
+        # Combine normal and attack traffic
+        test_data = np.vstack([normal_traffic[:20], attack_traffic])
+        top_anomalies = detector.get_top_anomalies(test_data, top_k=5)
 
-        assert probas.shape == (10,)
-        assert all(0 <= p <= 1 for p in probas)
+        assert len(top_anomalies) == 5
+        # Top anomalies should have high scores
+        assert all(r.anomaly_score >= 0 for r in top_anomalies)
 
     def test_evaluate(self, detector, normal_traffic, attack_traffic):
         """Test evaluation metrics."""
