@@ -1,6 +1,6 @@
-# Contributing to Medical Image Segmentation
+# Contributing to MedTech AI Security
 
-Thank you for your interest in contributing! This document provides guidelines for contributing to this project.
+Thank you for your interest in contributing to this AI-powered medical device cybersecurity platform.
 
 ## Table of Contents
 
@@ -22,13 +22,13 @@ By participating in this project, you agree to maintain a respectful and inclusi
 1. **Fork the repository** on GitHub
 2. **Clone your fork** locally:
    ```bash
-   git clone https://github.com/YOUR-USERNAME/medical-image-segmentation.git
-   cd medical-image-segmentation
+   git clone https://github.com/YOUR-USERNAME/medtech-ai-security.git
+   cd medtech-ai-security
    ```
 
 3. **Add upstream remote**:
    ```bash
-   git remote add upstream https://github.com/ORIGINAL-OWNER/medical-image-segmentation.git
+   git remote add upstream https://github.com/Dashtid/medtech-ai-security.git
    ```
 
 ## Development Setup
@@ -39,7 +39,7 @@ By participating in this project, you agree to maintain a respectful and inclusi
 # Install dependencies
 uv sync --extra dev
 
-# Install pre-commit hooks
+# Install pre-commit hooks (if configured)
 uv run pre-commit install
 ```
 
@@ -52,9 +52,23 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install in development mode
 pip install -e ".[dev]"
+```
 
-# Install pre-commit hooks
-pre-commit install
+## Project Structure
+
+```text
+medtech-ai-security/
+  src/medtech_ai_security/
+    threat_intel/          # Phase 1: NVD/CISA scrapers, Claude enrichment
+    ml/                    # Phase 2: Vulnerability risk scoring
+    anomaly/               # Phase 3: Traffic anomaly detection
+    adversarial/           # Phase 4: Adversarial ML attacks/defenses
+    sbom_analysis/         # Phase 5: SBOM GNN analysis
+  scripts/                 # Demo and utility scripts
+  data/                    # Sample data and outputs
+  models/                  # Trained models
+  docs/                    # Documentation
+  tests/                   # Unit tests
 ```
 
 ## Making Changes
@@ -65,13 +79,13 @@ Create a descriptive branch name:
 
 ```bash
 # Feature branch
-git checkout -b feature/add-attention-unet
+git checkout -b feature/add-new-attack-method
 
 # Bug fix branch
-git checkout -b fix/dice-loss-edge-case
+git checkout -b fix/sbom-parser-edge-case
 
 # Documentation branch
-git checkout -b docs/update-architecture
+git checkout -b docs/update-threat-intel-usage
 ```
 
 ### 2. Make Your Changes
@@ -87,7 +101,6 @@ git checkout -b docs/update-architecture
 We use several tools to maintain code quality:
 
 - **Black** - Code formatting
-- **isort** - Import sorting
 - **Ruff** - Fast linting
 - **mypy** - Type checking
 
@@ -97,20 +110,11 @@ Run all checks:
 # Format code
 uv run black src/ tests/
 
-# Sort imports
-uv run isort src/ tests/
-
 # Lint
 uv run ruff check src/ tests/ --fix
 
 # Type check
-uv run mypy src/med_seg
-```
-
-Or use pre-commit:
-
-```bash
-uv run pre-commit run --all-files
+uv run mypy src/
 ```
 
 ## Testing
@@ -122,34 +126,38 @@ uv run pre-commit run --all-files
 uv run pytest
 
 # Run with coverage
-uv run pytest --cov=med_seg --cov-report=html
+uv run pytest --cov=medtech_ai_security --cov-report=html
 
 # Run specific test file
-uv run pytest tests/test_models.py
-
-# Run specific test
-uv run pytest tests/test_losses.py::TestLossFunctions::test_dice_coefficient_perfect
+uv run pytest tests/test_sbom_analysis.py
 ```
 
-### Writing Tests
+### Running the Demo
 
-- Place tests in `tests/` directory
-- Name test files `test_*.py`
-- Name test functions `test_*`
-- Use descriptive test names
-- Include both positive and negative test cases
+```bash
+# Comprehensive demo of all 5 phases
+uv run python scripts/demo_security.py
+```
 
-Example:
+### CLI Tools
 
-```python
-def test_dice_coefficient_perfect():
-    """Test DICE coefficient with perfect prediction."""
-    y_true = tf.constant([[[[1.0]], [[1.0]], [[0.0]], [[0.0]]]])
-    y_pred = tf.constant([[[[1.0]], [[1.0]], [[0.0]], [[0.0]]]])
+Test individual modules via CLI:
 
-    dice = dice_coefficient(y_true, y_pred)
+```bash
+# Phase 1: Threat Intelligence
+medsec-nvd --days 7 --output data/cves.json
 
-    assert float(dice) > 0.99  # Should be very close to 1.0
+# Phase 2: Risk Scoring
+medsec-risk train --data data/enriched.json
+
+# Phase 3: Anomaly Detection
+medsec-traffic-gen --normal 100 --attack 20
+
+# Phase 4: Adversarial ML
+medsec-adversarial evaluate --method fgsm
+
+# Phase 5: SBOM Analysis
+medsec-sbom demo --html report.html
 ```
 
 ## Documentation
@@ -159,32 +167,22 @@ def test_dice_coefficient_perfect():
 Use Google-style docstrings:
 
 ```python
-def train_model(
-    model: keras.Model,
-    data_generator: Iterator,
-    epochs: int = 100
-) -> keras.callbacks.History:
-    """Train a segmentation model.
-
-    This function orchestrates the training process using the provided
-    data generator and configuration.
+def analyze_sbom(sbom_path: str, output_format: str = "json") -> dict:
+    """Analyze an SBOM file for supply chain risks.
 
     Args:
-        model: Keras model to train
-        data_generator: Generator yielding (images, masks) batches
-        epochs: Number of training epochs
+        sbom_path: Path to the SBOM file (CycloneDX or SPDX)
+        output_format: Output format ("json" or "html")
 
     Returns:
-        Training history object containing loss and metrics
+        Risk analysis report as a dictionary
 
     Raises:
-        ValueError: If model is not compiled
+        ValueError: If SBOM format is not supported
 
     Example:
-        >>> from med_seg.models import UNet
-        >>> model_builder = UNet(input_size=256)
-        >>> model = model_builder.build()
-        >>> history = train_model(model, train_gen, epochs=50)
+        >>> report = analyze_sbom("sbom.json", output_format="html")
+        >>> print(report["risk_score"])
     """
     ...
 ```
@@ -192,8 +190,8 @@ def train_model(
 ### Documentation Files
 
 - Update `README.md` for user-facing changes
-- Update `docs/ARCHITECTURE.md` for architectural changes
-- Add examples to `notebooks/` for new features
+- Update `docs/THREAT_INTEL_USAGE.md` for threat intel changes
+- Add CLI examples to module docstrings
 
 ## Submitting Changes
 
@@ -203,25 +201,19 @@ Use conventional commit messages:
 
 ```bash
 # Feature
-git commit -m "feat: add attention U-Net architecture"
+git commit -m "feat: add new SBOM vulnerability detection method"
 
 # Bug fix
-git commit -m "fix: correct DICE loss calculation for edge cases"
+git commit -m "fix: correct GNN layer weight initialization"
 
 # Documentation
-git commit -m "docs: update training examples in README"
+git commit -m "docs: update CLI examples in README"
 
 # Tests
-git commit -m "test: add unit tests for data augmentation"
+git commit -m "test: add unit tests for adversarial attacks"
 
 # Refactoring
-git commit -m "refactor: simplify data loader logic"
-
-# Performance
-git commit -m "perf: optimize DICE coefficient calculation"
-
-# CI/CD
-git commit -m "ci: add Docker build to GitHub Actions"
+git commit -m "refactor: simplify traffic generator logic"
 ```
 
 ### 2. Push to Your Fork
@@ -240,14 +232,6 @@ git push origin your-branch-name
    - **Description**: What changes were made and why
    - **Related Issues**: Link any related issues
    - **Testing**: How were the changes tested
-   - **Screenshots**: If applicable
-
-### 4. PR Review Process
-
-- Respond to review comments
-- Make requested changes
-- Keep the PR focused (one feature/fix per PR)
-- Ensure all CI checks pass
 
 ## Code Style
 
@@ -257,29 +241,21 @@ git push origin your-branch-name
 - Use type hints (Python 3.10+ syntax)
 - Maximum line length: 100 characters
 - Use descriptive variable names
-- Avoid abbreviations unless common
 
 ### Type Hints
 
 ```python
-from typing import List, Dict, Optional, Tuple
+from typing import Optional
 import numpy as np
-from tensorflow import keras
 
-def process_images(
-    images: np.ndarray,
-    masks: Optional[np.ndarray] = None,
-    batch_size: int = 1
-) -> Tuple[np.ndarray, np.ndarray]:
-    """Process images with optional masks."""
+def process_traffic(
+    packets: list[dict],
+    threshold: float = 0.5,
+    labels: Optional[np.ndarray] = None
+) -> tuple[np.ndarray, list[str]]:
+    """Process network traffic for anomaly detection."""
     ...
 ```
-
-### Docstrings
-
-- All public functions, classes, and methods must have docstrings
-- Use Google style
-- Include Args, Returns, Raises, and Examples sections
 
 ### Imports
 
@@ -290,43 +266,41 @@ Organize imports in this order:
 3. Local modules
 
 ```python
-import os
+import json
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 import numpy as np
 import tensorflow as tf
-from tensorflow import keras
 
-from med_seg.models import UNet
-from med_seg.training import dice_loss
+from medtech_ai_security.sbom_analysis import SBOMParser
+from medtech_ai_security.ml import RiskScorer
 ```
 
 ## Project-Specific Guidelines
 
-### Adding New Models
+### Adding New Attack Methods (Phase 4)
 
-1. Create new file in `src/med_seg/models/`
-2. Implement builder class with `build()` method
-3. Add comprehensive docstrings
-4. Create unit tests in `tests/test_models.py`
-5. Update `docs/ARCHITECTURE.md`
-6. Add example to notebooks
+1. Add to `src/medtech_ai_security/adversarial/attacks.py`
+2. Implement attack class following existing patterns
+3. Add to evaluator integration
+4. Create unit tests
+5. Update CLI help text
 
-### Adding New Loss Functions
+### Adding New SBOM Formats (Phase 5)
 
-1. Add to `src/med_seg/training/losses.py`
-2. Follow signature: `(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor`
-3. Include smoothing parameter if applicable
-4. Add unit tests in `tests/test_losses.py`
-5. Document in architecture docs
+1. Add parser in `src/medtech_ai_security/sbom_analysis/parser.py`
+2. Implement format detection logic
+3. Map to common `Package` and `Dependency` structures
+4. Add test SBOM files to `data/`
+5. Update documentation
 
-### Adding New Datasets
+### Adding New Risk Factors
 
-1. Create YAML config in `configs/`
-2. Follow existing config structure
-3. Document dataset-specific preprocessing
-4. Add to README
+1. Update risk calculation in relevant scorer
+2. Document weights and rationale
+3. Update compliance notes if FDA/EU MDR related
+4. Add unit tests for edge cases
 
 ## Questions?
 
@@ -343,4 +317,4 @@ Contributors will be acknowledged in:
 - Release notes
 - Project documentation
 
-Thank you for contributing to medical image segmentation! 🎉
+Thank you for contributing to medical device cybersecurity!
