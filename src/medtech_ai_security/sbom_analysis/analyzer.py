@@ -382,7 +382,7 @@ class SBOMAnalyzer:
                     {report.risk_report.overall_risk_level.value.upper() if report.risk_report else 'N/A'} RISK
                 </span>
                 <span style="margin-left: 10px; color: #aaa;">
-                    Score: {report.risk_report.overall_risk_score:.1f}/100 if report.risk_report else 0}/100
+                    Score: {report.risk_report.overall_risk_score:.1f if report.risk_report else 0}/100
                 </span>
             </div>
         </div>
