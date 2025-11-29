@@ -44,7 +44,7 @@ See [PIVOT_PLAN.md](PIVOT_PLAN.md) for detailed transition roadmap and technical
 
 ## Project Status
 
-**Current Phase:** Phase 2 Complete - ML Risk Scoring (2025-11-28)
+**Current Phase:** Phase 3 Complete - Anomaly Detection (2025-11-29)
 
 ### Medical Device Cybersecurity AI (NEW)
 
@@ -60,12 +60,28 @@ See [PIVOT_PLAN.md](PIVOT_PLAN.md) for detailed transition roadmap and technical
 - Feature engineering: CVSS, CWE domains, device type, clinical impact
 - Automated risk prioritization with recommendations
 
+**Phase 3 - Anomaly Detection (Complete):**
+
+- Autoencoder-based anomaly detection for medical device network traffic
+- Synthetic DICOM/HL7 traffic generator with realistic clinical workflow patterns
+- 10 attack types: unauthorized queries, data exfiltration, malformed packets, brute force AET, ransomware payload, message injection, identity spoofing, protocol violations, data tampering, DoS flood
+- 92.5% accuracy, 0.62 F1-score, 0.86 AUC on synthetic dataset
+- Feature engineering: timing, network, protocol-specific (16 features)
+- Model persistence: save/load trained detectors
+
 **CLI Tools Available:**
 ```bash
-medsec-nvd      # Scrape NVD for medical device CVEs
-medsec-cisa     # Scrape CISA ICS-CERT advisories
-medsec-enrich   # Merge Claude.ai analysis with CVE data
-medsec-risk     # ML-powered vulnerability risk scoring
+# Threat Intelligence (Phase 1)
+medsec-nvd        # Scrape NVD for medical device CVEs
+medsec-cisa       # Scrape CISA ICS-CERT advisories
+medsec-enrich     # Merge Claude.ai analysis with CVE data
+
+# ML Risk Scoring (Phase 2)
+medsec-risk       # ML-powered vulnerability risk scoring
+
+# Anomaly Detection (Phase 3)
+medsec-traffic-gen  # Generate synthetic DICOM/HL7 traffic
+medsec-anomaly      # Train and run anomaly detection
 ```
 
 See [docs/THREAT_INTEL_USAGE.md](docs/THREAT_INTEL_USAGE.md) for detailed usage guide.

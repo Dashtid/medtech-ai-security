@@ -66,6 +66,9 @@ medsec-nvd = "medtech_ai_security.threat_intel.nvd_scraper:main"
 medsec-cisa = "medtech_ai_security.threat_intel.cisa_scraper:main"
 medsec-enrich = "medtech_ai_security.threat_intel.claude_processor:main"
 medsec-risk = "medtech_ai_security.ml.risk_scorer:main"
+# Anomaly Detection CLI tools (Phase 3)
+medsec-traffic-gen = "medtech_ai_security.anomaly.traffic_generator:main"
+medsec-anomaly = "medtech_ai_security.anomaly.detector:main"
 
 [project.urls]
 Homepage = "https://github.com/Dashtid/medtech-ai-security"
