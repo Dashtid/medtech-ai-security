@@ -23,10 +23,16 @@ from medtech_ai_security.sbom_analysis.graph_builder import (
     EdgeType,
 )
 from medtech_ai_security.sbom_analysis.gnn_model import (
+    GNNConfig,
     GraphConvLayer,
     GraphAttentionLayer,
     SimpleVulnerabilityClassifier,
+    TF_AVAILABLE,
 )
+try:
+    from medtech_ai_security.sbom_analysis.gnn_model import VulnerabilityGNN
+except ImportError:
+    VulnerabilityGNN = None
 from medtech_ai_security.sbom_analysis.risk_scorer import (
     RiskLevel,
     PackageRisk,
@@ -340,6 +346,223 @@ class TestSBOMAnalyzer:
         report = analyzer.analyze(temp_sbom_file)
 
         assert isinstance(report, AnalysisReport)
+
+
+class TestGNNConfig:
+    """Test GNNConfig dataclass."""
+
+    def test_config_defaults(self):
+        """Test GNNConfig with default values."""
+        config = GNNConfig()
+
+        assert config.hidden_dim == 64
+        assert config.num_layers == 3
+        assert config.num_heads == 4
+        assert config.dropout_rate == 0.2
+        assert config.input_dim == 88
+        assert config.num_classes == 3
+
+    def test_config_custom_values(self):
+        """Test GNNConfig with custom values."""
+        config = GNNConfig(
+            hidden_dim=128,
+            num_layers=4,
+            num_heads=8,
+            dropout_rate=0.3,
+            learning_rate=0.0001,
+        )
+
+        assert config.hidden_dim == 128
+        assert config.num_layers == 4
+        assert config.learning_rate == 0.0001
+
+
+class TestSimpleVulnerabilityClassifier:
+    """Test SimpleVulnerabilityClassifier functionality."""
+
+    @pytest.fixture
+    def sample_graph_data(self):
+        """Create sample graph data for testing."""
+        from medtech_ai_security.sbom_analysis.graph_builder import GraphData
+
+        # Create simple graph with 5 nodes
+        node_features = np.random.rand(5, 88).astype(np.float32)
+        edge_index = np.array([[0, 1, 2], [1, 2, 3]])  # Simple chain
+        node_labels = np.array([0, 1, 1, 0, 2])  # 0: clean, 1: vulnerable, 2: transitive
+
+        return GraphData(
+            node_features=node_features,
+            edge_index=edge_index,
+            node_labels=node_labels,
+            num_nodes=5,
+        )
+
+    def test_classifier_initialization(self):
+        """Test classifier initializes correctly."""
+        classifier = SimpleVulnerabilityClassifier(num_classes=3)
+        assert classifier.num_classes == 3
+        assert classifier.weights is None
+
+    def test_classifier_fit(self, sample_graph_data):
+        """Test fitting the classifier."""
+        classifier = SimpleVulnerabilityClassifier(num_classes=3)
+        classifier.fit([sample_graph_data], epochs=10)
+
+        assert classifier.weights is not None
+        assert classifier.bias is not None
+        assert classifier.weights.shape[1] == 3
+
+    def test_classifier_predict(self, sample_graph_data):
+        """Test predicting with the classifier."""
+        classifier = SimpleVulnerabilityClassifier(num_classes=3)
+        classifier.fit([sample_graph_data], epochs=10)
+
+        predictions = classifier.predict(sample_graph_data)
+
+        assert len(predictions) == 5
+        assert all(p in [0, 1, 2] for p in predictions)
+
+    def test_classifier_predict_proba(self, sample_graph_data):
+        """Test predicting probabilities."""
+        classifier = SimpleVulnerabilityClassifier(num_classes=3)
+        classifier.fit([sample_graph_data], epochs=10)
+
+        probs = classifier.predict_proba(sample_graph_data)
+
+        assert probs.shape == (5, 3)
+        # Probabilities should sum to 1
+        assert np.allclose(probs.sum(axis=1), 1.0)
+
+    def test_classifier_not_trained_error(self, sample_graph_data):
+        """Test error when predicting without training."""
+        classifier = SimpleVulnerabilityClassifier()
+
+        with pytest.raises(RuntimeError, match="not trained"):
+            classifier.predict(sample_graph_data)
+
+
+@pytest.mark.skipif(not TF_AVAILABLE, reason="TensorFlow not available")
+class TestVulnerabilityGNN:
+    """Test VulnerabilityGNN model (requires TensorFlow)."""
+
+    @pytest.fixture
+    def sample_graph_data(self):
+        """Create sample graph data for GNN testing."""
+        from medtech_ai_security.sbom_analysis.graph_builder import GraphData
+
+        # Create simple graph with 10 nodes
+        node_features = np.random.rand(10, 88).astype(np.float32)
+        edge_index = np.array([
+            [0, 1, 2, 3, 4, 5],
+            [1, 2, 3, 4, 5, 6]
+        ])
+        node_labels = np.array([0, 0, 1, 1, 0, 1, 0, 2, 2, 0])
+
+        return GraphData(
+            node_features=node_features,
+            edge_index=edge_index,
+            node_labels=node_labels,
+            num_nodes=10,
+        )
+
+    def test_gnn_initialization(self):
+        """Test GNN model initializes correctly."""
+        if VulnerabilityGNN is None:
+            pytest.skip("VulnerabilityGNN not available")
+
+        config = GNNConfig(input_dim=88, hidden_dim=32, num_layers=2)
+        model = VulnerabilityGNN(config)
+
+        assert model.model is not None
+        assert model.config.hidden_dim == 32
+
+    def test_gnn_train(self, sample_graph_data):
+        """Test GNN model training."""
+        if VulnerabilityGNN is None:
+            pytest.skip("VulnerabilityGNN not available")
+
+        config = GNNConfig(
+            input_dim=88,
+            hidden_dim=32,
+            num_layers=2,
+            epochs=5,
+        )
+        model = VulnerabilityGNN(config)
+
+        history = model.train([sample_graph_data], epochs=5)
+
+        assert "loss" in history
+        assert "accuracy" in history
+        assert len(history["loss"]) == 5
+
+    def test_gnn_predict(self, sample_graph_data):
+        """Test GNN model prediction."""
+        if VulnerabilityGNN is None:
+            pytest.skip("VulnerabilityGNN not available")
+
+        config = GNNConfig(input_dim=88, hidden_dim=32, num_layers=2)
+        model = VulnerabilityGNN(config)
+
+        # Train briefly
+        model.train([sample_graph_data], epochs=3)
+
+        predictions = model.predict(sample_graph_data)
+
+        assert len(predictions) == 10
+        assert all(p in [0, 1, 2] for p in predictions)
+
+    def test_gnn_predict_proba(self, sample_graph_data):
+        """Test GNN model probability prediction."""
+        if VulnerabilityGNN is None:
+            pytest.skip("VulnerabilityGNN not available")
+
+        config = GNNConfig(input_dim=88, hidden_dim=32, num_layers=2)
+        model = VulnerabilityGNN(config)
+
+        model.train([sample_graph_data], epochs=3)
+        probs = model.predict_proba(sample_graph_data)
+
+        assert probs.shape == (10, 3)
+        # Probabilities should sum to approximately 1
+        assert np.allclose(probs.sum(axis=1), 1.0, atol=1e-5)
+
+    def test_gnn_evaluate(self, sample_graph_data):
+        """Test GNN model evaluation."""
+        if VulnerabilityGNN is None:
+            pytest.skip("VulnerabilityGNN not available")
+
+        config = GNNConfig(input_dim=88, hidden_dim=32, num_layers=2)
+        model = VulnerabilityGNN(config)
+
+        model.train([sample_graph_data], epochs=3)
+        metrics = model.evaluate([sample_graph_data])
+
+        assert "accuracy" in metrics
+        assert 0 <= metrics["accuracy"] <= 1
+
+    def test_gnn_save_load(self, sample_graph_data, tmp_path):
+        """Test GNN model save and load."""
+        if VulnerabilityGNN is None:
+            pytest.skip("VulnerabilityGNN not available")
+
+        config = GNNConfig(input_dim=88, hidden_dim=32, num_layers=2)
+        model = VulnerabilityGNN(config)
+
+        model.train([sample_graph_data], epochs=3)
+
+        # Save
+        model_path = tmp_path / "gnn_weights.weights.h5"
+        model.save(str(model_path))
+
+        # Create new model and load
+        new_model = VulnerabilityGNN(config)
+        new_model.load(str(model_path))
+
+        # Predictions should be similar
+        orig_preds = model.predict(sample_graph_data)
+        loaded_preds = new_model.predict(sample_graph_data)
+
+        assert np.array_equal(orig_preds, loaded_preds)
 
 
 class TestIntegration:

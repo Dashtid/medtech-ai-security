@@ -204,12 +204,13 @@ medtech-ai-security/
 │       └── analyzer.py
 ├── scripts/
 │   └── demo_security.py       # Comprehensive demo
-├── tests/                     # Unit tests (111 tests)
+├── tests/                     # Unit tests (149 tests)
 │   ├── test_threat_intel.py   # Phase 1 tests
 │   ├── test_risk_scorer.py    # Phase 2 tests
 │   ├── test_anomaly.py        # Phase 3 tests
 │   ├── test_adversarial.py    # Phase 4 tests
-│   └── test_sbom_analysis.py  # Phase 5 tests
+│   ├── test_sbom_analysis.py  # Phase 5 tests
+│   └── test_integration.py    # Cross-phase integration tests
 ├── data/                      # Sample data and outputs
 ├── models/                    # Trained models
 └── docs/                      # Documentation
@@ -264,7 +265,7 @@ pip install -e ".[dev]"  # Include development tools
 
 ## Testing
 
-Comprehensive test suite covering all 5 phases with 111 unit tests:
+Comprehensive test suite covering all 5 phases with 149 tests (57% code coverage):
 
 ```bash
 # Run all tests
@@ -285,11 +286,12 @@ uv run pytest tests/test_sbom_analysis.py -v     # Phase 5: SBOM Analysis
 
 | Module | Tests | Coverage |
 |--------|-------|----------|
-| Threat Intelligence | 18 tests | NVD/CISA scrapers, Claude processor |
+| Threat Intelligence | 24 tests | NVD/CISA scrapers, Claude processor |
 | ML Risk Scoring | 23 tests | Naive Bayes, KNN, feature extraction |
-| Anomaly Detection | 27 tests | Traffic generator, autoencoder, detector |
-| Adversarial ML | 18 tests | FGSM/PGD/C&W attacks, defenses |
-| SBOM Analysis | 25 tests | Parser, graph builder, GNN, risk scorer |
+| Anomaly Detection | 35 tests | Traffic generator, autoencoder, detector |
+| Adversarial ML | 20 tests | FGSM/PGD/C&W attacks, defenses |
+| SBOM Analysis | 32 tests | Parser, graph builder, GNN, risk scorer |
+| Integration Tests | 15 tests | Cross-phase workflows |
 
 ## Development
 

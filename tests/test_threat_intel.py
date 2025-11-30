@@ -12,6 +12,15 @@ from medtech_ai_security.threat_intel.nvd_scraper import (
     MEDICAL_DEVICE_KEYWORDS,
     NVDScraper,
 )
+from medtech_ai_security.threat_intel.claude_processor import (
+    load_claude_response,
+    merge_analysis,
+    generate_summary_report,
+)
+from medtech_ai_security.threat_intel.cisa_scraper import (
+    CISAAdvisory,
+    CISAScraper,
+)
 
 
 class TestCVEEntry:
@@ -239,3 +248,342 @@ class TestMedicalDeviceKeywords:
         for keyword in MEDICAL_DEVICE_KEYWORDS:
             assert isinstance(keyword, str)
             assert len(keyword) > 0
+
+
+class TestClaudeProcessor:
+    """Test Claude response processor functionality."""
+
+    def test_load_claude_response_json(self, tmp_path):
+        """Test loading a plain JSON response."""
+        response_data = {
+            "analyses": [
+                {
+                    "cve_id": "CVE-2024-1234",
+                    "device_type": "imaging",
+                    "clinical_impact": "HIGH",
+                    "exploitability": "EASY",
+                    "reasoning": "Test reasoning",
+                }
+            ]
+        }
+
+        response_file = tmp_path / "response.json"
+        with open(response_file, "w") as f:
+            json.dump(response_data, f)
+
+        loaded = load_claude_response(response_file)
+
+        assert "analyses" in loaded
+        assert loaded["analyses"][0]["cve_id"] == "CVE-2024-1234"
+
+    def test_load_claude_response_markdown(self, tmp_path):
+        """Test loading JSON wrapped in markdown code block."""
+        response_content = '''```json
+{
+    "analyses": [
+        {
+            "cve_id": "CVE-2024-1234",
+            "device_type": "imaging"
+        }
+    ]
+}
+```'''
+
+        response_file = tmp_path / "response.md"
+        with open(response_file, "w") as f:
+            f.write(response_content)
+
+        loaded = load_claude_response(response_file)
+
+        assert "analyses" in loaded
+        assert loaded["analyses"][0]["cve_id"] == "CVE-2024-1234"
+
+    def test_merge_analysis(self, tmp_path):
+        """Test merging Claude analysis into CVE data."""
+        # Create CVE file
+        cve_data = {
+            "metadata": {"generated_at": "2024-01-15T10:00:00Z"},
+            "cves": [
+                {
+                    "cve_id": "CVE-2024-1234",
+                    "description": "Test CVE",
+                    "cvss_v3_score": 9.8,
+                }
+            ],
+        }
+        cve_file = tmp_path / "cves.json"
+        with open(cve_file, "w") as f:
+            json.dump(cve_data, f)
+
+        # Create response file
+        response_data = {
+            "analyses": [
+                {
+                    "cve_id": "CVE-2024-1234",
+                    "device_type": "imaging",
+                    "clinical_impact": "HIGH",
+                    "exploitability": "EASY",
+                    "reasoning": "Affects DICOM systems",
+                }
+            ]
+        }
+        response_file = tmp_path / "response.json"
+        with open(response_file, "w") as f:
+            json.dump(response_data, f)
+
+        # Merge
+        output_file = tmp_path / "enriched.json"
+        result = merge_analysis(cve_file, response_file, output_file)
+
+        # Verify
+        assert result["cves"][0]["device_type"] == "imaging"
+        assert result["cves"][0]["clinical_impact"] == "HIGH"
+        assert result["cves"][0]["ai_reasoning"] == "Affects DICOM systems"
+        assert result["metadata"]["enriched_count"] == 1
+        assert output_file.exists()
+
+    def test_merge_analysis_default_output(self, tmp_path):
+        """Test merge_analysis with default output path."""
+        cve_data = {
+            "metadata": {"generated_at": "2024-01-15"},
+            "cves": [{"cve_id": "CVE-2024-1234", "description": "Test"}],
+        }
+        cve_file = tmp_path / "test_cves.json"
+        with open(cve_file, "w") as f:
+            json.dump(cve_data, f)
+
+        response_data = {"analyses": []}
+        response_file = tmp_path / "response.json"
+        with open(response_file, "w") as f:
+            json.dump(response_data, f)
+
+        # Merge without specifying output
+        result = merge_analysis(cve_file, response_file)
+
+        # Default output should be *_enriched.json
+        expected_output = tmp_path / "test_cves_enriched.json"
+        assert expected_output.exists()
+
+    def test_generate_summary_report(self, tmp_path):
+        """Test generating summary report from enriched data."""
+        enriched_data = {
+            "metadata": {
+                "generated_at": "2024-01-15T10:00:00Z",
+                "enriched_at": "2024-01-16T10:00:00Z",
+                "enriched_count": 3,
+            },
+            "cves": [
+                {
+                    "cve_id": "CVE-2024-1001",
+                    "description": "Critical DICOM vulnerability",
+                    "cvss_v3_score": 9.8,
+                    "cvss_v3_severity": "CRITICAL",
+                    "device_type": "imaging",
+                    "clinical_impact": "HIGH",
+                    "exploitability": "EASY",
+                },
+                {
+                    "cve_id": "CVE-2024-1002",
+                    "description": "HL7 parser overflow",
+                    "cvss_v3_score": 7.5,
+                    "cvss_v3_severity": "HIGH",
+                    "device_type": "healthcare_it",
+                    "clinical_impact": "MEDIUM",
+                    "exploitability": "MODERATE",
+                },
+                {
+                    "cve_id": "CVE-2024-1003",
+                    "description": "Low severity issue",
+                    "cvss_v3_score": 3.0,
+                    "cvss_v3_severity": "LOW",
+                    "device_type": "monitoring",
+                    "clinical_impact": "LOW",
+                    "exploitability": "HARD",
+                },
+            ],
+        }
+
+        report_file = tmp_path / "report.txt"
+        report = generate_summary_report(enriched_data, report_file)
+
+        # Verify report content
+        assert "MEDICAL DEVICE THREAT INTELLIGENCE REPORT" in report
+        assert "CRITICAL" in report
+        assert "HIGH" in report
+        assert "LOW" in report
+        assert "imaging" in report
+        assert "healthcare_it" in report
+
+        # Verify file was saved
+        assert report_file.exists()
+
+    def test_generate_summary_report_high_priority(self, tmp_path):
+        """Test report highlights high priority CVEs."""
+        enriched_data = {
+            "metadata": {
+                "generated_at": "2024-01-15",
+                "enriched_at": "2024-01-16",
+                "enriched_count": 1,
+            },
+            "cves": [
+                {
+                    "cve_id": "CVE-2024-1001",
+                    "description": "Critical vulnerability with high clinical impact",
+                    "cvss_v3_score": 9.8,
+                    "cvss_v3_severity": "CRITICAL",
+                    "device_type": "imaging",
+                    "clinical_impact": "HIGH",
+                    "exploitability": "EASY",
+                }
+            ],
+        }
+
+        report = generate_summary_report(enriched_data)
+
+        assert "HIGH PRIORITY" in report
+        assert "CVE-2024-1001" in report
+
+
+class TestCISAAdvisory:
+    """Test CISAAdvisory dataclass."""
+
+    def test_advisory_creation(self):
+        """Test creating a CISAAdvisory with required fields."""
+        advisory = CISAAdvisory(
+            advisory_id="ICSMA-24-001-01",
+            title="Medical Device Vulnerability",
+            url="https://cisa.gov/advisories/icsma-24-001-01",
+            release_date="2024-01-15",
+        )
+
+        assert advisory.advisory_id == "ICSMA-24-001-01"
+        assert advisory.title == "Medical Device Vulnerability"
+        assert advisory.advisory_type == "ICSMA"
+
+    def test_advisory_with_all_fields(self):
+        """Test CISAAdvisory with all optional fields."""
+        advisory = CISAAdvisory(
+            advisory_id="ICSMA-24-001-01",
+            title="DICOM Server Vulnerability",
+            url="https://cisa.gov/advisories/icsma-24-001-01",
+            release_date="2024-01-15",
+            last_updated="2024-01-20",
+            severity="CRITICAL",
+            cvss_score=9.8,
+            affected_products=["DICOM Server v1.0", "DICOM Server v2.0"],
+            cve_ids=["CVE-2024-1234", "CVE-2024-1235"],
+            vendor="Medical Devices Inc",
+            description="Remote code execution vulnerability",
+            mitigation="Update to version 3.0",
+            device_type="imaging",
+            clinical_impact="HIGH",
+            exploitability="EASY",
+        )
+
+        assert advisory.cvss_score == 9.8
+        assert len(advisory.affected_products) == 2
+        assert "CVE-2024-1234" in advisory.cve_ids
+        assert advisory.device_type == "imaging"
+
+
+class TestCISAScraper:
+    """Test CISAScraper functionality."""
+
+    def test_scraper_initialization(self):
+        """Test scraper initializes with correct defaults."""
+        scraper = CISAScraper()
+
+        assert scraper.request_delay == 2.0
+        assert scraper.session is not None
+
+    def test_scraper_custom_delay(self):
+        """Test scraper with custom request delay."""
+        scraper = CISAScraper(request_delay=5.0)
+
+        assert scraper.request_delay == 5.0
+
+    def test_medical_keywords_present(self):
+        """Test that medical keywords are defined."""
+        assert len(CISAScraper.MEDICAL_KEYWORDS) > 0
+        assert "medical" in CISAScraper.MEDICAL_KEYWORDS
+        assert "DICOM" in CISAScraper.MEDICAL_KEYWORDS
+
+    @patch.object(CISAScraper, "_make_request")
+    def test_parse_advisory_list_page(self, mock_request):
+        """Test parsing advisory listing page."""
+        from bs4 import BeautifulSoup
+
+        html = '''
+        <html>
+        <body>
+            <a href="/ics-medical-advisories/icsma-24-001-01">
+                Medical Device Advisory
+            </a>
+            <a href="/ics-advisories/icsa-24-002-01">
+                General ICS Advisory
+            </a>
+        </body>
+        </html>
+        '''
+
+        soup = BeautifulSoup(html, "html.parser")
+        scraper = CISAScraper()
+        advisories = scraper._parse_advisory_list_page(soup)
+
+        assert len(advisories) == 2
+        assert advisories[0]["advisory_id"] == "ICSMA-24-001-01"
+        assert advisories[0]["advisory_type"] == "ICSMA"
+        assert advisories[1]["advisory_id"] == "ICSA-24-002-01"
+        assert advisories[1]["advisory_type"] == "ICSA"
+
+    def test_save_results(self, tmp_path):
+        """Test saving advisory results to JSON."""
+        scraper = CISAScraper()
+        output_file = tmp_path / "cisa_advisories.json"
+
+        advisories = [
+            CISAAdvisory(
+                advisory_id="ICSMA-24-001-01",
+                title="Test Advisory",
+                url="https://cisa.gov/test",
+                release_date="2024-01-15",
+                cvss_score=8.5,
+                severity="HIGH",
+            )
+        ]
+
+        scraper.save_results(advisories, output_file)
+
+        assert output_file.exists()
+        with open(output_file) as f:
+            data = json.load(f)
+
+        assert data["metadata"]["total_advisories"] == 1
+        assert data["advisories"][0]["advisory_id"] == "ICSMA-24-001-01"
+        assert data["advisories"][0]["cvss_score"] == 8.5
+
+    def test_generate_claude_prompt(self):
+        """Test generating Claude prompt from advisories."""
+        scraper = CISAScraper()
+
+        advisories = [
+            CISAAdvisory(
+                advisory_id="ICSMA-24-001-01",
+                title="DICOM Server RCE",
+                url="https://cisa.gov/test",
+                release_date="2024-01-15",
+                cvss_score=9.8,
+                severity="CRITICAL",
+                cve_ids=["CVE-2024-1234"],
+                vendor="Medical Devices Inc",
+                description="Remote code execution in DICOM server",
+            )
+        ]
+
+        prompt = scraper.generate_claude_prompt(advisories)
+
+        assert "ICSMA-24-001-01" in prompt
+        assert "CRITICAL" in prompt
+        assert "CVE-2024-1234" in prompt
+        assert "device_type" in prompt
+        assert "JSON format" in prompt

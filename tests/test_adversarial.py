@@ -214,6 +214,76 @@ class TestRobustnessReport:
         assert result_dict["clean_accuracy"] == 0.95
         assert "attack_results" in result_dict
 
+    def test_report_save_and_load(self, tmp_path):
+        """Test saving and loading report to/from file."""
+        report = RobustnessReport(
+            model_name="medical_classifier",
+            evaluation_date="2024-01-15",
+            clean_accuracy=0.92,
+            attack_results={
+                "fgsm": {"success_rate": 0.65, "robust_accuracy": 0.35},
+                "pgd": {"success_rate": 0.78, "robust_accuracy": 0.22},
+            },
+            defense_results={
+                "gaussian_blur": {"defended_accuracy": 0.75},
+            },
+            vulnerability_assessment="Model vulnerable to gradient-based attacks",
+            recommendations=["Apply adversarial training", "Use input preprocessing"],
+            clinical_risk_level="HIGH",
+            metadata={"total_samples": 1000},
+        )
+
+        # Save
+        report_path = tmp_path / "robustness_report.json"
+        report.save(report_path)
+
+        assert report_path.exists()
+
+        # Load
+        loaded = RobustnessReport.load(report_path)
+
+        assert loaded.model_name == "medical_classifier"
+        assert loaded.clean_accuracy == 0.92
+        assert loaded.attack_results["fgsm"]["success_rate"] == 0.65
+        assert loaded.clinical_risk_level == "HIGH"
+        assert len(loaded.recommendations) == 2
+
+    def test_report_with_all_fields(self):
+        """Test report with all optional fields populated."""
+        report = RobustnessReport(
+            model_name="xray_classifier",
+            evaluation_date="2024-01-20",
+            clean_accuracy=0.88,
+            attack_results={
+                "fgsm": {"success_rate": 0.55, "mean_perturbation": 0.03},
+                "pgd": {"success_rate": 0.70, "mean_perturbation": 0.025},
+                "cw": {"success_rate": 0.80, "mean_perturbation": 0.01},
+            },
+            defense_results={
+                "jpeg": {"defended_accuracy": 0.70},
+                "blur": {"defended_accuracy": 0.72},
+            },
+            vulnerability_assessment="High vulnerability to optimization-based attacks",
+            recommendations=[
+                "Implement adversarial training",
+                "Add input preprocessing",
+                "Consider ensemble methods",
+            ],
+            clinical_risk_level="CRITICAL",
+            metadata={
+                "dataset": "chest_xray",
+                "num_samples": 5000,
+                "evaluation_time": 120.5,
+            },
+        )
+
+        result_dict = report.to_dict()
+
+        assert len(result_dict["attack_results"]) == 3
+        assert len(result_dict["defense_results"]) == 2
+        assert len(result_dict["recommendations"]) == 3
+        assert result_dict["metadata"]["num_samples"] == 5000
+
 
 class TestRobustnessEvaluator:
     """Test RobustnessEvaluator functionality."""
