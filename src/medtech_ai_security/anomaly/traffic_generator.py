@@ -36,11 +36,10 @@ import json
 import logging
 import random
 import string
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 
@@ -112,7 +111,7 @@ class DICOMPacket:
     is_release: bool = False
     is_abort: bool = False
     is_attack: bool = False
-    attack_type: Optional[AttackType] = None
+    attack_type: AttackType | None = None
 
     def to_feature_vector(self) -> np.ndarray:
         """Convert packet to numeric feature vector for ML."""
@@ -185,7 +184,7 @@ class HL7Message:
     message_length: int
     segment_count: int
     is_attack: bool = False
-    attack_type: Optional[AttackType] = None
+    attack_type: AttackType | None = None
 
     def to_feature_vector(self) -> np.ndarray:
         """Convert message to numeric feature vector for ML."""
@@ -310,7 +309,7 @@ class TrafficGenerator:
     def generate_normal_dicom(
         self,
         n_samples: int = 1000,
-        start_time: Optional[float] = None,
+        start_time: float | None = None,
     ) -> list[DICOMPacket]:
         """
         Generate normal DICOM traffic patterns.
@@ -399,7 +398,7 @@ class TrafficGenerator:
     def generate_normal_hl7(
         self,
         n_samples: int = 1000,
-        start_time: Optional[float] = None,
+        start_time: float | None = None,
     ) -> list[HL7Message]:
         """
         Generate normal HL7 traffic patterns.
@@ -482,8 +481,8 @@ class TrafficGenerator:
     def generate_attack_dicom(
         self,
         n_samples: int = 100,
-        attack_types: Optional[list[AttackType]] = None,
-        start_time: Optional[float] = None,
+        attack_types: list[AttackType] | None = None,
+        start_time: float | None = None,
     ) -> list[DICOMPacket]:
         """Generate DICOM attack traffic patterns."""
         packets = []
@@ -610,8 +609,8 @@ class TrafficGenerator:
     def generate_attack_hl7(
         self,
         n_samples: int = 100,
-        attack_types: Optional[list[AttackType]] = None,
-        start_time: Optional[float] = None,
+        attack_types: list[AttackType] | None = None,
+        start_time: float | None = None,
     ) -> list[HL7Message]:
         """Generate HL7 attack traffic patterns."""
         messages = []

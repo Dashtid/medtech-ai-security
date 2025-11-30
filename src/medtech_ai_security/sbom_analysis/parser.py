@@ -18,7 +18,7 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +58,7 @@ class VulnerabilityInfo:
     cvss_vector: str = ""
     severity: str = "UNKNOWN"
     description: str = ""
-    fixed_version: Optional[str] = None
+    fixed_version: str | None = None
     source: str = ""
 
 
@@ -113,7 +113,7 @@ class DependencyGraph:
 
     packages: dict[str, Package] = field(default_factory=dict)
     dependencies: list[Dependency] = field(default_factory=list)
-    root_package: Optional[str] = None
+    root_package: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def add_package(self, package: Package) -> None:
@@ -134,7 +134,7 @@ class DependencyGraph:
         return deps
 
     def get_transitive_dependencies(
-        self, package_id: str, visited: Optional[set[str]] = None
+        self, package_id: str, visited: set[str] | None = None
     ) -> list[Package]:
         """Get all transitive dependencies of a package."""
         if visited is None:
@@ -184,7 +184,7 @@ class DependencyGraph:
 class SBOMParser:
     """Parser for SBOM files in various formats."""
 
-    def __init__(self, vuln_db: Optional[dict[str, list[VulnerabilityInfo]]] = None):
+    def __init__(self, vuln_db: dict[str, list[VulnerabilityInfo]] | None = None):
         """Initialize parser with optional vulnerability database.
 
         Args:
@@ -510,7 +510,7 @@ class SBOMParser:
         graph = DependencyGraph()
         graph.metadata = {"format": "SPDX-TagValue"}
 
-        current_pkg: Optional[dict] = None
+        current_pkg: dict | None = None
         packages_by_id: dict[str, Package] = {}
 
         for line in content.split("\n"):
@@ -677,7 +677,7 @@ if __name__ == "__main__":
     parser = SBOMParser()
     graph = parser.parse_json(sample_sbom)
 
-    print(f"[+] Parsed SBOM:")
+    print("[+] Parsed SBOM:")
     print(f"    Packages: {graph.package_count}")
     print(f"    Dependencies: {graph.dependency_count}")
     print(f"    Vulnerabilities: {graph.vulnerability_count}")

@@ -17,27 +17,27 @@ Based on 2025 research on GNN-based vulnerability detection:
 - Transitive dependency analysis
 """
 
-from medtech_ai_security.sbom_analysis.parser import (
-    SBOMParser,
-    Package,
-    Dependency,
-    DependencyGraph,
-)
-from medtech_ai_security.sbom_analysis.graph_builder import (
-    SBOMGraphBuilder,
-    NodeFeatures,
+from medtech_ai_security.sbom_analysis.analyzer import (
+    AnalysisReport,
+    SBOMAnalyzer,
 )
 from medtech_ai_security.sbom_analysis.gnn_model import (
-    VulnerabilityGNN,
     GNNConfig,
+    VulnerabilityGNN,
+)
+from medtech_ai_security.sbom_analysis.graph_builder import (
+    NodeFeatures,
+    SBOMGraphBuilder,
+)
+from medtech_ai_security.sbom_analysis.parser import (
+    Dependency,
+    DependencyGraph,
+    Package,
+    SBOMParser,
 )
 from medtech_ai_security.sbom_analysis.risk_scorer import (
-    SupplyChainRiskScorer,
     RiskReport,
-)
-from medtech_ai_security.sbom_analysis.analyzer import (
-    SBOMAnalyzer,
-    AnalysisReport,
+    SupplyChainRiskScorer,
 )
 
 __all__ = [

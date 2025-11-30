@@ -204,7 +204,7 @@ medtech-ai-security/
 │       └── analyzer.py
 ├── scripts/
 │   └── demo_security.py       # Comprehensive demo
-├── tests/                     # Unit tests (155 tests)
+├── tests/                     # Unit tests (195 tests)
 │   ├── test_threat_intel.py   # Phase 1 tests
 │   ├── test_risk_scorer.py    # Phase 2 tests
 │   ├── test_anomaly.py        # Phase 3 tests
@@ -265,7 +265,7 @@ pip install -e ".[dev]"  # Include development tools
 
 ## Testing
 
-Comprehensive test suite covering all 5 phases with 155 tests (57% code coverage):
+Comprehensive test suite covering all 5 phases with 195 tests (65% code coverage):
 
 ```bash
 # Run all tests

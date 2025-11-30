@@ -7,41 +7,36 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from medtech_ai_security.sbom_analysis.parser import (
-    Package,
-    VulnerabilityInfo,
-    Dependency,
-    DependencyGraph,
-    SBOMParser,
-    SBOMFormat,
-    PackageType,
-)
-from medtech_ai_security.sbom_analysis.graph_builder import (
-    SBOMGraphBuilder,
-    NodeFeatures,
-    NodeType,
-    EdgeType,
-)
 from medtech_ai_security.sbom_analysis.gnn_model import (
     GNNConfig,
-    GraphConvLayer,
-    GraphAttentionLayer,
     SimpleVulnerabilityClassifier,
-    TF_AVAILABLE,
 )
+from medtech_ai_security.sbom_analysis.graph_builder import (
+    NodeFeatures,
+    SBOMGraphBuilder,
+)
+from medtech_ai_security.sbom_analysis.parser import (
+    Dependency,
+    DependencyGraph,
+    Package,
+    PackageType,
+    SBOMParser,
+    VulnerabilityInfo,
+)
+
 try:
     from medtech_ai_security.sbom_analysis.gnn_model import VulnerabilityGNN
 except ImportError:
     VulnerabilityGNN = None
+from medtech_ai_security.sbom_analysis.analyzer import (
+    AnalysisReport,
+    SBOMAnalyzer,
+)
 from medtech_ai_security.sbom_analysis.risk_scorer import (
-    RiskLevel,
     PackageRisk,
+    RiskLevel,
     RiskReport,
     SupplyChainRiskScorer,
-)
-from medtech_ai_security.sbom_analysis.analyzer import (
-    SBOMAnalyzer,
-    AnalysisReport,
 )
 
 
@@ -109,6 +104,113 @@ class TestDependencyGraph:
         assert graph.package_count == 2
         assert graph.dependency_count == 1
 
+    def test_get_direct_dependencies(self):
+        """Test getting direct dependencies."""
+        graph = DependencyGraph()
+        graph.add_package(Package(name="app", version="1.0.0"))
+        graph.add_package(Package(name="lib1", version="1.0.0"))
+        graph.add_package(Package(name="lib2", version="1.0.0"))
+        graph.add_dependency(Dependency(source="app@1.0.0", target="lib1@1.0.0"))
+        graph.add_dependency(Dependency(source="app@1.0.0", target="lib2@1.0.0"))
+
+        deps = graph.get_direct_dependencies("app@1.0.0")
+        assert len(deps) == 2
+
+    def test_get_transitive_dependencies(self):
+        """Test getting transitive dependencies."""
+        graph = DependencyGraph()
+        graph.add_package(Package(name="app", version="1.0.0"))
+        graph.add_package(Package(name="lib1", version="1.0.0"))
+        graph.add_package(Package(name="lib2", version="1.0.0"))
+        graph.add_dependency(Dependency(source="app@1.0.0", target="lib1@1.0.0"))
+        graph.add_dependency(Dependency(source="lib1@1.0.0", target="lib2@1.0.0"))
+
+        trans_deps = graph.get_transitive_dependencies("app@1.0.0")
+        assert len(trans_deps) == 2  # lib1 and lib2
+
+    def test_get_transitive_dependencies_circular(self):
+        """Test transitive dependencies with circular references."""
+        graph = DependencyGraph()
+        graph.add_package(Package(name="a", version="1.0"))
+        graph.add_package(Package(name="b", version="1.0"))
+        graph.add_dependency(Dependency(source="a@1.0", target="b@1.0"))
+        graph.add_dependency(Dependency(source="b@1.0", target="a@1.0"))
+
+        # Should not infinite loop - returns b and then a (from b's deps)
+        trans_deps = graph.get_transitive_dependencies("a@1.0")
+        # Both packages are visited due to the cycle
+        assert len(trans_deps) == 2
+
+    def test_get_dependents(self):
+        """Test getting packages that depend on a package."""
+        graph = DependencyGraph()
+        graph.add_package(Package(name="app1", version="1.0.0"))
+        graph.add_package(Package(name="app2", version="1.0.0"))
+        graph.add_package(Package(name="lib", version="1.0.0"))
+        graph.add_dependency(Dependency(source="app1@1.0.0", target="lib@1.0.0"))
+        graph.add_dependency(Dependency(source="app2@1.0.0", target="lib@1.0.0"))
+
+        dependents = graph.get_dependents("lib@1.0.0")
+        assert len(dependents) == 2
+
+    def test_get_vulnerable_packages(self):
+        """Test getting vulnerable packages."""
+        vuln = VulnerabilityInfo(cve_id="CVE-2021-1234", severity="high", cvss_score=8.0)
+        graph = DependencyGraph()
+        graph.add_package(Package(name="safe", version="1.0.0"))
+        graph.add_package(Package(name="unsafe", version="1.0.0", vulnerabilities=[vuln]))
+
+        vulnerable = graph.get_vulnerable_packages()
+        assert len(vulnerable) == 1
+        assert vulnerable[0].name == "unsafe"
+
+    def test_vulnerability_count(self):
+        """Test vulnerability count property."""
+        vuln1 = VulnerabilityInfo(cve_id="CVE-2021-1234", severity="high", cvss_score=8.0)
+        vuln2 = VulnerabilityInfo(cve_id="CVE-2021-1235", severity="medium", cvss_score=5.0)
+        graph = DependencyGraph()
+        graph.add_package(Package(name="pkg1", version="1.0.0", vulnerabilities=[vuln1]))
+        graph.add_package(Package(name="pkg2", version="1.0.0", vulnerabilities=[vuln1, vuln2]))
+        graph.add_package(Package(name="pkg3", version="1.0.0"))
+
+        assert graph.vulnerability_count == 3
+
+
+class TestPackageProperties:
+    """Test Package property methods."""
+
+    def test_package_id_with_purl(self):
+        """Test package ID with purl."""
+        pkg = Package(
+            name="express",
+            version="4.17.1",
+            purl="pkg:npm/express@4.17.1",
+        )
+        assert pkg.id == "pkg:npm/express@4.17.1"
+
+    def test_package_id_without_purl(self):
+        """Test package ID without purl."""
+        pkg = Package(name="express", version="4.17.1")
+        assert pkg.id == "express@4.17.1"
+
+    def test_package_ecosystem_from_purl(self):
+        """Test ecosystem extraction from purl."""
+        pkg = Package(
+            name="lodash",
+            version="4.17.20",
+            purl="pkg:npm/lodash@4.17.20",
+        )
+        assert pkg.ecosystem == "npm"
+
+    def test_package_ecosystem_from_type(self):
+        """Test ecosystem from package type."""
+        pkg = Package(
+            name="requests",
+            version="2.28.0",
+            package_type=PackageType.PYPI,
+        )
+        assert pkg.ecosystem == "pypi"
+
 
 class TestSBOMParser:
     """Test SBOMParser functionality."""
@@ -171,6 +273,157 @@ class TestSBOMParser:
 
         assert isinstance(graph, DependencyGraph)
         assert len(graph.packages) >= 1
+
+    def test_parse_file_not_found(self):
+        """Test parsing non-existent file raises error."""
+        parser = SBOMParser()
+        with pytest.raises(FileNotFoundError):
+            parser.parse("/nonexistent/path/sbom.json")
+
+    def test_parse_json_cyclonedx(self, cyclonedx_sbom):
+        """Test parsing CycloneDX JSON from string."""
+        parser = SBOMParser()
+        graph = parser.parse_json(json.dumps(cyclonedx_sbom))
+
+        assert isinstance(graph, DependencyGraph)
+
+    def test_parse_json_spdx(self):
+        """Test parsing SPDX JSON from string."""
+        spdx_sbom = {
+            "spdxVersion": "SPDX-2.3",
+            "name": "test-sbom",
+            "documentNamespace": "https://example.com/sbom",
+            "packages": [
+                {
+                    "SPDXID": "SPDXRef-Package-1",
+                    "name": "test-package",
+                    "versionInfo": "1.0.0",
+                    "licenseConcluded": "MIT",
+                }
+            ],
+            "relationships": [],
+        }
+        parser = SBOMParser()
+        graph = parser.parse_json(json.dumps(spdx_sbom))
+
+        assert isinstance(graph, DependencyGraph)
+        assert graph.metadata["format"] == "SPDX"
+
+    def test_parse_json_unknown_format(self):
+        """Test parsing unknown JSON format raises error."""
+        parser = SBOMParser()
+        with pytest.raises(ValueError, match="Cannot determine SBOM format"):
+            parser.parse_json('{"unknown": "format"}')
+
+    def test_parse_json_invalid_json(self):
+        """Test parsing invalid JSON raises error."""
+        parser = SBOMParser()
+        with pytest.raises(ValueError, match="Invalid JSON"):
+            parser.parse_json("not valid json")
+
+    def test_parse_cyclonedx_with_vulnerabilities(self):
+        """Test parsing CycloneDX SBOM with vulnerabilities."""
+        sbom = {
+            "bomFormat": "CycloneDX",
+            "specVersion": "1.5",
+            "version": 1,
+            "components": [
+                {
+                    "name": "lodash",
+                    "version": "4.17.20",
+                    "purl": "pkg:npm/lodash@4.17.20",
+                }
+            ],
+            "vulnerabilities": [
+                {
+                    "id": "CVE-2021-23337",
+                    "description": "Command injection",
+                    "ratings": [{"method": "CVSSv3", "score": 7.2, "severity": "high"}],
+                    "affects": [{"ref": "pkg:npm/lodash@4.17.20"}],
+                }
+            ],
+        }
+        parser = SBOMParser()
+        graph = parser.parse_json(json.dumps(sbom))
+
+        assert graph.vulnerability_count == 1
+
+    def test_parse_cyclonedx_with_licenses(self):
+        """Test parsing CycloneDX with license information."""
+        sbom = {
+            "bomFormat": "CycloneDX",
+            "specVersion": "1.5",
+            "components": [
+                {
+                    "name": "express",
+                    "version": "4.17.1",
+                    "licenses": [{"license": {"id": "MIT"}}],
+                }
+            ],
+        }
+        parser = SBOMParser()
+        graph = parser.parse_json(json.dumps(sbom))
+
+        assert graph.packages["express@4.17.1"].license == "MIT"
+
+    def test_parser_with_vuln_db(self):
+        """Test parser with vulnerability database."""
+        vuln_db = {
+            "pkg:npm/lodash@4.17.20": [
+                VulnerabilityInfo(
+                    cve_id="CVE-2021-23337",
+                    cvss_score=7.2,
+                    severity="high",
+                )
+            ]
+        }
+        parser = SBOMParser(vuln_db=vuln_db)
+
+        sbom = {
+            "bomFormat": "CycloneDX",
+            "specVersion": "1.5",
+            "components": [
+                {"name": "lodash", "version": "4.17.20", "purl": "pkg:npm/lodash@4.17.20"}
+            ],
+        }
+        graph = parser.parse_json(json.dumps(sbom))
+
+        # Vulnerability should be enriched from database
+        assert len(graph.packages["pkg:npm/lodash@4.17.20"].vulnerabilities) == 1
+
+
+class TestSBOMFormatDetection:
+    """Test SBOM format detection."""
+
+    def test_detect_cyclonedx_json_format(self, tmp_path):
+        """Test detecting CycloneDX JSON format."""
+        sbom = {"bomFormat": "CycloneDX", "specVersion": "1.5", "components": []}
+        file_path = tmp_path / "sbom.json"
+        file_path.write_text(json.dumps(sbom))
+
+        parser = SBOMParser()
+        # Parse should succeed if format is detected
+        graph = parser.parse(file_path)
+        assert graph.metadata["format"] == "CycloneDX"
+
+    def test_detect_spdx_json_format(self, tmp_path):
+        """Test detecting SPDX JSON format."""
+        sbom = {"spdxVersion": "SPDX-2.3", "packages": []}
+        file_path = tmp_path / "sbom.json"
+        file_path.write_text(json.dumps(sbom))
+
+        parser = SBOMParser()
+        graph = parser.parse(file_path)
+        assert graph.metadata["format"] == "SPDX"
+
+    def test_detect_unknown_format(self, tmp_path):
+        """Test detecting unknown format."""
+        file_path = tmp_path / "sbom.txt"
+        file_path.write_text("Unknown content format")
+
+        parser = SBOMParser()
+        with pytest.raises(ValueError, match="Unknown SBOM format"):
+            parser.parse(file_path)
 
 
 class TestSBOMGraphBuilder:

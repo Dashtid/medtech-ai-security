@@ -14,7 +14,6 @@ Based on 2025 research on GNN-based vulnerability detection:
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Optional
 
 import numpy as np
 
@@ -351,7 +350,7 @@ class VulnerabilityGNN:
     - Graph classification: Predict overall supply chain risk
     """
 
-    def __init__(self, config: Optional[GNNConfig] = None):
+    def __init__(self, config: GNNConfig | None = None):
         """Initialize the GNN model.
 
         Args:
@@ -361,7 +360,7 @@ class VulnerabilityGNN:
             raise ImportError("TensorFlow is required for VulnerabilityGNN")
 
         self.config = config or GNNConfig()
-        self.model: Optional[keras.Model] = None
+        self.model: keras.Model | None = None
         self._build_model()
 
     def _build_model(self) -> None:
@@ -423,7 +422,7 @@ class VulnerabilityGNN:
     def train(
         self,
         graphs: list[GraphData],
-        epochs: Optional[int] = None,
+        epochs: int | None = None,
         validation_split: float = 0.1,
     ) -> dict[str, list[float]]:
         """Train the model on a list of graphs.
@@ -617,8 +616,8 @@ class SimpleVulnerabilityClassifier:
     def __init__(self, num_classes: int = 3):
         """Initialize classifier."""
         self.num_classes = num_classes
-        self.weights: Optional[np.ndarray] = None
-        self.bias: Optional[np.ndarray] = None
+        self.weights: np.ndarray | None = None
+        self.bias: np.ndarray | None = None
 
     def fit(self, graphs: list[GraphData], epochs: int = 100) -> None:
         """Train the simple classifier using gradient descent."""
@@ -698,8 +697,8 @@ class SimpleVulnerabilityClassifier:
 
 if __name__ == "__main__":
     # Test the GNN model
-    from medtech_ai_security.sbom_analysis.parser import SBOMParser, create_sample_sbom
     from medtech_ai_security.sbom_analysis.graph_builder import SBOMGraphBuilder
+    from medtech_ai_security.sbom_analysis.parser import SBOMParser, create_sample_sbom
 
     print("[+] Testing VulnerabilityGNN")
 

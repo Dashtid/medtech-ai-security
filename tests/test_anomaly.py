@@ -1,23 +1,20 @@
 """Unit tests for Phase 3: Anomaly Detection for Medical Device Traffic."""
 
-import json
-import tempfile
-from pathlib import Path
 
 import numpy as np
 import pytest
 
+from medtech_ai_security.anomaly.detector import (
+    AnomalyDetector,
+    Autoencoder,
+    DetectionResult,
+)
 from medtech_ai_security.anomaly.traffic_generator import (
     AttackType,
     DICOMCommand,
     DICOMPacket,
     HL7MessageType,
     TrafficGenerator,
-)
-from medtech_ai_security.anomaly.detector import (
-    AnomalyDetector,
-    Autoencoder,
-    DetectionResult,
 )
 
 

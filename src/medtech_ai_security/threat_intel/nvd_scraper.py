@@ -19,10 +19,9 @@ Rate Limits: 5 requests per 30 seconds (without API key)
 import json
 import logging
 import time
-from dataclasses import dataclass, field, asdict
-from datetime import datetime, timedelta
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Optional
 from urllib.parse import urlencode
 
 import requests
@@ -134,10 +133,10 @@ class CVEEntry:
     description: str
     published_date: str
     last_modified_date: str
-    cvss_v3_score: Optional[float] = None
-    cvss_v3_severity: Optional[str] = None
-    cvss_v3_vector: Optional[str] = None
-    cvss_v2_score: Optional[float] = None
+    cvss_v3_score: float | None = None
+    cvss_v3_severity: str | None = None
+    cvss_v3_vector: str | None = None
+    cvss_v2_score: float | None = None
     cwe_ids: list[str] = field(default_factory=list)
     references: list[str] = field(default_factory=list)
     affected_products: list[str] = field(default_factory=list)
@@ -145,10 +144,10 @@ class CVEEntry:
     vulnerability_status: str = ""
 
     # Fields for Claude.ai extraction (to be filled later)
-    device_type: Optional[str] = None
-    clinical_impact: Optional[str] = None
-    exploitability: Optional[str] = None
-    remediation: Optional[str] = None
+    device_type: str | None = None
+    clinical_impact: str | None = None
+    exploitability: str | None = None
+    remediation: str | None = None
 
 
 class NVDScraper:
@@ -161,7 +160,7 @@ class NVDScraper:
 
     BASE_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0"
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: str | None = None):
         """
         Initialize the NVD scraper.
 
@@ -216,8 +215,8 @@ class NVDScraper:
         keyword: str,
         start_index: int = 0,
         results_per_page: int = 100,
-        pub_start_date: Optional[datetime] = None,
-        pub_end_date: Optional[datetime] = None,
+        pub_start_date: datetime | None = None,
+        pub_end_date: datetime | None = None,
     ) -> dict:
         """
         Search CVEs by keyword.
@@ -265,7 +264,7 @@ class NVDScraper:
         Returns:
             API response with CVE data.
         """
-        end_date = datetime.utcnow()
+        end_date = datetime.now(timezone.utc)
         start_date = end_date - timedelta(days=days_back)
 
         params = {
@@ -388,10 +387,10 @@ class NVDScraper:
 
     def search_medical_device_cves(
         self,
-        keywords: Optional[list[str]] = None,
+        keywords: list[str] | None = None,
         max_results: int = 100,
         days_back: int = 365,
-        severity_filter: Optional[str] = None,
+        severity_filter: str | None = None,
     ) -> list[CVEEntry]:
         """
         Search for medical device related CVEs.
@@ -424,7 +423,7 @@ class NVDScraper:
 
         # Note: Date filtering disabled due to NVD API 2.0 date format issues
         # Will filter by date locally after fetching results
-        # end_date = datetime.utcnow()
+        # end_date = datetime.now(timezone.utc)
         # start_date = end_date - timedelta(days=days_back)
 
         for keyword in keywords:
@@ -501,7 +500,7 @@ class NVDScraper:
         if format == "json":
             data = {
                 "metadata": {
-                    "generated_at": datetime.utcnow().isoformat(),
+                    "generated_at": datetime.now(timezone.utc).isoformat(),
                     "total_cves": len(cves),
                     "source": "NVD API 2.0",
                 },

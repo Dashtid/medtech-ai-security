@@ -20,10 +20,8 @@ Usage:
 
 import json
 import logging
-from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -41,7 +39,7 @@ def load_claude_response(response_file: Path) -> dict:
     Returns:
         Parsed JSON data.
     """
-    with open(response_file, "r", encoding="utf-8") as f:
+    with open(response_file, encoding="utf-8") as f:
         content = f.read().strip()
 
     # Handle markdown code blocks
@@ -70,7 +68,7 @@ def load_claude_response(response_file: Path) -> dict:
 def merge_analysis(
     cve_file: Path,
     response_file: Path,
-    output_file: Optional[Path] = None,
+    output_file: Path | None = None,
 ) -> dict:
     """
     Merge Claude.ai analysis into CVE data.
@@ -84,7 +82,7 @@ def merge_analysis(
         Enriched CVE data.
     """
     # Load original CVE data
-    with open(cve_file, "r", encoding="utf-8") as f:
+    with open(cve_file, encoding="utf-8") as f:
         cve_data = json.load(f)
 
     # Load Claude response
@@ -127,7 +125,7 @@ def merge_analysis(
     return cve_data
 
 
-def generate_summary_report(cve_data: dict, output_file: Optional[Path] = None) -> str:
+def generate_summary_report(cve_data: dict, output_file: Path | None = None) -> str:
     """
     Generate a human-readable summary report from enriched CVE data.
 

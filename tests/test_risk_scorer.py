@@ -1,8 +1,6 @@
 """Unit tests for Phase 2: ML Vulnerability Risk Scoring."""
 
 import json
-import tempfile
-from pathlib import Path
 
 import numpy as np
 import pytest

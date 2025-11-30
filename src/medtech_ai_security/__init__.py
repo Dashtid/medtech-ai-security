@@ -12,7 +12,7 @@ This package provides AI/ML tools for medical device cybersecurity:
 __version__ = "1.1.0"
 __author__ = "David Dashti"
 
-from medtech_ai_security.threat_intel import NVDScraper, CISAScraper
-from medtech_ai_security.ml import VulnerabilityRiskScorer, RiskPrediction
+from medtech_ai_security.ml import RiskPrediction, VulnerabilityRiskScorer
+from medtech_ai_security.threat_intel import CISAScraper, NVDScraper
 
 __all__ = ["NVDScraper", "CISAScraper", "VulnerabilityRiskScorer", "RiskPrediction"]

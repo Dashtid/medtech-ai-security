@@ -31,9 +31,7 @@ Usage:
 import json
 import logging
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 
@@ -51,7 +49,7 @@ class DetectionResult:
     threshold: float
     is_anomaly: bool
     confidence: float
-    feature_contributions: Optional[np.ndarray] = None
+    feature_contributions: np.ndarray | None = None
 
     def to_dict(self) -> dict:
         """Convert to dictionary for serialization."""
@@ -85,7 +83,7 @@ class Autoencoder:
         self,
         input_dim: int = 16,
         latent_dim: int = 4,
-        hidden_dims: Optional[list[int]] = None,
+        hidden_dims: list[int] | None = None,
         learning_rate: float = 0.001,
         seed: int = 42,
     ):
@@ -429,7 +427,7 @@ class Autoencoder:
         """Load model weights from disk."""
         path = Path(path)
 
-        with open(path / "model_config.json", "r") as f:
+        with open(path / "model_config.json") as f:
             config = json.load(f)
 
         model = cls(**config)
@@ -492,7 +490,7 @@ class AnomalyDetector:
     def __init__(
         self,
         latent_dim: int = 4,
-        hidden_dims: Optional[list[int]] = None,
+        hidden_dims: list[int] | None = None,
         learning_rate: float = 0.001,
         threshold_percentile: float = 95.0,
         seed: int = 42,
@@ -513,15 +511,15 @@ class AnomalyDetector:
         self.threshold_percentile = threshold_percentile
         self.seed = seed
 
-        self.autoencoder: Optional[Autoencoder] = None
+        self.autoencoder: Autoencoder | None = None
         self.threshold: float = 0.0
-        self.mean: Optional[np.ndarray] = None
-        self.std: Optional[np.ndarray] = None
+        self.mean: np.ndarray | None = None
+        self.std: np.ndarray | None = None
         self.is_fitted: bool = False
 
         # Training statistics
-        self.train_errors: Optional[np.ndarray] = None
-        self.train_history: Optional[dict] = None
+        self.train_errors: np.ndarray | None = None
+        self.train_history: dict | None = None
 
     def _normalize(self, x: np.ndarray) -> np.ndarray:
         """Normalize features using training statistics."""
@@ -818,7 +816,7 @@ class AnomalyDetector:
         """Load detector from disk."""
         path = Path(path)
 
-        with open(path / "detector_config.json", "r") as f:
+        with open(path / "detector_config.json") as f:
             config = json.load(f)
 
         detector = cls(
@@ -847,7 +845,7 @@ class AnomalyDetector:
             detector.train_errors = np.load(path / "train_errors.npy")
 
         if (path / "train_history.json").exists():
-            with open(path / "train_history.json", "r") as f:
+            with open(path / "train_history.json") as f:
                 detector.train_history = json.load(f)
 
         logger.info(f"Loaded anomaly detector from {path}")
@@ -1013,7 +1011,7 @@ def main():
             print(f"\nSample {result.sample_index}:")
             print(f"  Anomaly Score: {result.anomaly_score:.4f}")
             print(f"  Is Anomaly: {result.is_anomaly}")
-            print(f"  Top Deviating Features:")
+            print("  Top Deviating Features:")
             for feat in explanation.get("top_deviating_features", [])[:3]:
                 print(f"    - {feat['feature']}: {feat['contribution']:.4f}")
 
@@ -1048,13 +1046,13 @@ def main():
         print("EVALUATION RESULTS")
         print("=" * 60)
         print(f"Samples: {len(features)} (Normal: {(labels==0).sum()}, Attack: {(labels==1).sum()})")
-        print(f"\nMetrics:")
+        print("\nMetrics:")
         print(f"  Accuracy:  {metrics['accuracy']:.4f}")
         print(f"  Precision: {metrics['precision']:.4f}")
         print(f"  Recall:    {metrics['recall']:.4f}")
         print(f"  F1 Score:  {metrics['f1_score']:.4f}")
         print(f"  AUC:       {metrics['auc']:.4f}")
-        print(f"\nConfusion Matrix:")
+        print("\nConfusion Matrix:")
         print(f"  True Positives:  {metrics['true_positives']}")
         print(f"  True Negatives:  {metrics['true_negatives']}")
         print(f"  False Positives: {metrics['false_positives']}")

@@ -33,9 +33,9 @@ References:
 """
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Callable, Optional, Union
 
 import numpy as np
 
@@ -107,7 +107,7 @@ class AdversarialAttacker:
     def __init__(
         self,
         model: Callable,
-        loss_fn: Optional[Callable] = None,
+        loss_fn: Callable | None = None,
         clip_min: float = 0.0,
         clip_max: float = 1.0,
         num_classes: int = 2,
@@ -243,7 +243,7 @@ class AdversarialAttacker:
         labels: np.ndarray,
         epsilon: float = 0.01,
         targeted: bool = False,
-        target_labels: Optional[np.ndarray] = None,
+        target_labels: np.ndarray | None = None,
     ) -> AttackResult:
         """
         Fast Gradient Sign Method (FGSM) attack.
@@ -308,7 +308,7 @@ class AdversarialAttacker:
         num_iterations: int = 40,
         random_start: bool = True,
         targeted: bool = False,
-        target_labels: Optional[np.ndarray] = None,
+        target_labels: np.ndarray | None = None,
     ) -> AttackResult:
         """
         Projected Gradient Descent (PGD) attack.
@@ -403,7 +403,7 @@ class AdversarialAttacker:
         max_iterations: int = 1000,
         initial_const: float = 0.001,
         targeted: bool = False,
-        target_labels: Optional[np.ndarray] = None,
+        target_labels: np.ndarray | None = None,
     ) -> AttackResult:
         """
         Carlini & Wagner L2 attack.
@@ -612,10 +612,10 @@ class AdversarialAttacker:
 
         # Convert probabilities to class predictions
         if len(original_preds.shape) == 1 or original_preds.shape[-1] == 1:
-            original_classes = (np.squeeze(original_preds) > 0.5).astype(int)
+            _original_classes = (np.squeeze(original_preds) > 0.5).astype(int)  # noqa: F841
             adversarial_classes = (np.squeeze(adversarial_preds) > 0.5).astype(int)
         else:
-            original_classes = np.argmax(original_preds, axis=1)
+            _original_classes = np.argmax(original_preds, axis=1)  # noqa: F841
             adversarial_classes = np.argmax(adversarial_preds, axis=1)
 
         # Compute success rate (misclassification rate for untargeted)
@@ -659,7 +659,7 @@ class AdversarialAttacker:
         self,
         images: np.ndarray,
         labels: np.ndarray,
-        attack_type: Union[str, AttackType] = AttackType.PGD,
+        attack_type: str | AttackType = AttackType.PGD,
         **kwargs,
     ) -> AttackResult:
         """

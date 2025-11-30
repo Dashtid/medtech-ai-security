@@ -39,7 +39,6 @@ import pickle
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 from scipy.spatial.distance import cdist
@@ -308,7 +307,7 @@ class VulnerabilityRiskScorer:
     vulnerability priority and compute risk scores.
     """
 
-    def __init__(self, model_path: Optional[Path] = None):
+    def __init__(self, model_path: Path | None = None):
         """
         Initialize the risk scorer.
 
@@ -327,7 +326,7 @@ class VulnerabilityRiskScorer:
         if model_path and Path(model_path).exists():
             self.load_model(model_path)
 
-    def _parse_cvss_vector(self, vector: Optional[str]) -> dict:
+    def _parse_cvss_vector(self, vector: str | None) -> dict:
         """
         Parse CVSS v3 vector string into numeric components.
 
@@ -390,7 +389,7 @@ class VulnerabilityRiskScorer:
 
         return "other"
 
-    def _encode_device_type(self, device_type: Optional[str]) -> dict:
+    def _encode_device_type(self, device_type: str | None) -> dict:
         """One-hot encode device type."""
         device_types = [
             "imaging",
@@ -415,12 +414,12 @@ class VulnerabilityRiskScorer:
 
         return result
 
-    def _encode_clinical_impact(self, impact: Optional[str]) -> float:
+    def _encode_clinical_impact(self, impact: str | None) -> float:
         """Encode clinical impact to numeric value."""
         impact_map = {"HIGH": 1.0, "MEDIUM": 0.6, "LOW": 0.3, None: 0.5}
         return impact_map.get(impact.upper() if impact else None, 0.5)
 
-    def _encode_exploitability(self, exploitability: Optional[str]) -> float:
+    def _encode_exploitability(self, exploitability: str | None) -> float:
         """Encode exploitability to numeric value."""
         exploit_map = {"EASY": 1.0, "MODERATE": 0.6, "HARD": 0.3, None: 0.5}
         return exploit_map.get(
@@ -443,7 +442,7 @@ class VulnerabilityRiskScorer:
         result[f"cwe_{domain}"] = 1
         return result
 
-    def _calculate_vulnerability_age(self, published_date: Optional[str]) -> float:
+    def _calculate_vulnerability_age(self, published_date: str | None) -> float:
         """Calculate vulnerability age in years."""
         if not published_date:
             return 5.0
@@ -547,7 +546,7 @@ class VulnerabilityRiskScorer:
         if not data_path.exists():
             raise FileNotFoundError(f"Data file not found: {data_path}")
 
-        with open(data_path, "r", encoding="utf-8") as f:
+        with open(data_path, encoding="utf-8") as f:
             data = json.load(f)
 
         cves = data.get("cves", [])
@@ -838,8 +837,8 @@ class VulnerabilityRiskScorer:
 def main():
     """CLI entry point for training and testing the risk scorer."""
     import argparse
-    import tempfile
     import subprocess
+    import tempfile
 
     parser = argparse.ArgumentParser(
         description="ML-powered vulnerability risk scorer for medical devices"
@@ -898,7 +897,7 @@ def main():
             scorer.save_model(Path(args.save_model))
 
     if args.predict:
-        with open(args.data, "r", encoding="utf-8") as f:
+        with open(args.data, encoding="utf-8") as f:
             data = json.load(f)
 
         predictions = scorer.predict_batch(data.get("cves", []))

@@ -1,25 +1,21 @@
 """Unit tests for Phase 1: NLP Threat Intelligence."""
 
 import json
-import tempfile
-from pathlib import Path
 from unittest.mock import Mock, patch
 
-import pytest
-
-from medtech_ai_security.threat_intel.nvd_scraper import (
-    CVEEntry,
-    MEDICAL_DEVICE_KEYWORDS,
-    NVDScraper,
-)
-from medtech_ai_security.threat_intel.claude_processor import (
-    load_claude_response,
-    merge_analysis,
-    generate_summary_report,
-)
 from medtech_ai_security.threat_intel.cisa_scraper import (
     CISAAdvisory,
     CISAScraper,
+)
+from medtech_ai_security.threat_intel.claude_processor import (
+    generate_summary_report,
+    load_claude_response,
+    merge_analysis,
+)
+from medtech_ai_security.threat_intel.nvd_scraper import (
+    MEDICAL_DEVICE_KEYWORDS,
+    CVEEntry,
+    NVDScraper,
 )
 
 
@@ -358,7 +354,7 @@ class TestClaudeProcessor:
             json.dump(response_data, f)
 
         # Merge without specifying output
-        result = merge_analysis(cve_file, response_file)
+        _result = merge_analysis(cve_file, response_file)  # noqa: F841
 
         # Default output should be *_enriched.json
         expected_output = tmp_path / "test_cves_enriched.json"

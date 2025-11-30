@@ -22,9 +22,9 @@ References:
 """
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, Optional, Tuple
 
 import numpy as np
 from scipy import ndimage
@@ -85,7 +85,7 @@ class AdversarialDefender:
         model: Target model to defend
     """
 
-    def __init__(self, model: Optional[Callable] = None):
+    def __init__(self, model: Callable | None = None):
         """
         Initialize defender.
 
@@ -113,8 +113,9 @@ class AdversarialDefender:
             Compressed images
         """
         try:
-            from PIL import Image
             import io
+
+            from PIL import Image
         except ImportError:
             logger.warning("PIL not available, skipping JPEG compression")
             return images
@@ -264,7 +265,7 @@ class AdversarialDefender:
     def ensemble_defense(
         self,
         images: np.ndarray,
-        defenses: Optional[list] = None,
+        defenses: list | None = None,
     ) -> np.ndarray:
         """
         Apply ensemble of defenses.
@@ -299,7 +300,7 @@ class AdversarialDefender:
         self,
         images: np.ndarray,
         threshold: float = 0.1,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Detect adversarial examples using feature squeezing.
 
@@ -419,7 +420,7 @@ class AdversarialTrainer:
         self,
         model,
         attack_fn: Callable,
-        attack_params: Optional[dict] = None,
+        attack_params: dict | None = None,
     ):
         """
         Initialize adversarial trainer.
@@ -438,7 +439,7 @@ class AdversarialTrainer:
         images: np.ndarray,
         labels: np.ndarray,
         ratio: float = 0.5,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Generate mixed batch of clean and adversarial examples.
 
@@ -531,7 +532,7 @@ class AdversarialTrainer:
         epochs: int = 10,
         batch_size: int = 32,
         adversarial_ratio: float = 0.5,
-        validation_data: Optional[Tuple[np.ndarray, np.ndarray]] = None,
+        validation_data: tuple[np.ndarray, np.ndarray] | None = None,
         verbose: bool = True,
     ) -> dict:
         """

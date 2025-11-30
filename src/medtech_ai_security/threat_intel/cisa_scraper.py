@@ -24,10 +24,9 @@ import json
 import logging
 import re
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 from urllib.parse import urljoin
 
 import requests
@@ -45,20 +44,20 @@ class CISAAdvisory:
     title: str
     url: str
     release_date: str
-    last_updated: Optional[str] = None
-    severity: Optional[str] = None
-    cvss_score: Optional[float] = None
+    last_updated: str | None = None
+    severity: str | None = None
+    cvss_score: float | None = None
     affected_products: list[str] = field(default_factory=list)
     cve_ids: list[str] = field(default_factory=list)
-    vendor: Optional[str] = None
-    description: Optional[str] = None
-    mitigation: Optional[str] = None
+    vendor: str | None = None
+    description: str | None = None
+    mitigation: str | None = None
     advisory_type: str = "ICSMA"  # ICSMA for medical, ICSA for general ICS
 
     # Fields for Claude.ai extraction
-    device_type: Optional[str] = None
-    clinical_impact: Optional[str] = None
-    exploitability: Optional[str] = None
+    device_type: str | None = None
+    clinical_impact: str | None = None
+    exploitability: str | None = None
 
 
 class CISAScraper:
@@ -118,7 +117,7 @@ class CISAScraper:
             time.sleep(self.request_delay - elapsed)
         self.last_request_time = time.time()
 
-    def _make_request(self, url: str) -> Optional[BeautifulSoup]:
+    def _make_request(self, url: str) -> BeautifulSoup | None:
         """
         Make a rate-limited request and parse HTML.
 
@@ -187,7 +186,7 @@ class CISAScraper:
 
         return advisories
 
-    def _parse_advisory_detail(self, url: str, basic_info: dict) -> Optional[CISAAdvisory]:
+    def _parse_advisory_detail(self, url: str, basic_info: dict) -> CISAAdvisory | None:
         """
         Parse individual advisory page for detailed information.
 
@@ -471,7 +470,7 @@ def main():
 
     scraper = CISAScraper()
 
-    logger.info(f"Scraping CISA medical device advisories...")
+    logger.info("Scraping CISA medical device advisories...")
     advisories = scraper.scrape_medical_advisories(
         max_results=args.max_results,
         include_general_ics=args.include_general_ics,

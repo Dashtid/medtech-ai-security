@@ -23,21 +23,19 @@ References:
 
 import json
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Optional
 
 import numpy as np
 
 from medtech_ai_security.adversarial.attacks import (
     AdversarialAttacker,
-    AttackResult,
     AttackType,
 )
 from medtech_ai_security.adversarial.defenses import (
     AdversarialDefender,
-    DefenseResult,
     DefenseType,
 )
 
@@ -88,7 +86,7 @@ class RobustnessReport:
         """Load report from JSON file."""
         path = Path(path)
 
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             data = json.load(f)
 
         return cls(**data)
@@ -120,7 +118,7 @@ class RobustnessEvaluator:
         model: Callable,
         model_name: str = "medical_ai_model",
         num_classes: int = 2,
-        class_names: Optional[list] = None,
+        class_names: list | None = None,
     ):
         """
         Initialize robustness evaluator.
@@ -401,8 +399,8 @@ class RobustnessEvaluator:
         self,
         images: np.ndarray,
         labels: np.ndarray,
-        attack_configs: Optional[list] = None,
-        defense_configs: Optional[list] = None,
+        attack_configs: list | None = None,
+        defense_configs: list | None = None,
     ) -> RobustnessReport:
         """
         Run comprehensive robustness evaluation.
@@ -643,7 +641,7 @@ def main():
             else:
                 result = attacker.cw_l2(images, labels)
 
-            print(f"\n[+] Attack Results:")
+            print("\n[+] Attack Results:")
             print(f"    Success Rate: {result.success_rate:.2%}")
             print(f"    Mean L2 Perturbation: {result.mean_perturbation_l2:.4f}")
             print(f"    Mean L-inf Perturbation: {result.mean_perturbation_linf:.4f}")
@@ -689,11 +687,11 @@ def main():
             print(f"Clean Accuracy: {report.clean_accuracy:.2%}")
             print(f"Vulnerability: {report.vulnerability_assessment}")
             print(f"Clinical Risk: {report.clinical_risk_level}")
-            print(f"\nAttack Results:")
+            print("\nAttack Results:")
             for name, result in report.attack_results.items():
                 print(f"  {name}: {result['success_rate']:.2%} success, "
                       f"{result['robust_accuracy']:.2%} robust accuracy")
-            print(f"\nRecommendations:")
+            print("\nRecommendations:")
             for rec in report.recommendations:
                 print(f"  - {rec}")
 

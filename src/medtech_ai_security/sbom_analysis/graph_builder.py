@@ -14,7 +14,7 @@ Features:
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 
@@ -114,13 +114,13 @@ class GraphData:
     edge_index: np.ndarray = field(default_factory=lambda: np.zeros((2, 0), dtype=np.int64))
 
     # Edge features: (num_edges, edge_feature_dim)
-    edge_features: Optional[np.ndarray] = None
+    edge_features: np.ndarray | None = None
 
     # Node labels for training (vulnerability propagation)
-    node_labels: Optional[np.ndarray] = None
+    node_labels: np.ndarray | None = None
 
     # Graph-level labels
-    graph_labels: Optional[np.ndarray] = None
+    graph_labels: np.ndarray | None = None
 
     # Metadata
     node_ids: list[str] = field(default_factory=list)
@@ -513,13 +513,13 @@ if __name__ == "__main__":
     builder = SBOMGraphBuilder()
     graph_data = builder.build(dep_graph)
 
-    print(f"[+] Built graph:")
+    print("[+] Built graph:")
     print(f"    Nodes: {graph_data.num_nodes}")
     print(f"    Edges: {graph_data.num_edges}")
     print(f"    Feature dim: {graph_data.node_features.shape[1]}")
     print(f"    Node IDs: {graph_data.node_ids}")
 
-    print(f"\n[+] Node labels (vulnerability):")
+    print("\n[+] Node labels (vulnerability):")
     for i, (node_id, label) in enumerate(zip(graph_data.node_ids, graph_data.node_labels)):
         label_str = {0: "clean", 1: "vulnerable", 2: "transitive"}.get(label, "?")
         print(f"    {node_id}: {label_str}")

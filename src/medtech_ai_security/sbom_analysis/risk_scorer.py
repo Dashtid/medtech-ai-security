@@ -14,16 +14,13 @@ Based on FDA SBOM guidance and 2025 medical device security standards.
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Optional
-
-import numpy as np
+from typing import Any
 
 from medtech_ai_security.sbom_analysis.parser import (
     DependencyGraph,
     Package,
     VulnerabilityInfo,
 )
-from medtech_ai_security.sbom_analysis.graph_builder import GraphData, SBOMGraphBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -222,7 +219,7 @@ class SupplyChainRiskScorer:
 
     def __init__(
         self,
-        weights: Optional[dict[str, float]] = None,
+        weights: dict[str, float] | None = None,
         medical_context: bool = True,
     ):
         """Initialize risk scorer.
@@ -455,7 +452,7 @@ class SupplyChainRiskScorer:
 
     def _compute_dependents(self, dep_graph: DependencyGraph) -> dict[str, int]:
         """Count how many packages depend on each package."""
-        dependents: dict[str, int] = {pkg_id: 0 for pkg_id in dep_graph.packages}
+        dependents: dict[str, int] = dict.fromkeys(dep_graph.packages, 0)
 
         for dep in dep_graph.dependencies:
             if dep.target in dependents:
@@ -570,7 +567,7 @@ class SupplyChainRiskScorer:
                 )
             else:
                 pkg_risk.recommendations.append(
-                    f"Update to latest version to address known vulnerabilities"
+                    "Update to latest version to address known vulnerabilities"
                 )
 
         if pkg_risk.transitive_vulnerabilities > 5:

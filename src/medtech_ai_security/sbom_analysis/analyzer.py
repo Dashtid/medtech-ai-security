@@ -17,24 +17,23 @@ import logging
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 
+from medtech_ai_security.sbom_analysis.graph_builder import (
+    GraphData,
+    SBOMGraphBuilder,
+)
 from medtech_ai_security.sbom_analysis.parser import (
-    SBOMParser,
     DependencyGraph,
-    Package,
+    SBOMParser,
     create_sample_sbom,
 )
-from medtech_ai_security.sbom_analysis.graph_builder import (
-    SBOMGraphBuilder,
-    GraphData,
-)
 from medtech_ai_security.sbom_analysis.risk_scorer import (
-    SupplyChainRiskScorer,
-    RiskReport,
     RiskLevel,
+    RiskReport,
+    SupplyChainRiskScorer,
 )
 
 logger = logging.getLogger(__name__)
@@ -49,19 +48,19 @@ class AnalysisReport:
     sbom_format: str = ""
 
     # Risk assessment
-    risk_report: Optional[RiskReport] = None
+    risk_report: RiskReport | None = None
 
     # GNN predictions (if model available)
-    gnn_predictions: Optional[dict[str, Any]] = None
+    gnn_predictions: dict[str, Any] | None = None
 
     # Graph statistics
     graph_stats: dict[str, Any] = field(default_factory=dict)
 
     # Visualization data
-    visualization_data: Optional[dict[str, Any]] = None
+    visualization_data: dict[str, Any] | None = None
 
     # Raw data
-    dependency_graph: Optional[DependencyGraph] = None
+    dependency_graph: DependencyGraph | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
@@ -94,7 +93,7 @@ class SBOMAnalyzer:
         self,
         use_gnn: bool = True,
         medical_context: bool = True,
-        vuln_db: Optional[dict] = None,
+        vuln_db: dict | None = None,
     ):
         """Initialize analyzer.
 
@@ -118,9 +117,9 @@ class SBOMAnalyzer:
         """Load pre-trained GNN model if available."""
         try:
             from medtech_ai_security.sbom_analysis.gnn_model import (
-                VulnerabilityGNN,
-                GNNConfig,
                 TF_AVAILABLE,
+                GNNConfig,
+                VulnerabilityGNN,
             )
 
             if TF_AVAILABLE:
@@ -320,7 +319,7 @@ class SBOMAnalyzer:
         }
 
     def generate_html_report(
-        self, report: AnalysisReport, output_path: Optional[str] = None
+        self, report: AnalysisReport, output_path: str | None = None
     ) -> str:
         """Generate an HTML visualization report.
 
@@ -332,7 +331,7 @@ class SBOMAnalyzer:
             HTML content
         """
         viz_data = json.dumps(report.visualization_data) if report.visualization_data else "{}"
-        risk_data = json.dumps(report.risk_report.to_dict()) if report.risk_report else "{}"
+        _risk_data = json.dumps(report.risk_report.to_dict()) if report.risk_report else "{}"  # noqa: F841
 
         html = f"""<!DOCTYPE html>
 <html lang="en">

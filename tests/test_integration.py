@@ -8,47 +8,43 @@ Skip integration tests: pytest -m "not integration"
 """
 
 import json
-import tempfile
 from pathlib import Path
-from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import numpy as np
 import pytest
 
-# Phase 1: Threat Intelligence
-from medtech_ai_security.threat_intel.nvd_scraper import CVEEntry, NVDScraper
-from medtech_ai_security.threat_intel.claude_processor import (
-    load_claude_response,
-    merge_analysis,
-    generate_summary_report,
-)
-
-# Phase 2: ML Risk Scoring
-from medtech_ai_security.ml.risk_scorer import (
-    VulnerabilityRiskScorer,
-    RiskPrediction,
-)
+# Phase 4: Adversarial ML
+from medtech_ai_security.adversarial.defenses import AdversarialDefender
+from medtech_ai_security.adversarial.evaluator import RobustnessReport
+from medtech_ai_security.anomaly.detector import AnomalyDetector
 
 # Phase 3: Anomaly Detection
 from medtech_ai_security.anomaly.traffic_generator import TrafficGenerator
-from medtech_ai_security.anomaly.detector import AnomalyDetector, Autoencoder
 
-# Phase 4: Adversarial ML
-from medtech_ai_security.adversarial.attacks import AdversarialAttacker, AttackType
-from medtech_ai_security.adversarial.defenses import AdversarialDefender, DefenseType
-from medtech_ai_security.adversarial.evaluator import RobustnessEvaluator, RobustnessReport
+# Phase 2: ML Risk Scoring
+from medtech_ai_security.ml.risk_scorer import (
+    RiskPrediction,
+    VulnerabilityRiskScorer,
+)
+from medtech_ai_security.sbom_analysis.graph_builder import SBOMGraphBuilder
 
 # Phase 5: SBOM Analysis
 from medtech_ai_security.sbom_analysis.parser import (
-    SBOMParser,
     Package,
     PackageType,
+    SBOMParser,
     VulnerabilityInfo,
     create_sample_sbom,
 )
-from medtech_ai_security.sbom_analysis.graph_builder import SBOMGraphBuilder
 from medtech_ai_security.sbom_analysis.risk_scorer import SupplyChainRiskScorer
+from medtech_ai_security.threat_intel.claude_processor import (
+    generate_summary_report,
+    merge_analysis,
+)
+
+# Phase 1: Threat Intelligence
+from medtech_ai_security.threat_intel.nvd_scraper import CVEEntry, NVDScraper
 
 
 class TestPhase1ThreatIntelIntegration:
@@ -441,7 +437,7 @@ class TestPhase5SBOMAnalysisIntegration:
 
         # Build graph
         builder = SBOMGraphBuilder()
-        graph_data = builder.build(dep_graph)
+        _graph_data = builder.build(dep_graph)  # noqa: F841
 
         # Score risks using SupplyChainRiskScorer
         scorer = SupplyChainRiskScorer()
@@ -538,7 +534,7 @@ class TestCrossPhaseIntegration:
             description="Log4j RCE vulnerability",
         )
 
-        pkg = Package(
+        _pkg = Package(  # noqa: F841
             name="log4j",
             version="2.14.0",
             package_type=PackageType.PYPI,

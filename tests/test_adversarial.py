@@ -10,12 +10,12 @@ from medtech_ai_security.adversarial.attacks import (
 )
 from medtech_ai_security.adversarial.defenses import (
     AdversarialDefender,
-    DefenseType,
     DefenseResult,
+    DefenseType,
 )
 from medtech_ai_security.adversarial.evaluator import (
-    RobustnessReport,
     RobustnessEvaluator,
+    RobustnessReport,
 )
 
 
@@ -429,3 +429,328 @@ class TestIntegration:
         # Both should produce valid results
         assert fgsm_result.attack_type == AttackType.FGSM
         assert pgd_result.attack_type == AttackType.PGD
+
+
+class TestDefenseResult:
+    """Test DefenseResult dataclass."""
+
+    def test_defense_result_creation(self):
+        """Test creating a DefenseResult."""
+        result = DefenseResult(
+            original_images=np.zeros((10, 28, 28, 1)),
+            defended_images=np.zeros((10, 28, 28, 1)),
+            defense_type=DefenseType.GAUSSIAN_BLUR,
+            defense_params={"sigma": 1.0},
+            clean_accuracy_before=0.95,
+            clean_accuracy_after=0.93,
+            adversarial_accuracy_before=0.30,
+            adversarial_accuracy_after=0.65,
+            accuracy_drop_clean=0.02,
+            accuracy_gain_adversarial=0.35,
+        )
+
+        assert result.defense_type == DefenseType.GAUSSIAN_BLUR
+        assert result.accuracy_gain_adversarial == 0.35
+
+    def test_defense_result_to_dict(self):
+        """Test converting DefenseResult to dictionary."""
+        result = DefenseResult(
+            original_images=np.zeros((5, 28, 28, 1)),
+            defended_images=np.zeros((5, 28, 28, 1)),
+            defense_type=DefenseType.JPEG_COMPRESSION,
+            defense_params={"quality": 75},
+            clean_accuracy_before=0.92,
+            clean_accuracy_after=0.90,
+            adversarial_accuracy_before=0.25,
+            adversarial_accuracy_after=0.70,
+            accuracy_drop_clean=0.02,
+            accuracy_gain_adversarial=0.45,
+        )
+
+        result_dict = result.to_dict()
+
+        assert result_dict["defense_type"] == "jpeg_compression"
+        assert result_dict["clean_accuracy_before"] == 0.92
+        assert result_dict["accuracy_gain_adversarial"] == 0.45
+
+
+class TestAdversarialDefenderAdvanced:
+    """Advanced tests for AdversarialDefender."""
+
+    @pytest.fixture
+    def sample_images(self):
+        """Generate sample images."""
+        np.random.seed(42)
+        return np.random.rand(10, 28, 28, 1).astype(np.float32)
+
+    def test_bit_depth_reduction(self):
+        """Test bit depth reduction defense."""
+        defender = AdversarialDefender()
+        np.random.seed(42)
+        images = np.random.rand(5, 28, 28, 1).astype(np.float32)
+
+        defended = defender.bit_depth_reduction(images, bits=4)
+
+        assert defended.shape == images.shape
+        # Reduced bit depth means fewer unique values
+        assert np.all(defended >= 0)
+        assert np.all(defended <= 1)
+
+    def test_bit_depth_reduction_255_range(self):
+        """Test bit depth reduction with 0-255 range images."""
+        defender = AdversarialDefender()
+        np.random.seed(42)
+        images = (np.random.rand(5, 28, 28, 1) * 255).astype(np.float32)
+
+        defended = defender.bit_depth_reduction(images, bits=5)
+
+        assert defended.shape == images.shape
+        assert np.all(defended >= 0)
+        assert np.all(defended <= 255)
+
+    def test_spatial_smoothing(self, sample_images):
+        """Test spatial smoothing (median filter) defense."""
+        defender = AdversarialDefender()
+
+        defended = defender.spatial_smoothing(sample_images, kernel_size=3)
+
+        assert defended.shape == sample_images.shape
+
+    def test_ensemble_defense_default(self, sample_images):
+        """Test ensemble defense with default settings."""
+        defender = AdversarialDefender()
+
+        defended = defender.ensemble_defense(sample_images)
+
+        assert defended.shape == sample_images.shape
+        assert defended.dtype == np.float32
+
+    def test_ensemble_defense_custom(self, sample_images):
+        """Test ensemble defense with custom defenses."""
+        defender = AdversarialDefender()
+
+        custom_defenses = [
+            (defender.gaussian_blur, {"sigma": 0.5}),
+            (defender.bit_depth_reduction, {"bits": 6}),
+        ]
+
+        defended = defender.ensemble_defense(sample_images, defenses=custom_defenses)
+
+        assert defended.shape == sample_images.shape
+
+    def test_detect_adversarial(self):
+        """Test adversarial detection."""
+
+        def model(x):
+            mean_val = np.mean(x, axis=(1, 2, 3))
+            return np.column_stack([1 - mean_val, mean_val])
+
+        defender = AdversarialDefender(model=model)
+        np.random.seed(42)
+        images = np.random.rand(10, 28, 28, 1).astype(np.float32)
+
+        is_adv, scores = defender.detect_adversarial(images, threshold=0.1)
+
+        assert len(is_adv) == 10
+        assert len(scores) == 10
+        assert is_adv.dtype == bool
+
+    def test_detect_adversarial_no_model(self):
+        """Test adversarial detection raises error without model."""
+        defender = AdversarialDefender(model=None)
+        images = np.random.rand(5, 28, 28, 1).astype(np.float32)
+
+        with pytest.raises(ValueError, match="Model required"):
+            defender.detect_adversarial(images)
+
+    def test_evaluate_defense(self):
+        """Test defense evaluation."""
+
+        def model(x):
+            mean_val = np.mean(x, axis=(1, 2, 3))
+            return np.column_stack([1 - mean_val, mean_val])
+
+        defender = AdversarialDefender(model=model)
+        np.random.seed(42)
+        clean_images = np.random.rand(10, 28, 28, 1).astype(np.float32) * 0.4
+        clean_labels = np.array([0] * 10)
+        adv_images = clean_images + 0.1  # Simple perturbation
+
+        result = defender.evaluate_defense(
+            clean_images=clean_images,
+            clean_labels=clean_labels,
+            adversarial_images=adv_images,
+            defense_type=DefenseType.GAUSSIAN_BLUR,
+            defense_fn=defender.gaussian_blur,
+            defense_params={"sigma": 1.0},
+        )
+
+        assert isinstance(result, DefenseResult)
+        assert 0 <= result.clean_accuracy_before <= 1
+        assert 0 <= result.clean_accuracy_after <= 1
+
+    def test_evaluate_defense_no_model(self):
+        """Test defense evaluation raises error without model."""
+        defender = AdversarialDefender(model=None)
+        images = np.random.rand(5, 28, 28, 1).astype(np.float32)
+        labels = np.array([0] * 5)
+
+        with pytest.raises(ValueError, match="Model required"):
+            defender.evaluate_defense(
+                images, labels, images,
+                DefenseType.GAUSSIAN_BLUR,
+                defender.gaussian_blur,
+                {"sigma": 1.0},
+            )
+
+
+class TestRobustnessEvaluatorAdvanced:
+    """Advanced tests for RobustnessEvaluator."""
+
+    @pytest.fixture
+    def simple_model(self):
+        """Create a simple model."""
+
+        def model(x):
+            mean_val = np.mean(x, axis=(1, 2, 3))
+            return np.column_stack([1 - mean_val, mean_val])
+
+        return model
+
+    @pytest.fixture
+    def evaluator(self, simple_model):
+        """Create an evaluator."""
+        return RobustnessEvaluator(
+            model=simple_model,
+            model_name="test_model",
+            num_classes=2,
+            class_names=["benign", "malignant"],
+        )
+
+    def test_evaluator_with_custom_class_names(self, simple_model):
+        """Test evaluator with custom class names."""
+        evaluator = RobustnessEvaluator(
+            model=simple_model,
+            model_name="medical_classifier",
+            num_classes=2,
+            class_names=["normal", "abnormal"],
+        )
+
+        assert evaluator.class_names == ["normal", "abnormal"]
+
+    def test_evaluate_clean_accuracy_binary(self, evaluator):
+        """Test clean accuracy with binary predictions."""
+        np.random.seed(42)
+        images = np.random.rand(20, 28, 28, 1).astype(np.float32) * 0.3
+        labels = np.array([0] * 20)
+
+        accuracy = evaluator.evaluate_clean_accuracy(images, labels)
+
+        assert 0 <= accuracy <= 1
+
+    def test_generate_recommendations_high_vulnerability(self, evaluator):
+        """Test recommendation generation for high vulnerability."""
+        attack_results = {
+            "fgsm": {"success_rate": 0.75, "mean_perturbation_linf": 0.005},
+            "pgd": {"success_rate": 0.60, "mean_perturbation_linf": 0.01},
+        }
+        defense_results = {
+            "gaussian_blur": {"accuracy_gain_adversarial": 0.25},
+        }
+        clinical_impact = {"risk_level": "CRITICAL"}
+
+        recommendations = evaluator.generate_recommendations(
+            attack_results, defense_results, clinical_impact
+        )
+
+        assert len(recommendations) > 0
+        # Should have recommendations for high vulnerability
+        assert any("HIGH VULNERABILITY" in r or "CRITICAL" in r for r in recommendations)
+
+    def test_generate_recommendations_moderate_vulnerability(self, evaluator):
+        """Test recommendation generation for moderate vulnerability."""
+        attack_results = {
+            "fgsm": {"success_rate": 0.35},
+        }
+        defense_results = {}
+        clinical_impact = {"risk_level": "MEDIUM"}
+
+        recommendations = evaluator.generate_recommendations(
+            attack_results, defense_results, clinical_impact
+        )
+
+        assert len(recommendations) > 0
+        assert any("MODERATE" in r for r in recommendations)
+
+    def test_generate_recommendations_low_vulnerability(self, evaluator):
+        """Test recommendation generation when model is robust."""
+        attack_results = {
+            "fgsm": {"success_rate": 0.10},
+        }
+        defense_results = {}
+        clinical_impact = {"risk_level": "LOW"}
+
+        recommendations = evaluator.generate_recommendations(
+            attack_results, defense_results, clinical_impact
+        )
+
+        assert len(recommendations) > 0
+        assert any("reasonable robustness" in r.lower() for r in recommendations)
+
+    def test_generate_recommendations_best_defense(self, evaluator):
+        """Test recommendation generation highlights best defense."""
+        attack_results = {"fgsm": {"success_rate": 0.5}}
+        defense_results = {
+            "gaussian_blur": {"accuracy_gain_adversarial": 0.15},
+            "jpeg": {"accuracy_gain_adversarial": 0.05},
+        }
+        clinical_impact = {"risk_level": "MEDIUM"}
+
+        recommendations = evaluator.generate_recommendations(
+            attack_results, defense_results, clinical_impact
+        )
+
+        assert any("gaussian_blur" in r for r in recommendations)
+
+    def test_assess_clinical_impact_multiclass(self, simple_model):
+        """Test clinical impact assessment for multiclass."""
+        evaluator = RobustnessEvaluator(
+            model=simple_model,
+            model_name="test_model",
+            num_classes=3,  # Multiclass
+        )
+
+        labels = np.array([0, 1, 2, 0, 1, 2])
+        # Create predictions with some misclassifications
+        preds = np.array([
+            [0.9, 0.05, 0.05],  # Correct (class 0)
+            [0.1, 0.8, 0.1],   # Correct (class 1)
+            [0.1, 0.1, 0.8],   # Correct (class 2)
+            [0.1, 0.8, 0.1],   # Wrong (class 1 instead of 0)
+            [0.8, 0.1, 0.1],   # Wrong (class 0 instead of 1)
+            [0.1, 0.8, 0.1],   # Wrong (class 1 instead of 2)
+        ])
+
+        impact = evaluator.assess_clinical_impact(labels, preds)
+
+        assert "risk_level" in impact
+        assert "impact_counts" in impact
+        assert impact["impact_counts"]["medium"] == 3  # 3 misclassifications
+
+    def test_evaluate_defense_method(self, evaluator):
+        """Test evaluating a defense method."""
+        np.random.seed(42)
+        images = np.random.rand(10, 28, 28, 1).astype(np.float32) * 0.4
+        labels = np.array([0] * 10)
+        adv_images = images + 0.1
+
+        result = evaluator.evaluate_defense(
+            clean_images=images,
+            clean_labels=labels,
+            adversarial_images=adv_images,
+            defense_type=DefenseType.GAUSSIAN_BLUR,
+            sigma=1.0,
+        )
+
+        assert isinstance(result, dict)
+        assert "defense_type" in result
