@@ -1,0 +1,44 @@
+---
+# MedTech AI Security ConfigMap
+# Configuration for security scanning services
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: medtech-security-config
+  namespace: medtech-security
+  labels:
+    app.kubernetes.io/name: medtech-ai-security
+    app.kubernetes.io/component: config
+data:
+  # NVD Scraper Configuration
+  NVD_API_URL: "https://services.nvd.nist.gov/rest/json/cves/2.0"
+  NVD_REQUEST_DELAY: "6"
+  NVD_DAYS_BACK: "30"
+
+  # CISA Scraper Configuration
+  CISA_BASE_URL: "https://www.cisa.gov"
+  CISA_REQUEST_DELAY: "2"
+
+  # DefectDojo Integration
+  DEFECTDOJO_VERIFY_SSL: "true"
+  DEFECTDOJO_TIMEOUT: "30"
+  DEFECTDOJO_PRODUCT_TYPE: "Medical Device"
+
+  # Anomaly Detection Configuration
+  ANOMALY_THRESHOLD: "0.5"
+  ANOMALY_BATCH_SIZE: "32"
+
+  # SBOM Analysis Configuration
+  SBOM_GNN_HIDDEN_DIM: "64"
+  SBOM_GNN_NUM_LAYERS: "3"
+
+  # Logging Configuration
+  LOG_LEVEL: "INFO"
+  LOG_FORMAT: "json"
+
+  # Feature Flags
+  ENABLE_THREAT_INTEL: "true"
+  ENABLE_ANOMALY_DETECTION: "true"
+  ENABLE_ADVERSARIAL_ML: "true"
+  ENABLE_SBOM_ANALYSIS: "true"

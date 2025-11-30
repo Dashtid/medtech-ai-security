@@ -1,0 +1,129 @@
+---
+# RBAC Configuration for MedTech AI Security
+# Follows principle of least privilege
+
+# ServiceAccount for all medtech-security workloads
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: medtech-security
+  namespace: medtech-security
+  labels:
+    app.kubernetes.io/name: medtech-ai-security
+    app.kubernetes.io/component: rbac
+
+---
+# Role with minimal permissions
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: medtech-security-role
+  namespace: medtech-security
+  labels:
+    app.kubernetes.io/name: medtech-ai-security
+    app.kubernetes.io/component: rbac
+rules:
+  # Allow reading configmaps and secrets in namespace
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "list", "watch"]
+  # Allow reading pods for health checks
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  # Allow creating events for logging
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+
+---
+# RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: medtech-security-binding
+  namespace: medtech-security
+  labels:
+    app.kubernetes.io/name: medtech-ai-security
+    app.kubernetes.io/component: rbac
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: medtech-security-role
+subjects:
+  - kind: ServiceAccount
+    name: medtech-security
+    namespace: medtech-security
+
+---
+# NetworkPolicy - Restrict ingress/egress
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: medtech-security-network-policy
+  namespace: medtech-security
+  labels:
+    app.kubernetes.io/name: medtech-ai-security
+    app.kubernetes.io/component: network
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: medtech-security-platform
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow ingress from same namespace
+    - from:
+        - podSelector: {}
+    # Allow ingress from ingress controller namespace
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+  egress:
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow HTTPS egress for NVD/CISA APIs
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 443
+    # Allow same namespace communication
+    - to:
+        - podSelector: {}
+
+---
+# PodDisruptionBudget for high availability
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: sbom-analyzer-pdb
+  namespace: medtech-security
+  labels:
+    app.kubernetes.io/name: sbom-analyzer
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sbom-analyzer
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: anomaly-detector-pdb
+  namespace: medtech-security
+  labels:
+    app.kubernetes.io/name: anomaly-detector
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: anomaly-detector

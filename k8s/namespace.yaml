@@ -1,0 +1,15 @@
+---
+# MedTech AI Security Namespace
+# Isolated namespace for medical device security scanning services
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: medtech-security
+  labels:
+    app.kubernetes.io/name: medtech-ai-security
+    app.kubernetes.io/component: namespace
+    app.kubernetes.io/part-of: medtech-security-platform
+    # Compliance labels
+    compliance.fda/sbom-required: "true"
+    compliance.mdr/cybersecurity: "true"

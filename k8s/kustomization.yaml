@@ -1,0 +1,52 @@
+---
+# Kustomization for MedTech AI Security
+# Deploy with: kubectl apply -k k8s/
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: medtech-ai-security
+
+namespace: medtech-security
+
+# Common labels applied to all resources
+commonLabels:
+  app.kubernetes.io/managed-by: kustomize
+  app.kubernetes.io/part-of: medtech-security-platform
+  app.kubernetes.io/version: "1.1.0"
+
+# Resources to include
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secret.yaml
+  - pvc.yaml
+  - rbac.yaml
+  - deployment-threat-intel.yaml
+  - deployment-sbom-analyzer.yaml
+  - deployment-anomaly-detector.yaml
+  - ingress.yaml
+
+# Image customization
+images:
+  - name: ghcr.io/dashtid/medtech-ai-security
+    newTag: latest
+
+# ConfigMap generator for environment-specific config
+configMapGenerator:
+  - name: medtech-security-env
+    namespace: medtech-security
+    literals:
+      - ENVIRONMENT=production
+
+# Patches for environment-specific changes
+patches:
+  # Example: increase replicas in production
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 3
+    target:
+      kind: Deployment
+      name: sbom-analyzer

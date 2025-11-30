@@ -1,0 +1,185 @@
+---
+# Threat Intelligence Scanner Deployment
+# Runs NVD/CISA scrapers on a schedule
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: threat-intel-scanner
+  namespace: medtech-security
+  labels:
+    app.kubernetes.io/name: threat-intel-scanner
+    app.kubernetes.io/component: scanner
+    app.kubernetes.io/part-of: medtech-security-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: threat-intel-scanner
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: threat-intel-scanner
+        app.kubernetes.io/component: scanner
+    spec:
+      serviceAccountName: medtech-security
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: threat-intel
+          image: ghcr.io/dashtid/medtech-ai-security:latest
+          imagePullPolicy: Always
+          command: ["python", "-m", "medtech_ai_security.threat_intel.scheduler"]
+          envFrom:
+            - configMapRef:
+                name: medtech-security-config
+            - secretRef:
+                name: medtech-security-secrets
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: data-volume
+              mountPath: /app/data
+            - name: tmp-volume
+              mountPath: /tmp
+          livenessProbe:
+            exec:
+              command:
+                - python
+                - -c
+                - "import medtech_ai_security; print('OK')"
+            initialDelaySeconds: 30
+            periodSeconds: 60
+          readinessProbe:
+            exec:
+              command:
+                - python
+                - -c
+                - "import medtech_ai_security; print('OK')"
+            initialDelaySeconds: 10
+            periodSeconds: 30
+      volumes:
+        - name: data-volume
+          persistentVolumeClaim:
+            claimName: medtech-security-data
+        - name: tmp-volume
+          emptyDir: {}
+      restartPolicy: Always
+
+---
+# CronJob for scheduled NVD scanning
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nvd-scanner
+  namespace: medtech-security
+  labels:
+    app.kubernetes.io/name: nvd-scanner
+    app.kubernetes.io/component: cronjob
+spec:
+  schedule: "0 6 * * *"  # Daily at 6 AM UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      template:
+        spec:
+          serviceAccountName: medtech-security
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+          containers:
+            - name: nvd-scanner
+              image: ghcr.io/dashtid/medtech-ai-security:latest
+              command: ["medsec-nvd"]
+              args:
+                - "--days"
+                - "7"
+                - "--output"
+                - "/app/data/nvd_cves.json"
+              envFrom:
+                - configMapRef:
+                    name: medtech-security-config
+                - secretRef:
+                    name: medtech-security-secrets
+              resources:
+                requests:
+                  cpu: "100m"
+                  memory: "256Mi"
+                limits:
+                  cpu: "500m"
+                  memory: "512Mi"
+              volumeMounts:
+                - name: data-volume
+                  mountPath: /app/data
+          volumes:
+            - name: data-volume
+              persistentVolumeClaim:
+                claimName: medtech-security-data
+          restartPolicy: OnFailure
+
+---
+# CronJob for scheduled CISA scanning
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cisa-scanner
+  namespace: medtech-security
+  labels:
+    app.kubernetes.io/name: cisa-scanner
+    app.kubernetes.io/component: cronjob
+spec:
+  schedule: "0 7 * * *"  # Daily at 7 AM UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      template:
+        spec:
+          serviceAccountName: medtech-security
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+          containers:
+            - name: cisa-scanner
+              image: ghcr.io/dashtid/medtech-ai-security:latest
+              command: ["medsec-cisa"]
+              args:
+                - "--output"
+                - "/app/data/cisa_advisories.json"
+              envFrom:
+                - configMapRef:
+                    name: medtech-security-config
+              resources:
+                requests:
+                  cpu: "100m"
+                  memory: "256Mi"
+                limits:
+                  cpu: "500m"
+                  memory: "512Mi"
+              volumeMounts:
+                - name: data-volume
+                  mountPath: /app/data
+          volumes:
+            - name: data-volume
+              persistentVolumeClaim:
+                claimName: medtech-security-data
+          restartPolicy: OnFailure

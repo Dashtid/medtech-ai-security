@@ -54,6 +54,9 @@ medsec-adversarial      # Attack/defend medical AI models
 
 # Phase 5: SBOM Analysis
 medsec-sbom             # Analyze SBOM supply chain risk
+
+# Integration Tools
+medsec-defectdojo       # DefectDojo API integration
 ```
 
 ## Module Details
@@ -202,14 +205,17 @@ medtech-ai-security/
 │       ├── gnn_model.py
 │       ├── risk_scorer.py
 │       └── analyzer.py
+│   └── integration/          # External integrations
+│       └── defectdojo.py
 ├── scripts/
 │   └── demo_security.py       # Comprehensive demo
-├── tests/                     # Unit tests (230 tests)
+├── tests/                     # Unit tests (271 tests)
 │   ├── test_threat_intel.py   # Phase 1 tests
 │   ├── test_risk_scorer.py    # Phase 2 tests
 │   ├── test_anomaly.py        # Phase 3 tests
 │   ├── test_adversarial.py    # Phase 4 tests
 │   ├── test_sbom_analysis.py  # Phase 5 tests
+│   ├── test_defectdojo.py     # Integration tests
 │   └── test_integration.py    # Cross-phase integration tests
 ├── data/                      # Sample data and outputs
 ├── models/                    # Trained models
@@ -265,7 +271,7 @@ pip install -e ".[dev]"  # Include development tools
 
 ## Testing
 
-Comprehensive test suite covering all 5 phases with 230 tests (68% code coverage):
+Comprehensive test suite covering all 5 phases with 271 tests (69% code coverage):
 
 ```bash
 # Run all tests
@@ -291,6 +297,7 @@ uv run pytest tests/test_sbom_analysis.py -v     # Phase 5: SBOM Analysis
 | Anomaly Detection | 35 tests | Traffic generator, autoencoder, detector |
 | Adversarial ML | 32 tests | FGSM/PGD/C&W attacks, defenses, evaluator |
 | SBOM Analysis | 50 tests | Parser, graph builder, GNN, risk scorer, analyzer |
+| DefectDojo Integration | 41 tests | API client, findings import, CLI |
 | Integration Tests | 15 tests | Cross-phase workflows |
 
 ## Development
@@ -332,11 +339,11 @@ The biomedical AI work demonstrates transferable skills in:
 - [x] Phase 5: SBOM GNN Analysis
 
 ### Future Enhancements
-- [ ] DefectDojo API integration
+- [x] DefectDojo API integration
+- [x] Kubernetes deployment manifests
 - [ ] Real-time monitoring dashboard
 - [ ] Federated learning for multi-site deployment
 - [ ] DICOM/HL7 live traffic capture
-- [ ] Kubernetes deployment manifests
 
 ## License
 
