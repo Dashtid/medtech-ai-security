@@ -583,3 +583,236 @@ class TestCISAScraper:
         assert "CVE-2024-1234" in prompt
         assert "device_type" in prompt
         assert "JSON format" in prompt
+
+    def test_generate_claude_prompt_empty_fields(self):
+        """Test Claude prompt handles missing optional fields."""
+        scraper = CISAScraper()
+
+        advisories = [
+            CISAAdvisory(
+                advisory_id="ICSMA-24-002-01",
+                title="Test Advisory",
+                url="https://cisa.gov/test",
+                release_date="2024-01-15",
+                # No cvss_score, severity, cve_ids, vendor, description
+            )
+        ]
+
+        prompt = scraper.generate_claude_prompt(advisories)
+
+        assert "ICSMA-24-002-01" in prompt
+        assert "N/A" in prompt  # Should show N/A for missing fields
+
+    def test_rate_limiting(self):
+        """Test rate limiting mechanism."""
+        scraper = CISAScraper(request_delay=0.1)
+        scraper.last_request_time = 0
+
+        import time
+
+        start = time.time()
+        scraper._rate_limit()
+        scraper._rate_limit()
+        elapsed = time.time() - start
+
+        # Should have enforced delay
+        assert elapsed >= 0.1
+
+    @patch("requests.Session.get")
+    def test_make_request_success(self, mock_get):
+        """Test successful HTTP request."""
+        mock_response = Mock()
+        mock_response.text = "<html><body>Test</body></html>"
+        mock_response.raise_for_status = Mock()
+        mock_get.return_value = mock_response
+
+        scraper = CISAScraper(request_delay=0)
+        scraper.last_request_time = 0
+
+        result = scraper._make_request("https://example.com")
+
+        assert result is not None
+        mock_get.assert_called_once()
+
+    @patch("requests.Session.get")
+    def test_make_request_failure(self, mock_get):
+        """Test HTTP request failure handling."""
+        import requests
+
+        mock_get.side_effect = requests.exceptions.RequestException("Network error")
+
+        scraper = CISAScraper(request_delay=0)
+        scraper.last_request_time = 0
+
+        result = scraper._make_request("https://example.com")
+
+        assert result is None
+
+    @patch.object(CISAScraper, "_make_request")
+    def test_parse_advisory_detail_extracts_cves(self, mock_request):
+        """Test parsing advisory detail page extracts CVEs."""
+        from bs4 import BeautifulSoup
+
+        html = '''
+        <html>
+        <body>
+            <article>
+                <div class="content">
+                    <p>This advisory affects CVE-2024-1234 and CVE-2024-5678.</p>
+                    <p>CVSS: 9.8 (CRITICAL)</p>
+                </div>
+            </article>
+        </body>
+        </html>
+        '''
+
+        soup = BeautifulSoup(html, "html.parser")
+        mock_request.return_value = soup
+
+        scraper = CISAScraper()
+        basic_info = {
+            "advisory_id": "ICSMA-24-001-01",
+            "title": "Test Advisory",
+            "release_date": "2024-01-15",
+            "advisory_type": "ICSMA",
+        }
+
+        advisory = scraper._parse_advisory_detail("https://test.com", basic_info)
+
+        assert advisory is not None
+        assert "CVE-2024-1234" in advisory.cve_ids
+        assert "CVE-2024-5678" in advisory.cve_ids
+
+    @patch.object(CISAScraper, "_make_request")
+    def test_parse_advisory_detail_extracts_cvss(self, mock_request):
+        """Test parsing advisory detail page extracts CVSS score."""
+        from bs4 import BeautifulSoup
+
+        html = '''
+        <html>
+        <body>
+            <article>
+                <div class="content">
+                    <p>CVSS v3.1: 7.5 (HIGH)</p>
+                </div>
+            </article>
+        </body>
+        </html>
+        '''
+
+        soup = BeautifulSoup(html, "html.parser")
+        mock_request.return_value = soup
+
+        scraper = CISAScraper()
+        basic_info = {
+            "advisory_id": "ICSMA-24-001-01",
+            "title": "Test Advisory",
+            "release_date": "2024-01-15",
+            "advisory_type": "ICSMA",
+        }
+
+        advisory = scraper._parse_advisory_detail("https://test.com", basic_info)
+
+        assert advisory is not None
+        assert advisory.cvss_score == 7.5
+        assert advisory.severity == "HIGH"
+
+    @patch.object(CISAScraper, "_make_request")
+    def test_parse_advisory_detail_returns_none_on_failed_request(self, mock_request):
+        """Test parsing returns None when request fails."""
+        mock_request.return_value = None
+
+        scraper = CISAScraper()
+        basic_info = {
+            "advisory_id": "ICSMA-24-001-01",
+            "title": "Test Advisory",
+            "release_date": "2024-01-15",
+            "advisory_type": "ICSMA",
+        }
+
+        advisory = scraper._parse_advisory_detail("https://test.com", basic_info)
+
+        assert advisory is None
+
+    def test_parse_advisory_list_page_with_dates(self):
+        """Test parsing advisory list page extracts dates from parent elements."""
+        from bs4 import BeautifulSoup
+
+        html = '''
+        <html>
+        <body>
+            <div class="advisory">
+                <span class="date">January 15, 2024</span>
+                <a href="/ics-medical-advisories/icsma-24-001-01">
+                    Medical Device Advisory
+                </a>
+            </div>
+        </body>
+        </html>
+        '''
+
+        soup = BeautifulSoup(html, "html.parser")
+        scraper = CISAScraper()
+        advisories = scraper._parse_advisory_list_page(soup)
+
+        assert len(advisories) == 1
+        assert advisories[0]["release_date"] == "January 15, 2024"
+
+    def test_parse_advisory_list_page_skips_invalid_urls(self):
+        """Test parsing skips links without valid advisory IDs."""
+        from bs4 import BeautifulSoup
+
+        html = '''
+        <html>
+        <body>
+            <a href="/some-other-page">Not an advisory</a>
+            <a href="/ics-medical-advisories/icsma-24-001-01">Valid Advisory</a>
+        </body>
+        </html>
+        '''
+
+        soup = BeautifulSoup(html, "html.parser")
+        scraper = CISAScraper()
+        advisories = scraper._parse_advisory_list_page(soup)
+
+        assert len(advisories) == 1
+        assert advisories[0]["advisory_id"] == "ICSMA-24-001-01"
+
+    def test_cvss_severity_mapping(self):
+        """Test CVSS score to severity mapping during parsing."""
+        from bs4 import BeautifulSoup
+
+        test_cases = [
+            ("9.5", "CRITICAL"),
+            ("8.0", "HIGH"),
+            ("5.5", "MEDIUM"),
+            ("2.5", "LOW"),
+        ]
+
+        scraper = CISAScraper()
+
+        for cvss_str, expected_severity in test_cases:
+            html = f'''
+            <html>
+            <body>
+                <article>
+                    <div class="content">
+                        <p>CVSS v3: {cvss_str}</p>
+                    </div>
+                </article>
+            </body>
+            </html>
+            '''
+
+            soup = BeautifulSoup(html, "html.parser")
+
+            with patch.object(scraper, "_make_request", return_value=soup):
+                basic_info = {
+                    "advisory_id": "ICSMA-24-001-01",
+                    "title": "Test",
+                    "release_date": "2024-01-15",
+                    "advisory_type": "ICSMA",
+                }
+                advisory = scraper._parse_advisory_detail("https://test.com", basic_info)
+
+                assert advisory.severity == expected_severity, f"CVSS {cvss_str} should map to {expected_severity}"

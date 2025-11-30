@@ -754,3 +754,152 @@ class TestRobustnessEvaluatorAdvanced:
 
         assert isinstance(result, dict)
         assert "defense_type" in result
+
+    def test_evaluate_multiple_attacks(self, evaluator):
+        """Test evaluating multiple attack types."""
+        np.random.seed(42)
+        images = np.random.rand(10, 28, 28, 1).astype(np.float32) * 0.4
+        labels = np.array([0] * 10)
+
+        # Test FGSM attack evaluation
+        fgsm_result = evaluator.evaluate_attack(
+            images=images,
+            labels=labels,
+            attack_type=AttackType.FGSM,
+            epsilon=0.03,
+        )
+
+        assert "attack_type" in fgsm_result
+        assert "success_rate" in fgsm_result
+        assert "robust_accuracy" in fgsm_result
+
+        # Test PGD attack evaluation
+        pgd_result = evaluator.evaluate_attack(
+            images=images,
+            labels=labels,
+            attack_type=AttackType.PGD,
+            epsilon=0.03,
+            alpha=0.007,
+            num_iterations=3,
+        )
+
+        assert "attack_type" in pgd_result
+        assert pgd_result["attack_type"] == "pgd"
+
+
+class TestAttackResultDataclass:
+    """Test AttackResult dataclass functionality."""
+
+    def test_attack_result_to_dict(self):
+        """Test converting AttackResult to dictionary."""
+        np.random.seed(42)
+        original = np.random.rand(5, 28, 28, 1).astype(np.float32)
+        adversarial = original + 0.01
+        perturbations = adversarial - original
+
+        result = AttackResult(
+            attack_type=AttackType.FGSM,
+            original_images=original,
+            adversarial_images=adversarial,
+            perturbations=perturbations,
+            original_predictions=np.array([0, 0, 0, 0, 0]),
+            adversarial_predictions=np.array([0, 1, 0, 1, 0]),
+            original_labels=np.array([0, 0, 0, 0, 0]),
+            attack_params={"epsilon": 0.03},
+            success_rate=0.4,
+            mean_perturbation_l2=0.05,
+            mean_perturbation_linf=0.01,
+            num_samples=5,
+        )
+
+        result_dict = result.to_dict()
+
+        assert result_dict["attack_type"] == "fgsm"
+        assert result_dict["success_rate"] == 0.4
+        assert "mean_perturbation_l2" in result_dict
+        assert "attack_params" in result_dict
+
+    def test_attack_result_with_successful_indices(self):
+        """Test AttackResult with successful attack indices."""
+        np.random.seed(42)
+        original = np.random.rand(5, 28, 28, 1).astype(np.float32)
+        adversarial = original.copy()
+        perturbations = adversarial - original
+
+        result = AttackResult(
+            attack_type=AttackType.PGD,
+            original_images=original,
+            adversarial_images=adversarial,
+            perturbations=perturbations,
+            original_predictions=np.array([0, 0, 0, 0, 0]),
+            adversarial_predictions=np.array([1, 1, 0, 0, 0]),
+            original_labels=np.array([0, 0, 0, 0, 0]),
+            attack_params={"epsilon": 0.03, "num_iterations": 10},
+            success_rate=0.4,
+            mean_perturbation_l2=0.01,
+            mean_perturbation_linf=0.005,
+            num_samples=5,
+            successful_indices=[0, 1],
+        )
+
+        assert len(result.successful_indices) == 2
+        assert result.num_samples == 5
+
+
+class TestAdversarialAttackerAdvanced:
+    """Advanced tests for AdversarialAttacker."""
+
+    @pytest.fixture
+    def simple_model(self):
+        """Create a simple model."""
+
+        def model(x):
+            mean_val = np.mean(x, axis=(1, 2, 3))
+            return np.column_stack([1 - mean_val, mean_val])
+
+        return model
+
+    def test_attack_with_batching(self, simple_model):
+        """Test attack with batch processing."""
+        attacker = AdversarialAttacker(model=simple_model)
+        np.random.seed(42)
+        images = np.random.rand(50, 28, 28, 1).astype(np.float32) * 0.3
+        labels = np.array([0] * 50)
+
+        result = attacker.fgsm(images, labels, epsilon=0.03)
+
+        assert result.adversarial_images.shape == images.shape
+        assert result.success_rate >= 0
+
+    def test_attack_different_epsilons(self, simple_model):
+        """Test attacks with different epsilon values."""
+        attacker = AdversarialAttacker(model=simple_model)
+        np.random.seed(42)
+        images = np.random.rand(10, 28, 28, 1).astype(np.float32) * 0.3
+        labels = np.array([0] * 10)
+
+        for epsilon in [0.01, 0.03, 0.1]:
+            result = attacker.fgsm(images, labels, epsilon=epsilon)
+            # Check epsilon is stored in attack_params
+            assert result.attack_params.get("epsilon") == epsilon
+            assert result.mean_perturbation_linf <= epsilon + 1e-5
+
+    def test_attack_preserves_image_range(self, simple_model):
+        """Test that attacks preserve valid image range."""
+        attacker = AdversarialAttacker(
+            model=simple_model,
+            clip_min=0.0,
+            clip_max=1.0,
+        )
+        np.random.seed(42)
+        images = np.random.rand(10, 28, 28, 1).astype(np.float32)
+        labels = np.array([0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
+
+        result = attacker.fgsm(images, labels, epsilon=0.5)
+
+        assert np.all(result.adversarial_images >= 0.0)
+        assert np.all(result.adversarial_images <= 1.0)
+
+        result_pgd = attacker.pgd(images, labels, epsilon=0.5, alpha=0.1, num_iterations=5)
+        assert np.all(result_pgd.adversarial_images >= 0.0)
+        assert np.all(result_pgd.adversarial_images <= 1.0)

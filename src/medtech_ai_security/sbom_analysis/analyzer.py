@@ -333,6 +333,14 @@ class SBOMAnalyzer:
         viz_data = json.dumps(report.visualization_data) if report.visualization_data else "{}"
         _risk_data = json.dumps(report.risk_report.to_dict()) if report.risk_report else "{}"  # noqa: F841
 
+        # Pre-compute values for f-string
+        risk_level = report.risk_report.overall_risk_level.value if report.risk_report else "info"
+        risk_level_upper = report.risk_report.overall_risk_level.value.upper() if report.risk_report else "N/A"
+        risk_score = f"{report.risk_report.overall_risk_score:.1f}" if report.risk_report else "0"
+        vuln_packages = report.risk_report.vulnerable_packages if report.risk_report else 0
+        total_vulns = report.risk_report.total_vulnerabilities if report.risk_report else 0
+        critical_vulns = report.risk_report.critical_vulnerabilities if report.risk_report else 0
+
         html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -377,11 +385,11 @@ class SBOMAnalyzer:
             <h1>SBOM Supply Chain Analysis</h1>
             <p style="color: #aaa; margin-top: 10px;">Medical Device Cybersecurity Assessment</p>
             <div style="margin-top: 20px;">
-                <span class="risk-badge risk-{report.risk_report.overall_risk_level.value if report.risk_report else 'info'}">
-                    {report.risk_report.overall_risk_level.value.upper() if report.risk_report else 'N/A'} RISK
+                <span class="risk-badge risk-{risk_level}">
+                    {risk_level_upper} RISK
                 </span>
                 <span style="margin-left: 10px; color: #aaa;">
-                    Score: {report.risk_report.overall_risk_score:.1f if report.risk_report else 0}/100
+                    Score: {risk_score}/100
                 </span>
             </div>
         </div>
@@ -392,15 +400,15 @@ class SBOMAnalyzer:
                 <div class="stat-label">Total Packages</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value">{report.risk_report.vulnerable_packages if report.risk_report else 0}</div>
+                <div class="stat-value">{vuln_packages}</div>
                 <div class="stat-label">Vulnerable Packages</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value">{report.risk_report.total_vulnerabilities if report.risk_report else 0}</div>
+                <div class="stat-value">{total_vulns}</div>
                 <div class="stat-label">Total Vulnerabilities</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value">{report.risk_report.critical_vulnerabilities if report.risk_report else 0}</div>
+                <div class="stat-value">{critical_vulns}</div>
                 <div class="stat-label">Critical CVEs</div>
             </div>
         </div>

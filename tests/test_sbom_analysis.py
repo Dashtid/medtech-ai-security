@@ -819,6 +819,273 @@ class TestVulnerabilityGNN:
         assert np.array_equal(orig_preds, loaded_preds)
 
 
+class TestAnalysisReport:
+    """Test AnalysisReport dataclass."""
+
+    def test_analysis_report_creation(self):
+        """Test creating AnalysisReport with default values."""
+        report = AnalysisReport()
+
+        assert report.sbom_file == ""
+        assert report.sbom_format == ""
+        assert report.risk_report is None
+        assert report.gnn_predictions is None
+        assert report.graph_stats == {}
+
+    def test_analysis_report_to_dict(self):
+        """Test converting AnalysisReport to dictionary."""
+        risk_report = RiskReport(
+            overall_risk_level=RiskLevel.HIGH,
+            overall_risk_score=75.0,
+            package_risks=[],
+        )
+        report = AnalysisReport(
+            sbom_file="test.json",
+            sbom_format="CycloneDX",
+            risk_report=risk_report,
+            graph_stats={"num_packages": 10},
+        )
+
+        result = report.to_dict()
+
+        assert result["sbom_file"] == "test.json"
+        assert result["sbom_format"] == "CycloneDX"
+        assert "risk_report" in result
+        assert result["graph_stats"]["num_packages"] == 10
+
+    def test_analysis_report_to_dict_without_optional_fields(self):
+        """Test to_dict without optional fields."""
+        report = AnalysisReport(
+            sbom_file="test.json",
+            sbom_format="CycloneDX",
+        )
+
+        result = report.to_dict()
+
+        assert "risk_report" not in result
+        assert "gnn_predictions" not in result
+        assert "visualization" not in result
+
+    def test_analysis_report_to_dict_with_visualization(self):
+        """Test to_dict with visualization data."""
+        report = AnalysisReport(
+            sbom_file="test.json",
+            sbom_format="CycloneDX",
+            visualization_data={"nodes": [], "links": []},
+        )
+
+        result = report.to_dict()
+
+        assert "visualization" in result
+        assert result["visualization"]["nodes"] == []
+
+    def test_analysis_report_to_json(self):
+        """Test converting AnalysisReport to JSON string."""
+        report = AnalysisReport(
+            sbom_file="test.json",
+            sbom_format="CycloneDX",
+            graph_stats={"num_packages": 5},
+        )
+
+        json_str = report.to_json()
+
+        assert '"sbom_file": "test.json"' in json_str
+        assert '"num_packages": 5' in json_str
+
+
+class TestSBOMAnalyzerAdvanced:
+    """Advanced tests for SBOMAnalyzer."""
+
+    @pytest.fixture
+    def sample_sbom_json(self):
+        """Create sample SBOM JSON string."""
+        return json.dumps({
+            "bomFormat": "CycloneDX",
+            "specVersion": "1.5",
+            "version": 1,
+            "metadata": {
+                "component": {
+                    "name": "test-app",
+                    "version": "1.0.0",
+                    "type": "application",
+                }
+            },
+            "components": [
+                {"name": "express", "version": "4.17.1", "type": "library"},
+                {"name": "lodash", "version": "4.17.20", "type": "library"},
+            ],
+            "dependencies": [
+                {"ref": "test-app@1.0.0", "dependsOn": ["express@4.17.1"]},
+                {"ref": "express@4.17.1", "dependsOn": ["lodash@4.17.20"]},
+            ],
+        })
+
+    def test_analyzer_without_gnn(self):
+        """Test analyzer with GNN disabled."""
+        analyzer = SBOMAnalyzer(use_gnn=False)
+
+        assert analyzer.gnn_model is None
+        assert analyzer.use_gnn is False
+
+    def test_analyzer_without_medical_context(self):
+        """Test analyzer without medical context."""
+        analyzer = SBOMAnalyzer(use_gnn=False, medical_context=False)
+
+        assert analyzer.medical_context is False
+
+    def test_analyzer_with_vuln_db(self):
+        """Test analyzer with custom vulnerability database."""
+        vuln_db = {
+            "lodash@4.17.20": [
+                VulnerabilityInfo(cve_id="CVE-2021-23337", cvss_score=7.2, severity="high")
+            ]
+        }
+        analyzer = SBOMAnalyzer(use_gnn=False, vuln_db=vuln_db)
+
+        assert analyzer.parser.vuln_db is not None
+
+    def test_analyze_json(self, sample_sbom_json):
+        """Test analyzing SBOM from JSON string."""
+        analyzer = SBOMAnalyzer(use_gnn=False)
+        report = analyzer.analyze_json(sample_sbom_json)
+
+        assert isinstance(report, AnalysisReport)
+        assert report.sbom_file == "<inline>"
+        assert report.sbom_format == "CycloneDX"
+        assert report.risk_report is not None
+        assert report.graph_stats["num_packages"] >= 1
+
+    def test_generate_visualization(self, sample_sbom_json):
+        """Test visualization data generation."""
+        analyzer = SBOMAnalyzer(use_gnn=False)
+        report = analyzer.analyze_json(sample_sbom_json)
+
+        assert report.visualization_data is not None
+        assert "nodes" in report.visualization_data
+        assert "links" in report.visualization_data
+        assert "statistics" in report.visualization_data
+
+    def test_generate_html_report(self, sample_sbom_json, tmp_path):
+        """Test HTML report generation."""
+        analyzer = SBOMAnalyzer(use_gnn=False)
+        report = analyzer.analyze_json(sample_sbom_json)
+
+        html_path = tmp_path / "report.html"
+        html = analyzer.generate_html_report(report, str(html_path))
+
+        assert html_path.exists()
+        # Check for presence of HTML structure (the exact text may vary)
+        assert "<!DOCTYPE html>" in html
+        assert "<html" in html
+
+    def test_generate_html_report_without_saving(self, sample_sbom_json):
+        """Test HTML report generation without saving to file."""
+        analyzer = SBOMAnalyzer(use_gnn=False)
+        report = analyzer.analyze_json(sample_sbom_json)
+
+        html = analyzer.generate_html_report(report)
+
+        assert "<!DOCTYPE html>" in html
+        assert "<html" in html
+
+
+class TestSupplyChainRiskScorerAdvanced:
+    """Advanced tests for SupplyChainRiskScorer."""
+
+    def test_scorer_with_medical_context(self):
+        """Test scorer with medical context enabled."""
+        scorer = SupplyChainRiskScorer(medical_context=True)
+
+        assert scorer.medical_context is True
+
+    def test_scorer_without_medical_context(self):
+        """Test scorer without medical context."""
+        scorer = SupplyChainRiskScorer(medical_context=False)
+
+        assert scorer.medical_context is False
+
+    def test_score_empty_graph(self):
+        """Test scoring an empty dependency graph."""
+        scorer = SupplyChainRiskScorer()
+        graph = DependencyGraph()
+
+        report = scorer.score(graph)
+
+        assert report.overall_risk_score == 0.0
+
+    def test_score_graph_with_critical_vulnerability(self):
+        """Test scoring a graph with critical vulnerability."""
+        vuln = VulnerabilityInfo(cve_id="CVE-2021-44228", severity="critical", cvss_score=10.0)
+        graph = DependencyGraph()
+        graph.add_package(Package(name="log4j", version="2.14.0", vulnerabilities=[vuln]))
+
+        scorer = SupplyChainRiskScorer()
+        report = scorer.score(graph)
+
+        assert report.overall_risk_level in [RiskLevel.CRITICAL, RiskLevel.HIGH]
+        assert report.critical_vulnerabilities >= 1
+
+    def test_risk_report_to_dict(self):
+        """Test RiskReport to_dict method."""
+        pkg_risk = PackageRisk(
+            package_id="test@1.0.0",
+            package_name="test",
+            package_version="1.0.0",
+            risk_level=RiskLevel.MEDIUM,
+            risk_score=50.0,
+        )
+        report = RiskReport(
+            overall_risk_level=RiskLevel.MEDIUM,
+            overall_risk_score=50.0,
+            package_risks=[pkg_risk],
+            recommendations=["Update package"],
+            fda_compliance_notes=["FDA note"],
+        )
+
+        result = report.to_dict()
+
+        assert result["overall"]["risk_level"] == "medium"
+        assert result["overall"]["risk_score"] == 50.0
+        assert len(result["package_details"]) == 1
+        assert "Update package" in result["recommendations"]
+
+
+class TestRiskReportProperties:
+    """Test RiskReport properties and methods."""
+
+    def test_risk_report_has_summary_field(self):
+        """Test RiskReport summary field."""
+        report = RiskReport(
+            overall_risk_level=RiskLevel.HIGH,
+            overall_risk_score=75.0,
+            package_risks=[],
+            total_packages=10,
+            vulnerable_packages=3,
+            total_vulnerabilities=5,
+            critical_vulnerabilities=2,
+            summary="High risk detected in supply chain",
+        )
+
+        # summary is a field, not a property
+        assert "High risk" in report.summary
+
+    def test_package_risk_to_dict(self):
+        """Test PackageRisk to_dict method."""
+        pkg_risk = PackageRisk(
+            package_id="lodash@4.17.20",
+            package_name="lodash",
+            package_version="4.17.20",
+            risk_level=RiskLevel.HIGH,
+            risk_score=75.0,
+        )
+
+        result = pkg_risk.to_dict()
+
+        assert result["package_id"] == "lodash@4.17.20"
+        assert result["risk_level"] == "high"
+        assert result["risk_score"] == 75.0
+
+
 class TestIntegration:
     """Integration tests for SBOM analysis pipeline."""
 
