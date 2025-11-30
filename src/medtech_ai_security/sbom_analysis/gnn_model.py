@@ -59,6 +59,26 @@ class GNNConfig:
     normalize: bool = True
 
 
+class TransposeLayer(keras.layers.Layer if TF_AVAILABLE else object):
+    """Custom layer to transpose edge_index for Keras 3.x compatibility.
+
+    In Keras 3.x, tf.transpose cannot be called directly on KerasTensors
+    in the functional API. This layer wraps the transpose operation.
+    """
+
+    def __init__(self, **kwargs):
+        if not TF_AVAILABLE:
+            raise ImportError("TensorFlow is required for GNN models")
+        super().__init__(**kwargs)
+
+    def call(self, inputs):
+        """Transpose the input tensor."""
+        return tf.transpose(inputs)
+
+    def get_config(self):
+        return super().get_config()
+
+
 class GraphConvLayer(keras.layers.Layer if TF_AVAILABLE else object):
     """Graph Convolutional Layer (GCN).
 
@@ -112,7 +132,10 @@ class GraphConvLayer(keras.layers.Layer if TF_AVAILABLE else object):
         h = tf.matmul(node_features, self.kernel)
 
         # Message passing: aggregate neighbor features
-        if edge_index.shape[1] > 0:
+        # Use tf.shape for dynamic shape check (Keras 3.x compatible)
+        num_edges = tf.shape(edge_index)[1]
+
+        def message_pass():
             # Get source and target indices
             src = edge_index[0]
             tgt = edge_index[1]
@@ -140,15 +163,22 @@ class GraphConvLayer(keras.layers.Layer if TF_AVAILABLE else object):
                 aggregated = aggregated / tf.expand_dims(degree, 1)
 
             # Combine with self-loop (original features)
-            h = h + aggregated
-        else:
+            return h + aggregated
+
+        def no_edges():
             # No edges, just use transformed features
-            pass
+            return h
+
+        h = tf.cond(num_edges > 0, message_pass, no_edges)
 
         if self.bias is not None:
             h = h + self.bias
 
         return self.activation(h)
+
+    def compute_output_shape(self, input_shape):
+        """Compute output shape for Keras 3.x compatibility."""
+        return (input_shape[0][0], self.output_dim)
 
     def get_config(self):
         config = super().get_config()
@@ -230,7 +260,10 @@ class GraphAttentionLayer(keras.layers.Layer if TF_AVAILABLE else object):
         # Transform features for each head: (num_heads, num_nodes, head_dim)
         h = tf.einsum("ni,hid->hnd", node_features, self.W)
 
-        if edge_index.shape[1] > 0:
+        # Use tf.shape for dynamic shape check (Keras 3.x compatible)
+        num_edges_tensor = tf.shape(edge_index)[1]
+
+        def attention_pass():
             src = edge_index[0]
             tgt = edge_index[1]
 
@@ -252,8 +285,8 @@ class GraphAttentionLayer(keras.layers.Layer if TF_AVAILABLE else object):
             num_edges = tf.shape(src)[0]
             edge_weights = tf.nn.softmax(edge_attn, axis=1)
 
-            if training:
-                edge_weights = self.dropout(edge_weights, training=training)
+            # Note: dropout applied unconditionally in graph mode, controlled by training flag
+            edge_weights = self.dropout(edge_weights, training=training)
 
             # Aggregate messages with attention weights
             src_features = tf.gather(h, src, axis=1)  # (num_heads, num_edges, head_dim)
@@ -262,18 +295,21 @@ class GraphAttentionLayer(keras.layers.Layer if TF_AVAILABLE else object):
             # Scatter to target nodes
             output = tf.zeros((self.num_heads, num_nodes, self.head_dim), dtype=h.dtype)
             tgt_expanded = tf.tile(tf.expand_dims(tgt, 0), [self.num_heads, 1])
+            # Cast to same dtype for tf.stack compatibility
+            head_indices = tf.cast(tf.repeat(tf.range(self.num_heads), num_edges), tf.int64)
+            tgt_flat = tf.cast(tf.reshape(tgt_expanded, [-1]), tf.int64)
             indices = tf.stack(
-                [
-                    tf.repeat(tf.range(self.num_heads), num_edges),
-                    tf.reshape(tgt_expanded, [-1]),
-                ],
+                [head_indices, tgt_flat],
                 axis=1,
             )
             updates = tf.reshape(weighted_messages, [-1, self.head_dim])
             output = tf.tensor_scatter_nd_add(output, indices, updates)
+            return output
 
-        else:
-            output = h
+        def no_edges():
+            return h
+
+        output = tf.cond(num_edges_tensor > 0, attention_pass, no_edges)
 
         # Combine heads
         if self.concat_heads:
@@ -285,6 +321,13 @@ class GraphAttentionLayer(keras.layers.Layer if TF_AVAILABLE else object):
             output = tf.reduce_mean(output, axis=0)
 
         return self.activation(output)
+
+    def compute_output_shape(self, input_shape):
+        """Compute output shape for Keras 3.x compatibility."""
+        if self.concat_heads:
+            return (input_shape[0][0], self.output_dim)
+        else:
+            return (input_shape[0][0], self.head_dim)
 
     def get_config(self):
         config = super().get_config()
@@ -334,6 +377,9 @@ class VulnerabilityGNN:
         h = keras.layers.Dense(cfg.hidden_dim, activation="relu")(node_features)
         h = keras.layers.Dropout(cfg.dropout_rate)(h)
 
+        # Transpose edge_index using custom layer for Keras 3.x compatibility
+        edge_index_t = TransposeLayer(name="edge_transpose")(edge_index)
+
         # Graph convolution layers
         for i in range(cfg.num_layers):
             if cfg.use_attention and i < cfg.num_layers - 1:
@@ -352,7 +398,7 @@ class VulnerabilityGNN:
                     name=f"gcn_{i}",
                 )
 
-            h = layer([h, tf.transpose(edge_index), num_nodes[0]])
+            h = layer([h, edge_index_t, num_nodes[0]])
             h = keras.layers.Dropout(cfg.dropout_rate)(h)
 
         # Node classification head
@@ -424,13 +470,13 @@ class VulnerabilityGNN:
             for features, edges, labels, num_nodes in zip(
                 all_features, all_edges, all_labels, all_num_nodes
             ):
-                # Prepare inputs
+                # Prepare inputs - GNN processes nodes as batch, no extra dimension
                 x = {
-                    "node_features": np.expand_dims(features, 0),
-                    "edge_index": np.expand_dims(edges, 0),
-                    "num_nodes": np.array([[num_nodes]]),
+                    "node_features": features,  # shape: (num_nodes, input_dim)
+                    "edge_index": edges,  # shape: (num_edges, 2)
+                    "num_nodes": np.array([num_nodes]),  # shape: (1,) scalar
                 }
-                y = np.expand_dims(labels, 0)
+                y = labels  # shape: (num_nodes,)
 
                 # Train step
                 result = self.model.train_on_batch(x, y)
@@ -461,14 +507,17 @@ class VulnerabilityGNN:
         if self.model is None:
             raise RuntimeError("Model not initialized")
 
-        x = {
-            "node_features": np.expand_dims(graph.node_features, 0),
-            "edge_index": np.expand_dims(graph.edge_index.T, 0),
-            "num_nodes": np.array([[graph.num_nodes]]),
-        }
+        # GNN inputs have different batch sizes (nodes vs edges vs scalar)
+        # Use direct model call instead of model.predict() for Keras 3.x compatibility
+        # num_nodes must be 1D array [n] to match Input(shape=()) which expects (batch_size,)
+        x = [
+            tf.constant(graph.node_features, dtype=tf.float32),
+            tf.constant(graph.edge_index.T, dtype=tf.int64),
+            tf.constant([graph.num_nodes], dtype=tf.int32),  # 1D array [n]
+        ]
 
-        logits = self.model.predict(x, verbose=0)
-        predictions = np.argmax(logits[0], axis=-1)
+        logits = self.model(x, training=False)
+        predictions = np.argmax(logits.numpy(), axis=-1)
         return predictions
 
     def predict_proba(self, graph: GraphData) -> np.ndarray:
@@ -483,14 +532,17 @@ class VulnerabilityGNN:
         if self.model is None:
             raise RuntimeError("Model not initialized")
 
-        x = {
-            "node_features": np.expand_dims(graph.node_features, 0),
-            "edge_index": np.expand_dims(graph.edge_index.T, 0),
-            "num_nodes": np.array([[graph.num_nodes]]),
-        }
+        # GNN inputs have different batch sizes (nodes vs edges vs scalar)
+        # Use direct model call instead of model.predict() for Keras 3.x compatibility
+        # num_nodes must be 1D array [n] to match Input(shape=()) which expects (batch_size,)
+        x = [
+            tf.constant(graph.node_features, dtype=tf.float32),
+            tf.constant(graph.edge_index.T, dtype=tf.int64),
+            tf.constant([graph.num_nodes], dtype=tf.int32),  # 1D array [n]
+        ]
 
-        logits = self.model.predict(x, verbose=0)
-        probs = tf.nn.softmax(logits[0]).numpy()
+        logits = self.model(x, training=False)
+        probs = tf.nn.softmax(logits).numpy()
         return probs
 
     def evaluate(self, graphs: list[GraphData]) -> dict[str, float]:

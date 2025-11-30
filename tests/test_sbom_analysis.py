@@ -443,7 +443,6 @@ class TestSimpleVulnerabilityClassifier:
             classifier.predict(sample_graph_data)
 
 
-@pytest.mark.skip(reason="VulnerabilityGNN requires Keras 3.x compatibility updates - tf.transpose on KerasTensor not supported")
 class TestVulnerabilityGNN:
     """Test VulnerabilityGNN model (requires TensorFlow)."""
 
