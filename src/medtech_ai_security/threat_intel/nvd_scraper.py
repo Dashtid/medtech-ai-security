@@ -22,6 +22,7 @@ import time
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from typing import Any
 from urllib.parse import urlencode
 
 import requests
@@ -187,7 +188,7 @@ class NVDScraper:
             time.sleep(sleep_time)
         self.last_request_time = time.time()
 
-    def _make_request(self, params: dict) -> dict:
+    def _make_request(self, params: dict[str, Any]) -> dict[Any, Any]:
         """
         Make a rate-limited request to the NVD API.
 
@@ -205,7 +206,8 @@ class NVDScraper:
         try:
             response = self.session.get(url, timeout=30)
             response.raise_for_status()
-            return response.json()
+            result: dict[Any, Any] = response.json()
+            return result
         except requests.exceptions.RequestException as e:
             logger.error(f"API request failed: {e}")
             raise

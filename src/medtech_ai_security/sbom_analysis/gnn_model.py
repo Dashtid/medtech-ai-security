@@ -76,7 +76,8 @@ class TransposeLayer(keras.layers.Layer if TF_AVAILABLE else object):  # type: i
         return tf.transpose(inputs)
 
     def get_config(self) -> dict[str, Any]:
-        return super().get_config()
+        config: dict[str, Any] = super().get_config()
+        return config
 
 
 class GraphConvLayer(keras.layers.Layer if TF_AVAILABLE else object):  # type: ignore[misc]
@@ -190,7 +191,8 @@ class GraphConvLayer(keras.layers.Layer if TF_AVAILABLE else object):  # type: i
                 "normalize": self.normalize,
             }
         )
-        return config
+        result: dict[str, Any] = config
+        return result
 
 
 class GraphAttentionLayer(keras.layers.Layer if TF_AVAILABLE else object):  # type: ignore[misc]
@@ -340,7 +342,8 @@ class GraphAttentionLayer(keras.layers.Layer if TF_AVAILABLE else object):  # ty
                 "activation": self.activation_name,
             }
         )
-        return config
+        result: dict[str, Any] = config
+        return result
 
 
 class VulnerabilityGNN:
@@ -479,6 +482,7 @@ class VulnerabilityGNN:
                 y = labels  # shape: (num_nodes,)
 
                 # Train step
+                assert self.model is not None, "Model not initialized"
                 result = self.model.train_on_batch(x, y)
                 epoch_losses.append(result[0])
                 epoch_accs.append(result[1])
@@ -518,7 +522,7 @@ class VulnerabilityGNN:
 
         logits = self.model(x, training=False)
         predictions = np.argmax(logits.numpy(), axis=-1)
-        return predictions
+        return np.asarray(predictions)
 
     def predict_proba(self, graph: GraphData) -> np.ndarray:
         """Predict vulnerability probabilities for a graph.
@@ -543,7 +547,7 @@ class VulnerabilityGNN:
 
         logits = self.model(x, training=False)
         probs = tf.nn.softmax(logits).numpy()
-        return probs
+        return np.asarray(probs)
 
     def evaluate(self, graphs: list[GraphData]) -> dict[str, float]:
         """Evaluate model performance on test graphs.
@@ -675,7 +679,7 @@ class SimpleVulnerabilityClassifier:
             raise RuntimeError("Model not trained")
 
         logits = graph.node_features @ self.weights + self.bias
-        return np.argmax(logits, axis=1)
+        return np.asarray(np.argmax(logits, axis=1))
 
     def predict_proba(self, graph: GraphData) -> np.ndarray:
         """Predict class probabilities."""
@@ -688,12 +692,13 @@ class SimpleVulnerabilityClassifier:
     def _softmax(self, x: np.ndarray) -> np.ndarray:
         """Compute softmax."""
         exp_x = np.exp(x - np.max(x, axis=1, keepdims=True))
-        return exp_x / np.sum(exp_x, axis=1, keepdims=True)
+        result: np.ndarray = exp_x / np.sum(exp_x, axis=1, keepdims=True)
+        return result
 
     def _cross_entropy(self, probs: np.ndarray, labels: np.ndarray) -> float:
         """Compute cross-entropy loss."""
         n = len(labels)
-        return -np.mean(np.log(probs[np.arange(n), labels] + 1e-8))
+        return float(-np.mean(np.log(probs[np.arange(n), labels] + 1e-8)))
 
 
 if __name__ == "__main__":

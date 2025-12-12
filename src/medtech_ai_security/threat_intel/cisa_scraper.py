@@ -152,7 +152,9 @@ class CISAScraper:
         # CISA uses various list structures - try to find advisory links
         # Look for links containing ICSMA or ICSA in the URL
         for link in soup.find_all("a", href=True):
-            href = link.get("href", "")
+            href = link.get("href")
+            if not isinstance(href, str):
+                continue
 
             # Match advisory URLs
             if "/ics-medical-advisories/icsma-" in href or "/ics-advisories/icsa-" in href:

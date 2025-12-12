@@ -27,6 +27,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -161,8 +162,8 @@ class RobustnessEvaluator:
         images: np.ndarray,
         labels: np.ndarray,
         attack_type: AttackType,
-        **attack_params,
-    ) -> dict:
+        **attack_params: Any,
+    ) -> dict[str, Any]:
         """
         Evaluate model robustness against specific attack.
 
@@ -209,8 +210,8 @@ class RobustnessEvaluator:
         clean_labels: np.ndarray,
         adversarial_images: np.ndarray,
         defense_type: DefenseType,
-        **defense_params,
-    ) -> dict:
+        **defense_params: Any,
+    ) -> dict[str, Any]:
         """
         Evaluate effectiveness of a defense.
 
@@ -227,7 +228,7 @@ class RobustnessEvaluator:
         logger.info(f"Evaluating {defense_type.value} defense...")
 
         # Get defense function
-        defense_map = {
+        defense_map: dict[DefenseType, Callable[..., np.ndarray]] = {
             DefenseType.JPEG_COMPRESSION: self.defender.jpeg_compression,
             DefenseType.BIT_DEPTH_REDUCTION: self.defender.bit_depth_reduction,
             DefenseType.GAUSSIAN_BLUR: self.defender.gaussian_blur,
@@ -688,9 +689,9 @@ def main() -> None:
             print(f"Vulnerability: {report.vulnerability_assessment}")
             print(f"Clinical Risk: {report.clinical_risk_level}")
             print("\nAttack Results:")
-            for name, result in report.attack_results.items():
-                print(f"  {name}: {result['success_rate']:.2%} success, "
-                      f"{result['robust_accuracy']:.2%} robust accuracy")
+            for name, attack_data in report.attack_results.items():
+                print(f"  {name}: {attack_data['success_rate']:.2%} success, "
+                      f"{attack_data['robust_accuracy']:.2%} robust accuracy")
             print("\nRecommendations:")
             for rec in report.recommendations:
                 print(f"  - {rec}")

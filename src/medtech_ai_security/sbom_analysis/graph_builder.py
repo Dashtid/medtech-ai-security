@@ -477,7 +477,10 @@ def build_batch(graphs: list[GraphData]) -> GraphData:
     # Concatenate edge features if present
     edge_features = None
     if all(g.edge_features is not None for g in graphs):
-        valid_edge_features = [g.edge_features for g in graphs if g.num_edges > 0]
+        valid_edge_features = [
+            g.edge_features for g in graphs
+            if g.edge_features is not None and g.num_edges > 0
+        ]
         if valid_edge_features:
             edge_features = np.concatenate(valid_edge_features, axis=0)
 
@@ -520,8 +523,9 @@ if __name__ == "__main__":
     print(f"    Node IDs: {graph_data.node_ids}")
 
     print("\n[+] Node labels (vulnerability):")
-    for i, (node_id, label) in enumerate(zip(graph_data.node_ids, graph_data.node_labels)):
-        label_str = {0: "clean", 1: "vulnerable", 2: "transitive"}.get(label, "?")
-        print(f"    {node_id}: {label_str}")
+    if graph_data.node_labels is not None:
+        for i, (node_id, label) in enumerate(zip(graph_data.node_ids, graph_data.node_labels)):
+            label_str = {0: "clean", 1: "vulnerable", 2: "transitive"}.get(label, "?")
+            print(f"    {node_id}: {label_str}")
 
     print(f"\n[+] Edge index shape: {graph_data.edge_index.shape}")

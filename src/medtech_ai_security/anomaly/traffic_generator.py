@@ -223,7 +223,7 @@ class HL7Message:
         if not s:
             return 0.0
         prob = [s.count(c) / len(s) for c in set(s)]
-        return -sum(p * np.log2(p) for p in prob if p > 0)
+        return float(-sum(p * np.log2(p) for p in prob if p > 0))
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
@@ -342,7 +342,7 @@ class TrafficGenerator:
 
             # Choose operation based on time of day
             if hour < 12:  # Morning - more imaging
-                command = self.rng.choice([
+                command = self.rng.choice([  # type: ignore[arg-type]
                     DICOMCommand.C_STORE,
                     DICOMCommand.C_STORE,
                     DICOMCommand.C_STORE,
@@ -350,7 +350,7 @@ class TrafficGenerator:
                     DICOMCommand.C_ECHO,
                 ])
             else:  # Afternoon - more viewing
-                command = self.rng.choice([
+                command = self.rng.choice([  # type: ignore[arg-type]
                     DICOMCommand.C_FIND,
                     DICOMCommand.C_GET,
                     DICOMCommand.C_FIND,
@@ -430,21 +430,21 @@ class TrafficGenerator:
 
             # Choose message type based on time
             if 6 <= hour <= 10:  # Morning - admissions
-                msg_type = self.rng.choice([
+                msg_type = self.rng.choice([  # type: ignore[arg-type]
                     HL7MessageType.ADT_A01,
                     HL7MessageType.ADT_A04,
                     HL7MessageType.ADT_A01,
                     HL7MessageType.ORM_O01,
                 ])
             elif 10 <= hour <= 16:  # Day - orders and results
-                msg_type = self.rng.choice([
+                msg_type = self.rng.choice([  # type: ignore[arg-type]
                     HL7MessageType.ORM_O01,
                     HL7MessageType.ORU_R01,
                     HL7MessageType.ADT_A08,
                     HL7MessageType.ACK,
                 ])
             else:  # Evening - discharges
-                msg_type = self.rng.choice([
+                msg_type = self.rng.choice([  # type: ignore[arg-type]
                     HL7MessageType.ADT_A03,
                     HL7MessageType.ORU_R01,
                     HL7MessageType.ACK,
@@ -502,7 +502,7 @@ class TrafficGenerator:
         current_time = start_time
 
         for _ in range(n_samples):
-            attack_type = self.rng.choice(attack_types)
+            attack_type = self.rng.choice(attack_types)  # type: ignore[arg-type]
             current_time += self.rng.exponential(1)  # Fast attacks
 
             if attack_type == AttackType.DICOM_UNAUTHORIZED_QUERY:
@@ -534,7 +534,7 @@ class TrafficGenerator:
                     dest_port=104,
                     calling_ae="EXFIL_" + ''.join(random.choices(string.ascii_uppercase, k=4)),
                     called_ae="PACS_SERVER",
-                    command=self.rng.choice([DICOMCommand.C_GET, DICOMCommand.C_MOVE]),
+                    command=self.rng.choice([DICOMCommand.C_GET, DICOMCommand.C_MOVE]),  # type: ignore[arg-type]
                     message_id=int(self.rng.randint(1, 65535)),
                     affected_sop_class=self.SOP_CLASSES[0],
                     dataset_size=int(self.rng.lognormal(20, 1)),  # Very large
@@ -630,7 +630,7 @@ class TrafficGenerator:
         current_time = start_time
 
         for _ in range(n_samples):
-            attack_type = self.rng.choice(attack_types)
+            attack_type = self.rng.choice(attack_types)  # type: ignore[arg-type]
             current_time += self.rng.exponential(0.5)  # Very fast
 
             if attack_type == AttackType.HL7_MESSAGE_INJECTION:
@@ -760,7 +760,7 @@ class TrafficGenerator:
         Returns:
             Tuple of (features, labels, raw_packets)
         """
-        all_packets = []
+        all_packets: list[DICOMPacket | HL7Message] = []
 
         if protocol in ["dicom", "both"]:
             normal_dicom = self.generate_normal_dicom(n_normal // 2 if protocol == "both" else n_normal)

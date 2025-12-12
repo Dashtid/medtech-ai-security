@@ -162,7 +162,7 @@ class DifferentialPrivacy(PrivacyEngine):
             return float("inf")
 
         # Gaussian mechanism calibration
-        sigma = np.sqrt(2 * np.log(1.25 / delta)) / epsilon
+        sigma = float(np.sqrt(2 * np.log(1.25 / delta)) / epsilon)
         return max(0.1, sigma)  # Minimum noise for stability
 
     def clip_gradients(
@@ -499,6 +499,7 @@ def main() -> None:
     orig_norms = [f"{np.linalg.norm(g):.4f}" for g in test_gradients]
     print(f"Original gradient norms: {orig_norms}")
 
+    engine: PrivacyEngine
     if args.mechanism == "dp":
         engine = DifferentialPrivacy(epsilon=args.epsilon)
     elif args.mechanism == "secure_agg":

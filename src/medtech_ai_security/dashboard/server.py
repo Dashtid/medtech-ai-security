@@ -20,6 +20,7 @@ import json
 import logging
 import os
 import random
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -166,7 +167,7 @@ async def metrics_broadcaster() -> None:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Application lifecycle manager."""
     logger.info("Starting MedTech AI Security Dashboard...")
 

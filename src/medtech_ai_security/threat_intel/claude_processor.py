@@ -22,12 +22,13 @@ import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def load_claude_response(response_file: Path) -> dict:
+def load_claude_response(response_file: Path) -> dict[str, Any]:
     """
     Load and parse Claude.ai response JSON.
 
@@ -62,14 +63,15 @@ def load_claude_response(response_file: Path) -> dict:
 
         content = "\n".join(lines[start_idx:end_idx])
 
-    return json.loads(content)
+    result: dict[str, Any] = json.loads(content)
+    return result
 
 
 def merge_analysis(
     cve_file: Path,
     response_file: Path,
     output_file: Path | None = None,
-) -> dict:
+) -> dict[str, Any]:
     """
     Merge Claude.ai analysis into CVE data.
 
@@ -83,7 +85,7 @@ def merge_analysis(
     """
     # Load original CVE data
     with open(cve_file, encoding="utf-8") as f:
-        cve_data = json.load(f)
+        cve_data: dict[str, Any] = json.load(f)
 
     # Load Claude response
     response = load_claude_response(response_file)
@@ -140,10 +142,10 @@ def generate_summary_report(cve_data: dict, output_file: Path | None = None) -> 
     metadata = cve_data.get("metadata", {})
 
     # Count statistics
-    device_types = {}
-    clinical_impacts = {}
-    exploitability = {}
-    severities = {}
+    device_types: dict[str, int] = {}
+    clinical_impacts: dict[str, int] = {}
+    exploitability: dict[str, int] = {}
+    severities: dict[str, int] = {}
 
     for cve in cves:
         dt = cve.get("device_type") or "unclassified"

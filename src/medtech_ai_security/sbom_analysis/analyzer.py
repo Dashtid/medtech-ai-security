@@ -17,9 +17,12 @@ import logging
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
+
+if TYPE_CHECKING:
+    from medtech_ai_security.sbom_analysis.gnn_model import VulnerabilityGNN
 
 from medtech_ai_security.sbom_analysis.graph_builder import (
     GraphData,
@@ -107,7 +110,7 @@ class SBOMAnalyzer:
         self.parser = SBOMParser(vuln_db=vuln_db)
         self.graph_builder = SBOMGraphBuilder()
         self.risk_scorer = SupplyChainRiskScorer(medical_context=medical_context)
-        self.gnn_model = None
+        self.gnn_model: VulnerabilityGNN | None = None
 
         # Try to load GNN model if available
         if use_gnn:
@@ -215,11 +218,13 @@ class SBOMAnalyzer:
     ) -> dict[str, Any]:
         """Run GNN model for predictions."""
         try:
+            assert self.gnn_model is not None, "GNN model not initialized"
             probs = self.gnn_model.predict_proba(graph_data)
             predictions = np.argmax(probs, axis=-1)
 
-            result = {
-                "predictions": {},
+            predictions_dict: dict[str, dict[str, Any]] = {}
+            result: dict[str, Any] = {
+                "predictions": predictions_dict,
                 "summary": {
                     "predicted_vulnerable": int(np.sum(predictions == 1)),
                     "predicted_transitive": int(np.sum(predictions == 2)),
@@ -228,7 +233,7 @@ class SBOMAnalyzer:
             }
 
             for i, node_id in enumerate(graph_data.node_ids):
-                result["predictions"][node_id] = {
+                predictions_dict[node_id] = {
                     "label": int(predictions[i]),
                     "label_name": ["clean", "vulnerable", "transitive"][predictions[i]],
                     "probabilities": {
@@ -300,12 +305,12 @@ class SBOMAnalyzer:
             })
 
         # Cluster by ecosystem
-        ecosystems = {}
+        ecosystems: dict[str, list[str]] = {}
         for node in nodes:
-            eco = node.get("ecosystem", "unknown")
+            eco = str(node.get("ecosystem", "unknown"))
             if eco not in ecosystems:
                 ecosystems[eco] = []
-            ecosystems[eco].append(node["id"])
+            ecosystems[eco].append(str(node["id"]))
 
         return {
             "nodes": nodes,
@@ -690,15 +695,15 @@ Examples:
         print(f"    Vulnerabilities: {graph.vulnerability_count}")
 
         print("\n[+] Packages:")
-        for pkg in graph.packages.values():
-            vuln_str = f" [{len(pkg.vulnerabilities)} vulns]" if pkg.vulnerabilities else ""
-            print(f"    - {pkg.name}@{pkg.version}{vuln_str}")
+        for package in graph.packages.values():
+            vuln_str = f" [{len(package.vulnerabilities)} vulns]" if package.vulnerabilities else ""
+            print(f"    - {package.name}@{package.version}{vuln_str}")
 
         if graph.get_vulnerable_packages():
             print("\n[+] Vulnerabilities:")
-            for pkg in graph.get_vulnerable_packages():
-                for vuln in pkg.vulnerabilities:
-                    print(f"    {pkg.name}: {vuln.cve_id} (CVSS: {vuln.cvss_score})")
+            for package in graph.get_vulnerable_packages():
+                for vuln in package.vulnerabilities:
+                    print(f"    {package.name}: {vuln.cve_id} (CVSS: {vuln.cvss_score})")
 
     else:
         parser.print_help()

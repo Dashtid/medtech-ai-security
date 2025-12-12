@@ -13,11 +13,12 @@ OpenAPI documentation available at /docs (Swagger UI) and /redoc (ReDoc).
 
 import logging
 import os
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
@@ -146,7 +147,7 @@ class AdversarialResponse(BaseModel):
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Application lifecycle manager."""
     # Startup
     logger.info("Starting MedTech AI Security API...")
@@ -482,7 +483,7 @@ async def test_adversarial(request: AdversarialRequest) -> AdversarialResponse:
 
 
 @app.exception_handler(404)
-async def not_found_handler(request, exc):
+async def not_found_handler(request: Request, exc: Exception) -> JSONResponse:
     """Handle 404 errors."""
     return JSONResponse(
         status_code=404,
@@ -491,7 +492,7 @@ async def not_found_handler(request, exc):
 
 
 @app.exception_handler(500)
-async def internal_error_handler(request, exc):
+async def internal_error_handler(request: Request, exc: Exception) -> JSONResponse:
     """Handle 500 errors."""
     logger.error(f"Internal server error: {exc}")
     return JSONResponse(

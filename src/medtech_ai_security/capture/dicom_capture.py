@@ -239,7 +239,7 @@ class DICOMCapture:
 
             filter_expr = " or ".join([f"tcp port {p}" for p in self.ports])
 
-            def packet_handler(packet):
+            def packet_handler(packet: Any) -> None:
                 if not self._running:
                     return
 
@@ -322,7 +322,7 @@ class DICOMCapture:
             self._add_record(record)
             time.sleep(1.0)
 
-    def _process_packet(self, packet) -> None:
+    def _process_packet(self, packet: Any) -> None:
         """Process a captured packet and extract DICOM information."""
         from scapy.all import IP, TCP
 

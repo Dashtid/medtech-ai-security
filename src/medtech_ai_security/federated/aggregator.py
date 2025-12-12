@@ -178,7 +178,7 @@ class FedAvgAggregator(ModelAggregator):
                 aggregated[i] += weight_factor * layer_weights
 
         # Compute round metrics
-        client_metrics = [u.metrics for u in updates if u.metrics]
+        client_metrics: list[dict[str, float] | None] = [u.metrics for u in updates]
         round_metrics = self._aggregate_metrics(client_metrics)
 
         self.round_number += 1
@@ -208,7 +208,7 @@ class FedAvgAggregator(ModelAggregator):
             return {}
 
         # Get all metric keys
-        all_keys = set()
+        all_keys: set[str] = set()
         for m in valid_metrics:
             all_keys.update(m.keys())
 
@@ -435,7 +435,7 @@ class RobustAggregator(ModelAggregator):
             global_weights=aggregated,
             num_clients=len(updates),
             total_samples=total_samples,
-            round_metrics={"aggregation_method": "median"},
+            round_metrics={},  # Median aggregation used
         )
 
 
@@ -460,7 +460,7 @@ def create_aggregator(
     Returns:
         Configured aggregator instance
     """
-    strategies = {
+    strategies: dict[str, type[ModelAggregator]] = {
         "fedavg": FedAvgAggregator,
         "fedprox": FedProxAggregator,
         "fednova": FedNovaAggregator,
@@ -474,7 +474,7 @@ def create_aggregator(
 
     # Filter kwargs to only those accepted by the class
     if strategy == "fedprox":
-        return aggregator_class(min_clients=min_clients, mu=kwargs.get("mu", 0.01))
+        return FedProxAggregator(min_clients=min_clients, mu=kwargs.get("mu", 0.01))
     else:
         return aggregator_class(min_clients=min_clients)
 

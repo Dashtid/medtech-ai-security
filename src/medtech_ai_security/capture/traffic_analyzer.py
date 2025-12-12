@@ -267,7 +267,7 @@ class TrafficAnalyzer:
         # Check for large data transfers
         self._track_data_transfer(record.src_ip, record.data_length)
         total_data = self._data_tracker.get(record.src_ip, 0)
-        threshold = self.ATTACK_SIGNATURES["large_transfer"]["threshold_bytes"]
+        threshold = int(self.ATTACK_SIGNATURES["large_transfer"]["threshold_bytes"])  # type: ignore[index]
 
         if total_data > threshold:
             anomalies_found.append(
@@ -416,8 +416,8 @@ class TrafficAnalyzer:
 
     def _is_rapid_connection(self, ip: str) -> bool:
         """Check if connection rate exceeds threshold."""
-        window = self.ATTACK_SIGNATURES["rapid_connections"]["window_seconds"]
-        threshold = self.ATTACK_SIGNATURES["rapid_connections"]["threshold_count"]
+        window = int(self.ATTACK_SIGNATURES["rapid_connections"]["window_seconds"])  # type: ignore[index]
+        threshold = int(self.ATTACK_SIGNATURES["rapid_connections"]["threshold_count"])  # type: ignore[index]
 
         now = datetime.now(timezone.utc)
         cutoff = now.timestamp() - window
@@ -425,13 +425,14 @@ class TrafficAnalyzer:
         connections = self._connection_tracker.get(ip, [])
         recent = [c for c in connections if c.timestamp() > cutoff]
 
-        return len(recent) > threshold
+        return bool(len(recent) > threshold)
 
     def _is_after_hours(self, timestamp: datetime) -> bool:
         """Check if timestamp is outside business hours."""
-        start_hour, end_hour = self.ATTACK_SIGNATURES["after_hours"]["business_hours"]
+        business_hours = self.ATTACK_SIGNATURES["after_hours"]["business_hours"]  # type: ignore[index]
+        start_hour, end_hour = business_hours
         hour = timestamp.hour
-        return hour < start_hour or hour >= end_hour
+        return bool(hour < start_hour or hour >= end_hour)
 
     def _ml_detect_dicom(self, record: DICOMRecord) -> TrafficAnomaly | None:
         """Use ML model for anomaly detection."""

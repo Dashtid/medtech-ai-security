@@ -149,7 +149,7 @@ class Autoencoder:
     def _sigmoid_derivative(self, x: np.ndarray) -> np.ndarray:
         """Derivative of sigmoid."""
         s = self._sigmoid(x)
-        return s * (1 - s)
+        return np.asarray(s * (1 - s))
 
     def encode(self, x: np.ndarray) -> np.ndarray:
         """Encode input to latent space."""
@@ -350,12 +350,12 @@ class Autoencoder:
                 loss = self.train_step(batch)
                 train_losses.append(loss)
 
-            train_loss = np.mean(train_losses)
+            train_loss = float(np.mean(train_losses))
             history["train_loss"].append(train_loss)
 
             # Validation loss
             val_output, _, _ = self.forward(x_val)
-            val_loss = np.mean((val_output - x_val) ** 2)
+            val_loss = float(np.mean((val_output - x_val) ** 2))
             history["val_loss"].append(val_loss)
 
             # Early stopping
@@ -420,9 +420,9 @@ class Autoencoder:
         np.savez(
             path / "weights.npz",
             **{f"encoder_w_{i}": w for i, w in enumerate(self.encoder_weights)},
-            **{f"encoder_b_{i}": b for i, b in enumerate(self.encoder_biases)},
+            **{f"encoder_b_{i}": b for i, b in enumerate(self.encoder_biases)},  # type: ignore[arg-type]
             **{f"decoder_w_{i}": w for i, w in enumerate(self.decoder_weights)},
-            **{f"decoder_b_{i}": b for i, b in enumerate(self.decoder_biases)},
+            **{f"decoder_b_{i}": b for i, b in enumerate(self.decoder_biases)},  # type: ignore[arg-type]
         )
 
         logger.info(f"Saved autoencoder model to {path}")
@@ -801,7 +801,7 @@ class AnomalyDetector:
             json.dump(state, f, indent=2)
 
         # Save normalization statistics
-        if self.mean is not None:
+        if self.mean is not None and self.std is not None:
             np.savez(
                 path / "normalization.npz",
                 mean=self.mean,

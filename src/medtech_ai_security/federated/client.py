@@ -373,6 +373,7 @@ class FederatedClient:
             logger.warning(f"Data file not found: {data_path}")
             self._generate_synthetic_data()
 
+        assert self._local_data is not None, "Local data not loaded"
         logger.info(f"Loaded {len(self._local_data)} samples")
 
     def _generate_synthetic_data(self) -> None:
@@ -450,6 +451,8 @@ class FederatedClient:
         Simplified autoencoder computation for demonstration.
         In production, use TensorFlow/PyTorch.
         """
+        assert self._global_weights is not None, "Global weights not initialized"
+
         # Simple forward pass through autoencoder layers
         # This is a simplified version - real implementation would use proper backprop
 

@@ -36,6 +36,7 @@ import logging
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any
 
 import numpy as np
 
@@ -180,7 +181,7 @@ class AdversarialAttacker:
             loss = self.tf.reduce_mean(loss)
 
         gradient = tape.gradient(loss, images_tensor)
-        return gradient.numpy()
+        return np.asarray(gradient.numpy())
 
     def _numerical_gradient(
         self, images: np.ndarray, labels: np.ndarray, eps: float = 1e-3
@@ -196,7 +197,7 @@ class AdversarialAttacker:
         gradient = np.zeros_like(images)
 
         # Number of random directions to sample per image
-        n_directions = min(100, np.prod(images.shape[1:]))
+        n_directions: int = min(100, int(np.prod(images.shape[1:])))
 
         for i in range(batch_size):
             # Get base prediction and loss
@@ -270,6 +271,7 @@ class AdversarialAttacker:
             raise ValueError("target_labels required for targeted attack")
 
         attack_labels = target_labels if targeted else labels
+        assert attack_labels is not None, "Labels required for attack"
 
         # Compute gradient
         gradient = self._compute_gradient(images, attack_labels)
@@ -341,6 +343,7 @@ class AdversarialAttacker:
             raise ValueError("target_labels required for targeted attack")
 
         attack_labels = target_labels if targeted else labels
+        assert attack_labels is not None, "Labels required for attack"
 
         # Initialize adversarial images
         if random_start:
@@ -437,6 +440,7 @@ class AdversarialAttacker:
             raise ValueError("target_labels required for targeted attack")
 
         attack_labels = target_labels if targeted else labels
+        assert attack_labels is not None, "Labels required for attack"
         batch_size = images.shape[0]
 
         # Initialize best adversarial examples
@@ -660,7 +664,7 @@ class AdversarialAttacker:
         images: np.ndarray,
         labels: np.ndarray,
         attack_type: str | AttackType = AttackType.PGD,
-        **kwargs,
+        **kwargs: Any,
     ) -> AttackResult:
         """
         Run specified attack on images.

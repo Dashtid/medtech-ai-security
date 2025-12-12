@@ -179,7 +179,8 @@ class NaiveBayesClassifier:
         eps = 1e-9
         coeff = 1.0 / np.sqrt(2.0 * np.pi * var + eps)
         exponent = np.exp(-((x - mean) ** 2) / (2 * var + eps))
-        return coeff * exponent
+        result: np.ndarray = coeff * exponent
+        return result
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
         """
@@ -213,17 +214,17 @@ class NaiveBayesClassifier:
         probs = np.exp(probs - np.max(probs, axis=1, keepdims=True))
         probs /= probs.sum(axis=1, keepdims=True)
 
-        return probs
+        return np.asarray(probs)
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         """Predict class labels."""
         probs = self.predict_proba(X)
-        return self.classes[np.argmax(probs, axis=1)]
+        return np.asarray(self.classes[np.argmax(probs, axis=1)])
 
     def score(self, X: np.ndarray, y: np.ndarray) -> float:
         """Calculate accuracy score."""
         predictions = self.predict(X)
-        return np.mean(predictions == y)
+        return float(np.mean(predictions == y))
 
 
 class KNNClassifier:
@@ -265,6 +266,9 @@ class KNNClassifier:
         Returns:
             Probability matrix (n_samples, n_classes)
         """
+        assert self.X_train is not None and self.y_train is not None and self.classes is not None, \
+            "Model must be fitted before prediction"
+
         # Calculate distances to all training points
         distances = cdist(X, self.X_train, metric="euclidean")
 
@@ -287,17 +291,18 @@ class KNNClassifier:
                 mask = k_labels == c
                 probs[i, idx] = weights[mask].sum()
 
-        return probs
+        return np.asarray(probs)
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         """Predict class labels."""
+        assert self.classes is not None, "Model must be fitted before prediction"
         probs = self.predict_proba(X)
-        return self.classes[np.argmax(probs, axis=1)]
+        return np.asarray(self.classes[np.argmax(probs, axis=1)])
 
     def score(self, X: np.ndarray, y: np.ndarray) -> float:
         """Calculate accuracy score."""
         predictions = self.predict(X)
-        return np.mean(predictions == y)
+        return float(np.mean(predictions == y))
 
 
 class VulnerabilityRiskScorer:

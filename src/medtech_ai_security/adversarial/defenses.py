@@ -25,6 +25,7 @@ import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 import numpy as np
 from scipy import ndimage
@@ -175,10 +176,10 @@ class AdversarialDefender:
             # Convert to 0-255 range
             images_255 = images * 255
             reduced = np.round(images_255 / (256 / (2**bits))) * (256 / (2**bits))
-            return np.clip(reduced / 255.0, 0, 1).astype(np.float32)
+            return np.asarray(np.clip(reduced / 255.0, 0, 1).astype(np.float32))
         else:
             reduced = np.round(images / (256 / (2**bits))) * (256 / (2**bits))
-            return np.clip(reduced, 0, 255).astype(images.dtype)
+            return np.asarray(np.clip(reduced, 0, 255).astype(images.dtype))
 
     def gaussian_blur(
         self,
@@ -294,7 +295,7 @@ class AdversarialDefender:
 
         # Average all defended versions
         ensemble = np.mean(defended_images, axis=0)
-        return ensemble.astype(np.float32)
+        return np.asarray(ensemble.astype(np.float32))
 
     def detect_adversarial(
         self,
@@ -364,8 +365,9 @@ class AdversarialDefender:
         if self.model is None:
             raise ValueError("Model required for defense evaluation")
 
-        def compute_accuracy(images: np.ndarray, labels: np.ndarray) -> float:
-            preds = self.model(images)
+        def compute_accuracy(imgs: np.ndarray, lbls: np.ndarray) -> float:
+            assert self.model is not None, "Model required"
+            preds = self.model(imgs)
             if hasattr(preds, "numpy"):
                 preds = preds.numpy()
 
@@ -374,7 +376,7 @@ class AdversarialDefender:
             else:
                 pred_classes = np.argmax(preds, axis=1)
 
-            return float(np.mean(pred_classes == labels))
+            return float(np.mean(pred_classes == lbls))
 
         # Accuracy before defense
         clean_acc_before = compute_accuracy(clean_images, clean_labels)
@@ -418,10 +420,10 @@ class AdversarialTrainer:
 
     def __init__(
         self,
-        model,
-        attack_fn: Callable,
-        attack_params: dict | None = None,
-    ):
+        model: Any,
+        attack_fn: Callable[..., np.ndarray],
+        attack_params: dict[str, Any] | None = None,
+    ) -> None:
         """
         Initialize adversarial trainer.
 
@@ -468,7 +470,7 @@ class AdversarialTrainer:
 
             # Replace selected images with adversarial versions
             mixed_images = images.copy()
-            mixed_images[adv_indices] = result.adversarial_images
+            mixed_images[adv_indices] = result.adversarial_images  # type: ignore[attr-defined]
 
             return mixed_images, labels
 
@@ -550,7 +552,7 @@ class AdversarialTrainer:
         Returns:
             Training history dictionary
         """
-        history = {"loss": [], "val_loss": [], "val_accuracy": []}
+        history: dict[str, list[float]] = {"loss": [], "val_loss": [], "val_accuracy": []}
 
         num_batches = len(x_train) // batch_size
 
@@ -574,7 +576,7 @@ class AdversarialTrainer:
                 )
                 epoch_losses.append(loss)
 
-            mean_loss = np.mean(epoch_losses)
+            mean_loss = float(np.mean(epoch_losses))
             history["loss"].append(mean_loss)
 
             # Validation

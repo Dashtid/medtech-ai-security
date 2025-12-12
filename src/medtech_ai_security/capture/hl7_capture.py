@@ -316,7 +316,7 @@ class HL7Capture:
             self._add_record(record)
             time.sleep(2.0)
 
-    def _process_packet(self, packet) -> None:
+    def _process_packet(self, packet: Any) -> None:
         """Process a captured packet and extract HL7 messages."""
         from scapy.all import IP, TCP
 

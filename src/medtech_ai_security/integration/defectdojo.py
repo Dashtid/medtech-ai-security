@@ -229,7 +229,8 @@ class DefectDojoClient:
             if response.status_code == 204:  # No content
                 return {"success": True}
 
-            return response.json()
+            result: dict[Any, Any] = response.json()
+            return result
 
         except requests.exceptions.RequestException as e:
             logger.error(f"DefectDojo API error: {e}")
@@ -239,7 +240,7 @@ class DefectDojoClient:
 
     # Product Management
 
-    def get_products(self, name: str | None = None) -> list[dict]:
+    def get_products(self, name: str | None = None) -> list[dict[Any, Any]]:
         """
         Get list of products.
 
@@ -254,7 +255,8 @@ class DefectDojoClient:
             params["name"] = name
 
         result = self._request("GET", "/products/", params=params)
-        return result.get("results", []) if result else []
+        results: list[dict[Any, Any]] = result.get("results", []) if result else []
+        return results
 
     def get_product(self, product_id: int) -> dict | None:
         """Get product by ID."""
@@ -312,13 +314,13 @@ class DefectDojoClient:
         for product in products:
             if product.get("name") == name:
                 logger.info(f"Found existing product: {name} (ID: {product['id']})")
-                return product["id"]
+                return int(product["id"])
 
         # Create new product
         result = self.create_product(name, description, prod_type)
         if result:
             logger.info(f"Created new product: {name} (ID: {result['id']})")
-            return result["id"]
+            return int(result["id"])
 
         return None
 
@@ -366,7 +368,7 @@ class DefectDojoClient:
         self,
         product_id: int | None = None,
         name: str | None = None,
-    ) -> list[dict]:
+    ) -> list[dict[Any, Any]]:
         """Get list of engagements."""
         params: dict[str, int | str] = {}
         if product_id:
@@ -375,7 +377,8 @@ class DefectDojoClient:
             params["name"] = name
 
         result = self._request("GET", "/engagements/", params=params)
-        return result.get("results", []) if result else []
+        results: list[dict[Any, Any]] = result.get("results", []) if result else []
+        return results
 
     def close_engagement(self, engagement_id: int) -> dict | None:
         """Close an engagement."""
@@ -427,12 +430,12 @@ class DefectDojoClient:
         # Search for existing
         result = self._request("GET", "/test_types/", params={"name": name})
         if result and result.get("results"):
-            return result["results"][0]["id"]
+            return int(result["results"][0]["id"])
 
         # Create new
         result = self._request("POST", "/test_types/", data={"name": name})
         if result:
-            return result["id"]
+            return int(result["id"])
 
         # Use default
         return 1
@@ -492,7 +495,7 @@ class DefectDojoClient:
         test_id: int | None = None,
         severity: str | None = None,
         active: bool | None = None,
-    ) -> list[dict]:
+    ) -> list[dict[Any, Any]]:
         """Get list of findings."""
         params: dict[str, int | str | bool] = {}
         if test_id:
@@ -503,7 +506,8 @@ class DefectDojoClient:
             params["active"] = active
 
         result = self._request("GET", "/findings/", params=params)
-        return result.get("results", []) if result else []
+        results: list[dict[Any, Any]] = result.get("results", []) if result else []
+        return results
 
     # Import Methods for MedTech AI Security
 
@@ -738,10 +742,11 @@ class DefectDojoClient:
         result = self._request("GET", "/products/", params={"limit": 1})
         return result is not None
 
-    def get_product_types(self) -> list[dict]:
+    def get_product_types(self) -> list[dict[Any, Any]]:
         """Get list of product types."""
         result = self._request("GET", "/product_types/")
-        return result.get("results", []) if result else []
+        results: list[dict[Any, Any]] = result.get("results", []) if result else []
+        return results
 
     def export_findings_json(self, test_id: int, output_path: str | Path) -> bool:
         """Export findings to JSON file."""
