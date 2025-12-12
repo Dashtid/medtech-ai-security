@@ -254,7 +254,7 @@ def generate_summary_report(cve_data: dict, output_file: Path | None = None) -> 
     return report
 
 
-def main():
+def main() -> None:
     """CLI entry point."""
     import argparse
 

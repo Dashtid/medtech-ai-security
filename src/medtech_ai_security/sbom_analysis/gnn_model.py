@@ -14,6 +14,7 @@ Based on 2025 research on GNN-based vulnerability detection:
 
 import logging
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 
@@ -58,27 +59,27 @@ class GNNConfig:
     normalize: bool = True
 
 
-class TransposeLayer(keras.layers.Layer if TF_AVAILABLE else object):
+class TransposeLayer(keras.layers.Layer if TF_AVAILABLE else object):  # type: ignore[misc]
     """Custom layer to transpose edge_index for Keras 3.x compatibility.
 
     In Keras 3.x, tf.transpose cannot be called directly on KerasTensors
     in the functional API. This layer wraps the transpose operation.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         if not TF_AVAILABLE:
             raise ImportError("TensorFlow is required for GNN models")
         super().__init__(**kwargs)
 
-    def call(self, inputs):
+    def call(self, inputs: Any) -> Any:
         """Transpose the input tensor."""
         return tf.transpose(inputs)
 
-    def get_config(self):
+    def get_config(self) -> dict[str, Any]:
         return super().get_config()
 
 
-class GraphConvLayer(keras.layers.Layer if TF_AVAILABLE else object):
+class GraphConvLayer(keras.layers.Layer if TF_AVAILABLE else object):  # type: ignore[misc]
     """Graph Convolutional Layer (GCN).
 
     Implements: H' = D^(-1/2) * A * D^(-1/2) * H * W
@@ -91,8 +92,8 @@ class GraphConvLayer(keras.layers.Layer if TF_AVAILABLE else object):
         activation: str = "relu",
         use_bias: bool = True,
         normalize: bool = True,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         if not TF_AVAILABLE:
             raise ImportError("TensorFlow is required for GNN models")
         super().__init__(**kwargs)
@@ -101,7 +102,7 @@ class GraphConvLayer(keras.layers.Layer if TF_AVAILABLE else object):
         self.use_bias = use_bias
         self.normalize = normalize
 
-    def build(self, input_shape):
+    def build(self, input_shape: Any) -> None:
         input_dim = input_shape[0][-1]
 
         self.kernel = self.add_weight(
@@ -124,7 +125,7 @@ class GraphConvLayer(keras.layers.Layer if TF_AVAILABLE else object):
         self.activation = keras.activations.get(self.activation_name)
         super().build(input_shape)
 
-    def call(self, inputs, training=None):
+    def call(self, inputs: Any, training: bool | None = None) -> Any:
         node_features, edge_index, num_nodes = inputs
 
         # Transform features
@@ -134,7 +135,7 @@ class GraphConvLayer(keras.layers.Layer if TF_AVAILABLE else object):
         # Use tf.shape for dynamic shape check (Keras 3.x compatible)
         num_edges = tf.shape(edge_index)[1]
 
-        def message_pass():
+        def message_pass() -> Any:
             # Get source and target indices
             src = edge_index[0]
             tgt = edge_index[1]
@@ -164,7 +165,7 @@ class GraphConvLayer(keras.layers.Layer if TF_AVAILABLE else object):
             # Combine with self-loop (original features)
             return h + aggregated
 
-        def no_edges():
+        def no_edges() -> Any:
             # No edges, just use transformed features
             return h
 
@@ -175,11 +176,11 @@ class GraphConvLayer(keras.layers.Layer if TF_AVAILABLE else object):
 
         return self.activation(h)
 
-    def compute_output_shape(self, input_shape):
+    def compute_output_shape(self, input_shape: Any) -> tuple[Any, int]:
         """Compute output shape for Keras 3.x compatibility."""
         return (input_shape[0][0], self.output_dim)
 
-    def get_config(self):
+    def get_config(self) -> dict[str, Any]:
         config = super().get_config()
         config.update(
             {
@@ -192,7 +193,7 @@ class GraphConvLayer(keras.layers.Layer if TF_AVAILABLE else object):
         return config
 
 
-class GraphAttentionLayer(keras.layers.Layer if TF_AVAILABLE else object):
+class GraphAttentionLayer(keras.layers.Layer if TF_AVAILABLE else object):  # type: ignore[misc]
     """Graph Attention Layer (GAT).
 
     Implements multi-head attention for graph data.
@@ -205,8 +206,8 @@ class GraphAttentionLayer(keras.layers.Layer if TF_AVAILABLE else object):
         concat_heads: bool = True,
         dropout_rate: float = 0.0,
         activation: str = "elu",
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         if not TF_AVAILABLE:
             raise ImportError("TensorFlow is required for GNN models")
         super().__init__(**kwargs)
@@ -216,7 +217,7 @@ class GraphAttentionLayer(keras.layers.Layer if TF_AVAILABLE else object):
         self.dropout_rate = dropout_rate
         self.activation_name = activation
 
-    def build(self, input_shape):
+    def build(self, input_shape: Any) -> None:
         input_dim = input_shape[0][-1]
 
         # Per-head output dimension
@@ -253,7 +254,7 @@ class GraphAttentionLayer(keras.layers.Layer if TF_AVAILABLE else object):
 
         super().build(input_shape)
 
-    def call(self, inputs, training=None):
+    def call(self, inputs: Any, training: bool | None = None) -> Any:
         node_features, edge_index, num_nodes = inputs
 
         # Transform features for each head: (num_heads, num_nodes, head_dim)
@@ -262,7 +263,7 @@ class GraphAttentionLayer(keras.layers.Layer if TF_AVAILABLE else object):
         # Use tf.shape for dynamic shape check (Keras 3.x compatible)
         num_edges_tensor = tf.shape(edge_index)[1]
 
-        def attention_pass():
+        def attention_pass() -> Any:
             src = edge_index[0]
             tgt = edge_index[1]
 
@@ -305,7 +306,7 @@ class GraphAttentionLayer(keras.layers.Layer if TF_AVAILABLE else object):
             output = tf.tensor_scatter_nd_add(output, indices, updates)
             return output
 
-        def no_edges():
+        def no_edges() -> Any:
             return h
 
         output = tf.cond(num_edges_tensor > 0, attention_pass, no_edges)
@@ -321,14 +322,14 @@ class GraphAttentionLayer(keras.layers.Layer if TF_AVAILABLE else object):
 
         return self.activation(output)
 
-    def compute_output_shape(self, input_shape):
+    def compute_output_shape(self, input_shape: Any) -> tuple[Any, int]:
         """Compute output shape for Keras 3.x compatibility."""
         if self.concat_heads:
             return (input_shape[0][0], self.output_dim)
         else:
             return (input_shape[0][0], self.head_dim)
 
-    def get_config(self):
+    def get_config(self) -> dict[str, Any]:
         config = super().get_config()
         config.update(
             {
@@ -460,7 +461,7 @@ class VulnerabilityGNN:
 
         # For simplicity, train on each graph separately
         # In production, use proper batching with padding
-        history = {"loss": [], "accuracy": [], "val_loss": [], "val_accuracy": []}
+        history: dict[str, list[float]] = {"loss": [], "accuracy": [], "val_loss": [], "val_accuracy": []}
 
         for epoch in range(epochs):
             epoch_losses = []
@@ -553,28 +554,28 @@ class VulnerabilityGNN:
         Returns:
             Evaluation metrics
         """
-        all_predictions = []
-        all_labels = []
+        predictions_list: list[Any] = []
+        labels_list: list[Any] = []
 
         for g in graphs:
             if g.node_labels is None:
                 continue
 
             preds = self.predict(g)
-            all_predictions.extend(preds)
-            all_labels.extend(g.node_labels)
+            predictions_list.extend(preds)
+            labels_list.extend(g.node_labels)
 
-        if not all_labels:
+        if not labels_list:
             return {"accuracy": 0.0, "precision": 0.0, "recall": 0.0, "f1": 0.0}
 
-        all_predictions = np.array(all_predictions)
-        all_labels = np.array(all_labels)
+        all_predictions = np.array(predictions_list)
+        all_labels = np.array(labels_list)
 
         # Accuracy
-        accuracy = np.mean(all_predictions == all_labels)
+        accuracy = float(np.mean(all_predictions == all_labels))
 
         # Per-class metrics
-        metrics = {"accuracy": accuracy}
+        metrics: dict[str, float] = {"accuracy": accuracy}
 
         for cls in range(self.config.num_classes):
             cls_mask = all_labels == cls
@@ -584,9 +585,9 @@ class VulnerabilityGNN:
             fp = np.sum(~cls_mask & pred_mask)
             fn = np.sum(cls_mask & ~pred_mask)
 
-            precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
-            recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-            f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
+            precision = float(tp / (tp + fp)) if (tp + fp) > 0 else 0.0
+            recall = float(tp / (tp + fn)) if (tp + fn) > 0 else 0.0
+            f1 = float(2 * precision * recall / (precision + recall)) if (precision + recall) > 0 else 0.0
 
             metrics[f"class_{cls}_precision"] = precision
             metrics[f"class_{cls}_recall"] = recall

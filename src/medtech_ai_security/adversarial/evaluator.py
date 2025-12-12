@@ -519,7 +519,7 @@ class RobustnessEvaluator:
         return report
 
 
-def main():
+def main() -> None:
     """CLI entry point for adversarial robustness evaluation."""
     import argparse
 

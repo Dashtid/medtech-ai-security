@@ -479,7 +479,7 @@ class AdversarialTrainer:
         images: np.ndarray,
         labels: np.ndarray,
         ratio: float = 0.5,
-    ):
+    ) -> float:
         """
         Single adversarial training step.
 

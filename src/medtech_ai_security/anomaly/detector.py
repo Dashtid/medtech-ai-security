@@ -32,6 +32,7 @@ import json
 import logging
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -131,16 +132,19 @@ class Autoencoder:
 
     def _relu(self, x: np.ndarray) -> np.ndarray:
         """ReLU activation."""
-        return np.maximum(0, x)
+        result: np.ndarray = np.maximum(0, x)
+        return result
 
     def _relu_derivative(self, x: np.ndarray) -> np.ndarray:
         """Derivative of ReLU."""
-        return (x > 0).astype(np.float32)
+        result: np.ndarray = (x > 0).astype(np.float32)
+        return result
 
     def _sigmoid(self, x: np.ndarray) -> np.ndarray:
         """Sigmoid activation with numerical stability."""
         x = np.clip(x, -500, 500)
-        return 1 / (1 + np.exp(-x))
+        result: np.ndarray = 1 / (1 + np.exp(-x))
+        return result
 
     def _sigmoid_derivative(self, x: np.ndarray) -> np.ndarray:
         """Derivative of sigmoid."""
@@ -217,8 +221,8 @@ class Autoencoder:
         delta = (output - x) * self._sigmoid_derivative(output)
 
         # Decoder gradients (backward)
-        decoder_weight_grads = []
-        decoder_bias_grads = []
+        decoder_weight_grads: list[np.ndarray] = []
+        decoder_bias_grads: list[np.ndarray] = []
         for i in range(len(self.decoder_weights) - 1, -1, -1):
             dw = decoder_activations[i].T @ delta / batch_size
             db = delta.mean(axis=0)
@@ -234,8 +238,8 @@ class Autoencoder:
         delta = delta @ self.decoder_weights[0].T
 
         # Encoder gradients (backward)
-        encoder_weight_grads = []
-        encoder_bias_grads = []
+        encoder_weight_grads: list[np.ndarray] = []
+        encoder_bias_grads: list[np.ndarray] = []
         for i in range(len(self.encoder_weights) - 1, -1, -1):
             if i < len(self.encoder_weights) - 1:
                 delta = delta * self._relu_derivative(encoder_activations[i + 1])
@@ -298,7 +302,7 @@ class Autoencoder:
             self.decoder_weights[i] -= self.learning_rate * dec_w_grads[i]
             self.decoder_biases[i] -= self.learning_rate * dec_b_grads[i]
 
-        return loss
+        return float(loss)
 
     def fit(
         self,
@@ -329,7 +333,7 @@ class Autoencoder:
         val_idx, train_idx = indices[:n_val], indices[n_val:]
         x_train, x_val = x[train_idx], x[val_idx]
 
-        history = {"train_loss": [], "val_loss": []}
+        history: dict[str, list[float]] = {"train_loss": [], "val_loss": []}
         best_val_loss = float("inf")
         patience_counter = 0
         best_weights = None
@@ -395,7 +399,8 @@ class Autoencoder:
     def reconstruction_error(self, x: np.ndarray) -> np.ndarray:
         """Compute reconstruction error for each sample."""
         reconstructed = self.reconstruct(x)
-        return np.mean((x - reconstructed) ** 2, axis=1)
+        result: np.ndarray = np.mean((x - reconstructed) ** 2, axis=1)
+        return result
 
     def save(self, path: Path | str) -> None:
         """Save model weights to disk."""
@@ -527,14 +532,16 @@ class AnomalyDetector:
             raise ValueError("Model not fitted. Call fit() first.")
         # Avoid division by zero
         std = np.where(self.std == 0, 1, self.std)
-        return (x - self.mean) / std
+        result: np.ndarray = (x - self.mean) / std
+        return result
 
     def _denormalize(self, x: np.ndarray) -> np.ndarray:
         """Denormalize features."""
         if self.mean is None or self.std is None:
             raise ValueError("Model not fitted. Call fit() first.")
         std = np.where(self.std == 0, 1, self.std)
-        return x * std + self.mean
+        result: np.ndarray = x * std + self.mean
+        return result
 
     def fit(
         self,
@@ -617,7 +624,7 @@ class AnomalyDetector:
         Returns:
             List of DetectionResult objects
         """
-        if not self.is_fitted:
+        if not self.is_fitted or self.autoencoder is None:
             raise ValueError("Model not fitted. Call fit() first.")
 
         # Normalize
@@ -666,7 +673,7 @@ class AnomalyDetector:
         Returns:
             Tuple of (is_anomaly, anomaly_scores, reconstruction_errors)
         """
-        if not self.is_fitted:
+        if not self.is_fitted or self.autoencoder is None:
             raise ValueError("Model not fitted. Call fit() first.")
 
         x_norm = self._normalize(x)
@@ -852,7 +859,7 @@ class AnomalyDetector:
         return detector
 
 
-def main():
+def main() -> None:
     """CLI entry point for anomaly detection."""
     import argparse
 

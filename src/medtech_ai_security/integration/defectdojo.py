@@ -368,7 +368,7 @@ class DefectDojoClient:
         name: str | None = None,
     ) -> list[dict]:
         """Get list of engagements."""
-        params = {}
+        params: dict[str, int | str] = {}
         if product_id:
             params["product"] = product_id
         if name:
@@ -494,7 +494,7 @@ class DefectDojoClient:
         active: bool | None = None,
     ) -> list[dict]:
         """Get list of findings."""
-        params = {}
+        params: dict[str, int | str | bool] = {}
         if test_id:
             params["test"] = test_id
         if severity:

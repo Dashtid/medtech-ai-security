@@ -53,7 +53,7 @@ logger = logging.getLogger(__name__)
 class ServerConfig:
     """Configuration for federated server."""
 
-    host: str = "0.0.0.0"
+    host: str = "0.0.0.0"  # nosec B104 - Intentional for container/multi-client deployment
     port: int = 50051
     min_clients: int = 2
     max_clients: int = 100
@@ -738,7 +738,7 @@ def main() -> None:
     parser.add_argument(
         "--host",
         "-H",
-        default="0.0.0.0",
+        default="0.0.0.0",  # nosec B104 - Intentional for federated multi-client deployment
         help="Server host",
     )
     parser.add_argument(

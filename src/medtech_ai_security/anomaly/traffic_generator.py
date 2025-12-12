@@ -825,7 +825,7 @@ class TrafficGenerator:
         return metadata
 
 
-def main():
+def main() -> None:
     """CLI entry point for traffic generation."""
     import argparse
 

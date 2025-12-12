@@ -435,7 +435,7 @@ Respond in JSON format:
         return prompt
 
 
-def main():
+def main() -> None:
     """CLI entry point."""
     import argparse
 

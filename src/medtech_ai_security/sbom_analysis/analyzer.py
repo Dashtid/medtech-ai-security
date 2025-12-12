@@ -535,7 +535,7 @@ class SBOMAnalyzer:
         return html
 
 
-def main():
+def main() -> None:
     """CLI entry point for SBOM analysis."""
     parser = argparse.ArgumentParser(
         description="SBOM Supply Chain Security Analyzer for Medical Devices",

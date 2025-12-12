@@ -39,6 +39,7 @@ import joblib
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 from scipy.spatial.distance import cdist
@@ -142,11 +143,11 @@ class NaiveBayesClassifier:
     This provides basic ML classification without sklearn dependency.
     """
 
-    def __init__(self):
-        self.class_priors = {}
-        self.class_means = {}
-        self.class_vars = {}
-        self.classes = []
+    def __init__(self) -> None:
+        self.class_priors: dict[Any, float] = {}
+        self.class_means: dict[Any, np.ndarray] = {}
+        self.class_vars: dict[Any, np.ndarray] = {}
+        self.classes: np.ndarray = np.array([])
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> "NaiveBayesClassifier":
         """
@@ -232,11 +233,11 @@ class KNNClassifier:
     Uses weighted voting based on distance for better predictions.
     """
 
-    def __init__(self, k: int = 5):
+    def __init__(self, k: int = 5) -> None:
         self.k = k
-        self.X_train = None
-        self.y_train = None
-        self.classes = None
+        self.X_train: np.ndarray | None = None
+        self.y_train: np.ndarray | None = None
+        self.classes: np.ndarray | None = None
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> "KNNClassifier":
         """
@@ -317,11 +318,11 @@ class VulnerabilityRiskScorer:
         self.model_nb = NaiveBayesClassifier()
         self.model_knn = KNNClassifier(k=5)
         self.feature_names: list[str] = []
-        self.feature_means: np.ndarray = None
-        self.feature_stds: np.ndarray = None
+        self.feature_means: np.ndarray | None = None
+        self.feature_stds: np.ndarray | None = None
         self.is_trained = False
-        self.training_data: dict = {}
-        self.feature_importance: dict = {}
+        self.training_data: dict[str, Any] = {}
+        self.feature_importance: dict[str, float] = {}
 
         if model_path and Path(model_path).exists():
             self.load_model(model_path)
@@ -832,7 +833,7 @@ class VulnerabilityRiskScorer:
         logger.info(f"Model loaded from {path}")
 
 
-def main():
+def main() -> None:
     """CLI entry point for training and testing the risk scorer."""
     import argparse
     import subprocess

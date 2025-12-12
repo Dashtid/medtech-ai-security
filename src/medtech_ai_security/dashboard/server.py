@@ -620,7 +620,7 @@ def main() -> None:
     import uvicorn
 
     port = int(os.getenv("PORT", "3000"))
-    host = os.getenv("HOST", "0.0.0.0")
+    host = os.getenv("HOST", "0.0.0.0")  # nosec B104 - Intentional for container deployment
 
     logger.info(f"Starting dashboard on http://{host}:{port}")
     uvicorn.run(
