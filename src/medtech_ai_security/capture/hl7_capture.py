@@ -163,7 +163,7 @@ class HL7Capture:
         self._running = False
         self._capture_thread: threading.Thread | None = None
         self._stream_buffers: dict[tuple[str, str, int, int], bytes] = {}
-        self._stats = {
+        self._stats: dict[str, Any] = {
             "packets_captured": 0,
             "hl7_messages": 0,
             "malformed_messages": 0,
@@ -224,7 +224,7 @@ class HL7Capture:
 
             filter_expr = " or ".join([f"tcp port {p}" for p in self.ports])
 
-            def packet_handler(packet):
+            def packet_handler(packet: Any) -> None:
                 if not self._running:
                     return
 

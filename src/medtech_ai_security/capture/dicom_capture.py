@@ -178,7 +178,7 @@ class DICOMCapture:
         self._callbacks: list[Callable[[DICOMRecord], None]] = []
         self._running = False
         self._capture_thread: threading.Thread | None = None
-        self._stats = {
+        self._stats: dict[str, Any] = {
             "packets_captured": 0,
             "dicom_packets": 0,
             "errors": 0,
