@@ -1,0 +1,52 @@
+# Prometheus Configuration for MedTech AI Security
+# Scrape metrics from all security services
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: "medtech-security"
+
+# Alerting configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+# Rule files
+rule_files: []
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # SBOM Analyzer API
+  - job_name: "sbom-analyzer"
+    static_configs:
+      - targets: ["sbom-analyzer:8080"]
+    metrics_path: /metrics
+    scrape_interval: 10s
+
+  # Anomaly Detector Service
+  - job_name: "anomaly-detector"
+    static_configs:
+      - targets: ["anomaly-detector:8081"]
+    metrics_path: /metrics
+    scrape_interval: 10s
+
+  # Dashboard Service
+  - job_name: "dashboard"
+    static_configs:
+      - targets: ["dashboard:3000"]
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+  # Threat Intelligence Scanner
+  - job_name: "threat-intel"
+    static_configs:
+      - targets: ["threat-intel-scanner:8082"]
+    metrics_path: /metrics
+    scrape_interval: 60s

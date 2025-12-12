@@ -1,110 +1,169 @@
-version: '3.8'
+# MedTech AI Security - Docker Compose
+# Local development and testing environment
+#
+# Usage:
+#   docker-compose up -d              # Start all services
+#   docker-compose up sbom-analyzer   # Start specific service
+#   docker-compose logs -f            # Follow logs
+#   docker-compose down               # Stop all services
+
+version: "3.9"
 
 services:
-  # Training service
-  train:
+  # ==========================================================================
+  # SBOM Analyzer API Service
+  # ==========================================================================
+  sbom-analyzer:
     build:
       context: .
       dockerfile: Dockerfile
-    image: medical-image-segmentation:latest
-    container_name: medseg-train
-    volumes:
-      - ./data:/data:ro
-      - ./models:/models
-      - ./logs:/app/logs
-      - ./checkpoints:/app/checkpoints
-    environment:
-      - CUDA_VISIBLE_DEVICES=0
-      - TF_CPP_MIN_LOG_LEVEL=2
-    command: >
-      python scripts/train.py
-      --config configs/brain_growth.yaml
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-    restart: "no"
-
-  # Evaluation service
-  evaluate:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: medical-image-segmentation:latest
-    container_name: medseg-evaluate
-    volumes:
-      - ./data:/data:ro
-      - ./models:/models:ro
-      - ./results:/results
-    environment:
-      - CUDA_VISIBLE_DEVICES=0
-    command: >
-      python scripts/evaluate.py
-      --config configs/brain_growth.yaml
-      --model-dir /models/brain-growth
-      --output /results
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-    restart: "no"
-
-  # Inference service
-  inference:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: medical-image-segmentation:latest
-    container_name: medseg-inference
-    volumes:
-      - ./data:/data:ro
-      - ./models:/models:ro
-      - ./predictions:/predictions
-    environment:
-      - CUDA_VISIBLE_DEVICES=0
-    command: >
-      python scripts/inference.py
-      --ensemble
-      --config configs/brain_growth.yaml
-      --model-dir /models/brain-growth
-      --input /data/new_images
-      --output /predictions
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-    restart: "no"
-
-  # Jupyter notebook service
-  notebook:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: medical-image-segmentation:latest
-    container_name: medseg-notebook
+      target: runtime
+    image: medtech-ai-security:latest
+    container_name: medtech-sbom-analyzer
+    command: ["python", "-m", "medtech_ai_security.api.sbom_api"]
     ports:
-      - "8888:8888"
-    volumes:
-      - ./notebooks:/app/notebooks
-      - ./data:/data:ro
-      - ./models:/models:ro
+      - "8080:8080"
     environment:
-      - JUPYTER_ENABLE_LAB=yes
-    command: >
-      jupyter lab
-      --ip=0.0.0.0
-      --port=8888
-      --no-browser
-      --allow-root
-      --NotebookApp.token=''
-      --NotebookApp.password=''
+      - LOG_LEVEL=DEBUG
+      - PORT=8080
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./reports:/app/reports
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     restart: unless-stopped
+    networks:
+      - medtech-network
+
+  # ==========================================================================
+  # Anomaly Detector Service
+  # ==========================================================================
+  anomaly-detector:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: medtech-ai-security:latest
+    container_name: medtech-anomaly-detector
+    command: ["python", "-m", "medtech_ai_security.api.anomaly_api"]
+    ports:
+      - "8081:8081"
+    environment:
+      - LOG_LEVEL=DEBUG
+      - PORT=8081
+      - MODEL_PATH=/app/models/anomaly_detector.keras
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - medtech-network
+
+  # ==========================================================================
+  # Threat Intelligence Scanner
+  # ==========================================================================
+  threat-intel-scanner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: medtech-ai-security:latest
+    container_name: medtech-threat-intel
+    command: ["python", "-m", "medtech_ai_security.threat_intel.scheduler"]
+    environment:
+      - LOG_LEVEL=INFO
+      - NVD_DAYS_BACK=7
+      - SCAN_INTERVAL=3600
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    networks:
+      - medtech-network
+
+  # ==========================================================================
+  # Dashboard (Real-time monitoring)
+  # ==========================================================================
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: medtech-ai-security:latest
+    container_name: medtech-dashboard
+    command: ["python", "-m", "medtech_ai_security.dashboard.server"]
+    ports:
+      - "3000:3000"
+    environment:
+      - LOG_LEVEL=DEBUG
+      - PORT=3000
+      - SBOM_API_URL=http://sbom-analyzer:8080
+      - ANOMALY_API_URL=http://anomaly-detector:8081
+    volumes:
+      - ./data:/app/data
+      - ./reports:/app/reports
+    depends_on:
+      - sbom-analyzer
+      - anomaly-detector
+    restart: unless-stopped
+    networks:
+      - medtech-network
+
+  # ==========================================================================
+  # Prometheus (Metrics collection)
+  # ==========================================================================
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: medtech-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.enable-lifecycle"
+    restart: unless-stopped
+    networks:
+      - medtech-network
+
+  # ==========================================================================
+  # Grafana (Visualization)
+  # ==========================================================================
+  grafana:
+    image: grafana/grafana:10.1.0
+    container_name: medtech-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=medtech123
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - medtech-network
+
+networks:
+  medtech-network:
+    driver: bridge
+    name: medtech-security-network
+
+volumes:
+  prometheus-data:
+  grafana-data:
