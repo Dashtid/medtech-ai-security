@@ -35,7 +35,7 @@ Usage:
 
 import json
 import logging
-import pickle
+import joblib
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -811,8 +811,7 @@ class VulnerabilityRiskScorer:
             "feature_importance": self.feature_importance,
         }
 
-        with open(path / "risk_model.pkl", "wb") as f:
-            pickle.dump(model_data, f)
+        joblib.dump(model_data, path / "risk_model.joblib")
 
         logger.info(f"Model saved to {path}")
 
@@ -820,8 +819,7 @@ class VulnerabilityRiskScorer:
         """Load trained model from disk."""
         path = Path(path)
 
-        with open(path / "risk_model.pkl", "rb") as f:
-            model_data = pickle.load(f)
+        model_data = joblib.load(path / "risk_model.joblib")
 
         self.model_nb = model_data["model_nb"]
         self.model_knn = model_data["model_knn"]

@@ -496,7 +496,8 @@ def main() -> None:
     test_gradients = [np.random.randn(100, 50), np.random.randn(50, 10)]
 
     print(f"Testing {args.mechanism} privacy mechanism")
-    print(f"Original gradient norms: {[np.linalg.norm(g):.4f for g in test_gradients]}")
+    orig_norms = [f"{np.linalg.norm(g):.4f}" for g in test_gradients]
+    print(f"Original gradient norms: {orig_norms}")
 
     if args.mechanism == "dp":
         engine = DifferentialPrivacy(epsilon=args.epsilon)
@@ -507,10 +508,8 @@ def main() -> None:
 
     for round_num in range(args.rounds):
         protected = engine.apply(test_gradients)
-        print(
-            f"Round {round_num + 1}: "
-            f"Protected norms: {[np.linalg.norm(g):.4f for g in protected]}"
-        )
+        prot_norms = [f"{np.linalg.norm(g):.4f}" for g in protected]
+        print(f"Round {round_num + 1}: Protected norms: {prot_norms}")
 
     print(f"\nFinal metrics: {engine.get_metrics()}")
 

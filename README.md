@@ -209,7 +209,7 @@ medtech-ai-security/
 │       └── defectdojo.py
 ├── scripts/
 │   └── demo_security.py       # Comprehensive demo
-├── tests/                     # Unit tests (271 tests)
+├── tests/                     # Unit tests (666 tests)
 │   ├── test_threat_intel.py   # Phase 1 tests
 │   ├── test_risk_scorer.py    # Phase 2 tests
 │   ├── test_anomaly.py        # Phase 3 tests
@@ -271,7 +271,7 @@ pip install -e ".[dev]"  # Include development tools
 
 ## Testing
 
-Comprehensive test suite covering all 5 phases with 271 tests (69% code coverage):
+Comprehensive test suite covering all 5 phases with 666 tests (74% code coverage):
 
 ```bash
 # Run all tests
@@ -295,8 +295,9 @@ uv run pytest tests/test_sbom_analysis.py -v     # Phase 5: SBOM Analysis
 | Threat Intelligence | 36 tests | NVD/CISA scrapers, Claude processor |
 | ML Risk Scoring | 23 tests | Naive Bayes, KNN, feature extraction |
 | Anomaly Detection | 35 tests | Traffic generator, autoencoder, detector |
-| Adversarial ML | 32 tests | FGSM/PGD/C&W attacks, defenses, evaluator |
-| SBOM Analysis | 50 tests | Parser, graph builder, GNN, risk scorer, analyzer |
+| Adversarial ML | 200+ tests | FGSM/PGD/C&W attacks, defenses, evaluator |
+| SBOM Analysis | 100+ tests | Parser, graph builder, GNN, risk scorer, analyzer |
+| Network Capture | 150+ tests | DICOM/HL7 capture, traffic analysis |
 | DefectDojo Integration | 41 tests | API client, findings import, CLI |
 | Integration Tests | 15 tests | Cross-phase workflows |
 
@@ -341,9 +342,9 @@ The biomedical AI work demonstrates transferable skills in:
 ### Future Enhancements
 - [x] DefectDojo API integration
 - [x] Kubernetes deployment manifests
-- [ ] Real-time monitoring dashboard
-- [ ] Federated learning for multi-site deployment
-- [ ] DICOM/HL7 live traffic capture
+- [x] Real-time monitoring dashboard (WebSocket-based)
+- [x] Federated learning for multi-site deployment
+- [x] DICOM/HL7 live traffic capture
 
 ## License
 

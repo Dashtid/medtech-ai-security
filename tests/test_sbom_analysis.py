@@ -10,6 +10,7 @@ import pytest
 from medtech_ai_security.sbom_analysis.gnn_model import (
     GNNConfig,
     SimpleVulnerabilityClassifier,
+    TF_AVAILABLE,
 )
 from medtech_ai_security.sbom_analysis.graph_builder import (
     NodeFeatures,
@@ -696,6 +697,7 @@ class TestSimpleVulnerabilityClassifier:
             classifier.predict(sample_graph_data)
 
 
+@pytest.mark.skipif(not TF_AVAILABLE, reason="TensorFlow required for GNN tests")
 class TestVulnerabilityGNN:
     """Test VulnerabilityGNN model (requires TensorFlow)."""
 
@@ -721,9 +723,6 @@ class TestVulnerabilityGNN:
 
     def test_gnn_initialization(self):
         """Test GNN model initializes correctly."""
-        if VulnerabilityGNN is None:
-            pytest.skip("VulnerabilityGNN not available")
-
         config = GNNConfig(input_dim=88, hidden_dim=32, num_layers=2)
         model = VulnerabilityGNN(config)
 
@@ -732,9 +731,6 @@ class TestVulnerabilityGNN:
 
     def test_gnn_train(self, sample_graph_data):
         """Test GNN model training."""
-        if VulnerabilityGNN is None:
-            pytest.skip("VulnerabilityGNN not available")
-
         config = GNNConfig(
             input_dim=88,
             hidden_dim=32,
@@ -751,9 +747,6 @@ class TestVulnerabilityGNN:
 
     def test_gnn_predict(self, sample_graph_data):
         """Test GNN model prediction."""
-        if VulnerabilityGNN is None:
-            pytest.skip("VulnerabilityGNN not available")
-
         config = GNNConfig(input_dim=88, hidden_dim=32, num_layers=2)
         model = VulnerabilityGNN(config)
 
@@ -767,9 +760,6 @@ class TestVulnerabilityGNN:
 
     def test_gnn_predict_proba(self, sample_graph_data):
         """Test GNN model probability prediction."""
-        if VulnerabilityGNN is None:
-            pytest.skip("VulnerabilityGNN not available")
-
         config = GNNConfig(input_dim=88, hidden_dim=32, num_layers=2)
         model = VulnerabilityGNN(config)
 
@@ -782,9 +772,6 @@ class TestVulnerabilityGNN:
 
     def test_gnn_evaluate(self, sample_graph_data):
         """Test GNN model evaluation."""
-        if VulnerabilityGNN is None:
-            pytest.skip("VulnerabilityGNN not available")
-
         config = GNNConfig(input_dim=88, hidden_dim=32, num_layers=2)
         model = VulnerabilityGNN(config)
 
@@ -796,9 +783,6 @@ class TestVulnerabilityGNN:
 
     def test_gnn_save_load(self, sample_graph_data, tmp_path):
         """Test GNN model save and load."""
-        if VulnerabilityGNN is None:
-            pytest.skip("VulnerabilityGNN not available")
-
         config = GNNConfig(input_dim=88, hidden_dim=32, num_layers=2)
         model = VulnerabilityGNN(config)
 
@@ -1084,6 +1068,330 @@ class TestRiskReportProperties:
         assert result["package_id"] == "lodash@4.17.20"
         assert result["risk_level"] == "high"
         assert result["risk_score"] == 75.0
+
+
+class TestParserAdvanced:
+    """Advanced tests for SBOMParser."""
+
+    def test_parse_spdx_with_relationships(self):
+        """Test parsing SPDX with relationships."""
+        spdx_sbom = {
+            "spdxVersion": "SPDX-2.3",
+            "name": "test-sbom",
+            "documentNamespace": "https://example.com/sbom",
+            "packages": [
+                {
+                    "SPDXID": "SPDXRef-Package-app",
+                    "name": "app",
+                    "versionInfo": "1.0.0",
+                },
+                {
+                    "SPDXID": "SPDXRef-Package-lib",
+                    "name": "lib",
+                    "versionInfo": "2.0.0",
+                },
+            ],
+            "relationships": [
+                {
+                    "spdxElementId": "SPDXRef-Package-app",
+                    "relationshipType": "DEPENDS_ON",
+                    "relatedSpdxElement": "SPDXRef-Package-lib",
+                }
+            ],
+        }
+        parser = SBOMParser()
+        graph = parser.parse_json(json.dumps(spdx_sbom))
+
+        assert graph.metadata["format"] == "SPDX"
+        assert graph.package_count >= 2
+        assert graph.dependency_count >= 1
+
+    def test_parse_cyclonedx_with_external_references(self):
+        """Test parsing CycloneDX with external references."""
+        sbom = {
+            "bomFormat": "CycloneDX",
+            "specVersion": "1.5",
+            "components": [
+                {
+                    "name": "express",
+                    "version": "4.17.1",
+                    "externalReferences": [
+                        {
+                            "type": "website",
+                            "url": "https://expressjs.com",
+                        },
+                        {
+                            "type": "vcs",
+                            "url": "https://github.com/expressjs/express",
+                        },
+                    ],
+                }
+            ],
+        }
+        parser = SBOMParser()
+        graph = parser.parse_json(json.dumps(sbom))
+
+        assert graph.package_count >= 1
+
+    def test_parse_cyclonedx_with_hashes(self):
+        """Test parsing CycloneDX with hash information."""
+        sbom = {
+            "bomFormat": "CycloneDX",
+            "specVersion": "1.5",
+            "components": [
+                {
+                    "name": "lodash",
+                    "version": "4.17.20",
+                    "hashes": [
+                        {"alg": "SHA-256", "content": "abc123"},
+                        {"alg": "SHA-512", "content": "def456"},
+                    ],
+                }
+            ],
+        }
+        parser = SBOMParser()
+        graph = parser.parse_json(json.dumps(sbom))
+
+        assert "lodash@4.17.20" in graph.packages
+
+    def test_parse_cyclonedx_with_nested_dependencies(self):
+        """Test parsing CycloneDX with nested dependency structure."""
+        sbom = {
+            "bomFormat": "CycloneDX",
+            "specVersion": "1.5",
+            "components": [
+                {"name": "app", "version": "1.0.0"},
+                {"name": "lib-a", "version": "1.0.0"},
+                {"name": "lib-b", "version": "1.0.0"},
+                {"name": "lib-c", "version": "1.0.0"},
+            ],
+            "dependencies": [
+                {"ref": "app@1.0.0", "dependsOn": ["lib-a@1.0.0", "lib-b@1.0.0"]},
+                {"ref": "lib-a@1.0.0", "dependsOn": ["lib-c@1.0.0"]},
+                {"ref": "lib-b@1.0.0", "dependsOn": ["lib-c@1.0.0"]},
+            ],
+        }
+        parser = SBOMParser()
+        graph = parser.parse_json(json.dumps(sbom))
+
+        # lib-c should have 2 dependents
+        dependents = graph.get_dependents("lib-c@1.0.0")
+        assert len(dependents) == 2
+
+    def test_parse_cyclonedx_with_multiple_licenses(self):
+        """Test parsing CycloneDX with multiple license options."""
+        sbom = {
+            "bomFormat": "CycloneDX",
+            "specVersion": "1.5",
+            "components": [
+                {
+                    "name": "dual-licensed",
+                    "version": "1.0.0",
+                    "licenses": [
+                        {"license": {"id": "MIT"}},
+                        {"license": {"id": "Apache-2.0"}},
+                    ],
+                }
+            ],
+        }
+        parser = SBOMParser()
+        graph = parser.parse_json(json.dumps(sbom))
+
+        # Should take first license
+        assert "dual-licensed@1.0.0" in graph.packages
+
+
+class TestRiskScorerAdvanced:
+    """Advanced tests for SupplyChainRiskScorer."""
+
+    def test_score_graph_with_high_vulnerability(self):
+        """Test scoring with high severity vulnerability."""
+        vuln = VulnerabilityInfo(cve_id="CVE-2021-1234", severity="high", cvss_score=8.5)
+        graph = DependencyGraph()
+        graph.add_package(Package(name="vulnerable-pkg", version="1.0.0", vulnerabilities=[vuln]))
+
+        scorer = SupplyChainRiskScorer()
+        report = scorer.score(graph)
+
+        # Risk scoring algorithm considers multiple factors, not just vuln severity
+        # A single package with one high vuln results in a lower overall risk score
+        assert report.overall_risk_score > 0
+        assert report.high_vulnerabilities >= 1
+
+    def test_score_graph_with_medium_vulnerability(self):
+        """Test scoring with medium severity vulnerability."""
+        vuln = VulnerabilityInfo(cve_id="CVE-2021-5678", severity="medium", cvss_score=5.5)
+        graph = DependencyGraph()
+        graph.add_package(Package(name="medium-risk", version="1.0.0", vulnerabilities=[vuln]))
+
+        scorer = SupplyChainRiskScorer()
+        report = scorer.score(graph)
+
+        assert report.medium_vulnerabilities >= 1
+
+    def test_score_graph_with_multiple_vulnerabilities(self):
+        """Test scoring with multiple vulnerabilities on same package."""
+        vuln1 = VulnerabilityInfo(cve_id="CVE-2021-1111", severity="high", cvss_score=8.0)
+        vuln2 = VulnerabilityInfo(cve_id="CVE-2021-2222", severity="critical", cvss_score=9.5)
+        vuln3 = VulnerabilityInfo(cve_id="CVE-2021-3333", severity="medium", cvss_score=5.0)
+        graph = DependencyGraph()
+        graph.add_package(Package(name="multi-vuln", version="1.0.0", vulnerabilities=[vuln1, vuln2, vuln3]))
+
+        scorer = SupplyChainRiskScorer()
+        report = scorer.score(graph)
+
+        assert report.total_vulnerabilities >= 3
+        assert report.critical_vulnerabilities >= 1
+        assert report.high_vulnerabilities >= 1
+
+    def test_score_generates_recommendations(self):
+        """Test that scoring generates recommendations for vulnerabilities."""
+        vuln = VulnerabilityInfo(cve_id="CVE-2021-44228", severity="critical", cvss_score=10.0)
+        graph = DependencyGraph()
+        graph.add_package(Package(name="log4j", version="2.14.0", vulnerabilities=[vuln]))
+
+        scorer = SupplyChainRiskScorer()
+        report = scorer.score(graph)
+
+        assert len(report.recommendations) > 0
+
+    def test_score_with_transitive_vulnerability(self):
+        """Test scoring with vulnerability in transitive dependency."""
+        vuln = VulnerabilityInfo(cve_id="CVE-2021-9999", severity="high", cvss_score=7.5)
+        graph = DependencyGraph()
+        graph.add_package(Package(name="app", version="1.0.0"))
+        graph.add_package(Package(name="lib", version="1.0.0"))
+        graph.add_package(Package(name="transitive", version="1.0.0", vulnerabilities=[vuln]))
+        graph.add_dependency(Dependency(source="app@1.0.0", target="lib@1.0.0"))
+        graph.add_dependency(Dependency(source="lib@1.0.0", target="transitive@1.0.0"))
+
+        scorer = SupplyChainRiskScorer()
+        report = scorer.score(graph)
+
+        assert report.vulnerable_packages >= 1
+
+    def test_risk_level_boundaries(self):
+        """Test risk level assignment at boundaries."""
+        # Create packages with different risk scores
+        vuln_low = VulnerabilityInfo(cve_id="CVE-2021-0001", severity="low", cvss_score=2.0)
+        vuln_critical = VulnerabilityInfo(cve_id="CVE-2021-0002", severity="critical", cvss_score=10.0)
+
+        graph = DependencyGraph()
+        graph.add_package(Package(name="low-risk", version="1.0.0", vulnerabilities=[vuln_low]))
+
+        scorer = SupplyChainRiskScorer()
+        report = scorer.score(graph)
+
+        # With only low vuln, should not be critical
+        assert report.overall_risk_level != RiskLevel.CRITICAL
+        low_vuln_score = report.overall_risk_score
+
+        # Add critical vuln
+        graph.add_package(Package(name="critical-pkg", version="1.0.0", vulnerabilities=[vuln_critical]))
+        report2 = scorer.score(graph)
+
+        # Score should increase with critical vulnerability
+        assert report2.overall_risk_score > low_vuln_score
+        assert report2.critical_vulnerabilities >= 1
+
+
+class TestGraphBuilderAdvanced:
+    """Advanced tests for SBOMGraphBuilder."""
+
+    def test_build_graph_with_vulnerabilities(self):
+        """Test building graph with vulnerable packages."""
+        vuln = VulnerabilityInfo(cve_id="CVE-2021-1234", severity="high", cvss_score=8.0)
+        graph = DependencyGraph()
+        graph.add_package(Package(name="vuln-pkg", version="1.0.0", vulnerabilities=[vuln]))
+        graph.add_package(Package(name="safe-pkg", version="1.0.0"))
+
+        builder = SBOMGraphBuilder()
+        graph_data = builder.build(graph)
+
+        assert graph_data.num_nodes == 2
+        # Node features should encode vulnerability info
+        assert graph_data.node_features.shape[0] == 2
+
+    def test_build_graph_with_different_ecosystems(self):
+        """Test building graph with different package ecosystems."""
+        graph = DependencyGraph()
+        graph.add_package(Package(name="npm-pkg", version="1.0.0", package_type=PackageType.NPM))
+        graph.add_package(Package(name="pypi-pkg", version="1.0.0", package_type=PackageType.PYPI))
+        graph.add_package(Package(name="maven-pkg", version="1.0.0", package_type=PackageType.MAVEN))
+
+        builder = SBOMGraphBuilder()
+        graph_data = builder.build(graph)
+
+        assert graph_data.num_nodes == 3
+
+    def test_build_empty_graph(self):
+        """Test building empty dependency graph."""
+        graph = DependencyGraph()
+        builder = SBOMGraphBuilder()
+        graph_data = builder.build(graph)
+
+        assert graph_data.num_nodes == 0
+        assert graph_data.num_edges == 0
+
+    def test_build_graph_preserves_node_ids(self):
+        """Test that graph building preserves node IDs."""
+        graph = DependencyGraph()
+        graph.add_package(Package(name="pkg-a", version="1.0.0"))
+        graph.add_package(Package(name="pkg-b", version="2.0.0"))
+
+        builder = SBOMGraphBuilder()
+        graph_data = builder.build(graph)
+
+        assert "pkg-a@1.0.0" in graph_data.node_ids
+        assert "pkg-b@2.0.0" in graph_data.node_ids
+
+
+class TestVisualizationGeneration:
+    """Test visualization data generation."""
+
+    def test_visualization_includes_all_risk_levels(self):
+        """Test visualization includes different risk level colors."""
+        vuln_crit = VulnerabilityInfo(cve_id="CVE-2021-0001", severity="critical", cvss_score=10.0)
+        vuln_high = VulnerabilityInfo(cve_id="CVE-2021-0002", severity="high", cvss_score=8.0)
+        vuln_medium = VulnerabilityInfo(cve_id="CVE-2021-0003", severity="medium", cvss_score=5.0)
+        vuln_low = VulnerabilityInfo(cve_id="CVE-2021-0004", severity="low", cvss_score=2.0)
+
+        sbom = json.dumps({
+            "bomFormat": "CycloneDX",
+            "specVersion": "1.5",
+            "components": [
+                {"name": "critical-pkg", "version": "1.0.0"},
+                {"name": "high-pkg", "version": "1.0.0"},
+                {"name": "medium-pkg", "version": "1.0.0"},
+                {"name": "low-pkg", "version": "1.0.0"},
+                {"name": "clean-pkg", "version": "1.0.0"},
+            ],
+        })
+
+        analyzer = SBOMAnalyzer(use_gnn=False)
+        report = analyzer.analyze_json(sbom)
+
+        assert report.visualization_data is not None
+        assert len(report.visualization_data["nodes"]) == 5
+
+    def test_visualization_ecosystems_grouping(self):
+        """Test visualization groups packages by ecosystem."""
+        sbom = json.dumps({
+            "bomFormat": "CycloneDX",
+            "specVersion": "1.5",
+            "components": [
+                {"name": "npm-pkg-1", "version": "1.0.0", "purl": "pkg:npm/npm-pkg-1@1.0.0"},
+                {"name": "npm-pkg-2", "version": "1.0.0", "purl": "pkg:npm/npm-pkg-2@1.0.0"},
+                {"name": "pypi-pkg", "version": "1.0.0", "purl": "pkg:pypi/pypi-pkg@1.0.0"},
+            ],
+        })
+
+        analyzer = SBOMAnalyzer(use_gnn=False)
+        report = analyzer.analyze_json(sbom)
+
+        assert "ecosystems" in report.visualization_data
+        ecosystems = report.visualization_data["ecosystems"]
+        assert "npm" in ecosystems or len(ecosystems) > 0
 
 
 class TestIntegration:

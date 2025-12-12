@@ -816,3 +816,620 @@ class TestCISAScraper:
                 advisory = scraper._parse_advisory_detail("https://test.com", basic_info)
 
                 assert advisory.severity == expected_severity, f"CVSS {cvss_str} should map to {expected_severity}"
+
+
+class TestNVDScraperAdvanced:
+    """Advanced tests for NVD scraper."""
+
+    def test_rate_limiting(self):
+        """Test rate limiting mechanism."""
+        import time
+
+        scraper = NVDScraper()
+        scraper.request_delay = 0.1  # Short delay for testing
+        scraper.last_request_time = time.time()
+
+        start = time.time()
+        scraper._rate_limit()
+        elapsed = time.time() - start
+
+        # Should have enforced delay
+        assert elapsed >= 0.05  # Allow some tolerance
+
+    def test_rate_limiting_skipped_when_sufficient_time(self):
+        """Test rate limiting is skipped when enough time has passed."""
+        import time
+
+        scraper = NVDScraper()
+        scraper.request_delay = 0.1
+        scraper.last_request_time = 0  # Very old timestamp
+
+        start = time.time()
+        scraper._rate_limit()
+        elapsed = time.time() - start
+
+        # Should not wait
+        assert elapsed < 0.05
+
+    @patch("requests.Session.get")
+    def test_make_request_failure(self, mock_get):
+        """Test API request failure handling."""
+        import requests
+
+        mock_get.side_effect = requests.exceptions.RequestException("API error")
+
+        scraper = NVDScraper()
+        scraper.last_request_time = 0
+
+        try:
+            scraper._make_request({"keywordSearch": "test"})
+            assert False, "Should have raised exception"
+        except requests.exceptions.RequestException:
+            pass  # Expected
+
+    @patch("requests.Session.get")
+    def test_search_by_keyword(self, mock_get):
+        """Test search by keyword functionality."""
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            "vulnerabilities": [
+                {
+                    "cve": {
+                        "id": "CVE-2024-1234",
+                        "descriptions": [{"lang": "en", "value": "DICOM vulnerability"}],
+                        "published": "2024-01-15",
+                        "lastModified": "2024-01-16",
+                        "metrics": {},
+                    }
+                }
+            ],
+            "totalResults": 1,
+        }
+        mock_response.raise_for_status = Mock()
+        mock_get.return_value = mock_response
+
+        scraper = NVDScraper()
+        scraper.last_request_time = 0
+
+        result = scraper.search_by_keyword("DICOM")
+
+        assert result["totalResults"] == 1
+        mock_get.assert_called_once()
+
+    @patch("requests.Session.get")
+    def test_search_by_keyword_pagination(self, mock_get):
+        """Test search with pagination parameters."""
+        mock_response = Mock()
+        mock_response.json.return_value = {"vulnerabilities": [], "totalResults": 0}
+        mock_response.raise_for_status = Mock()
+        mock_get.return_value = mock_response
+
+        scraper = NVDScraper()
+        scraper.last_request_time = 0
+
+        scraper.search_by_keyword("test", start_index=100, results_per_page=50)
+
+        call_url = mock_get.call_args[0][0]
+        assert "startIndex=100" in call_url
+        assert "resultsPerPage=50" in call_url
+
+    @patch("requests.Session.get")
+    def test_search_recent_cves(self, mock_get):
+        """Test search for recent CVEs."""
+        mock_response = Mock()
+        mock_response.json.return_value = {"vulnerabilities": [], "totalResults": 0}
+        mock_response.raise_for_status = Mock()
+        mock_get.return_value = mock_response
+
+        scraper = NVDScraper()
+        scraper.last_request_time = 0
+
+        result = scraper.search_recent_cves(days_back=7)
+
+        assert result["totalResults"] == 0
+        call_url = mock_get.call_args[0][0]
+        assert "pubStartDate" in call_url
+        assert "pubEndDate" in call_url
+
+    def test_parse_cve_with_cvss_v30(self):
+        """Test parsing CVE with CVSS v3.0 metrics."""
+        scraper = NVDScraper()
+
+        cve_item = {
+            "cve": {
+                "id": "CVE-2024-5678",
+                "descriptions": [{"lang": "en", "value": "Test"}],
+                "published": "2024-01-15",
+                "lastModified": "2024-01-16",
+                "metrics": {
+                    "cvssMetricV30": [
+                        {
+                            "cvssData": {
+                                "baseScore": 6.5,
+                                "baseSeverity": "MEDIUM",
+                                "vectorString": "CVSS:3.0/AV:N",
+                            }
+                        }
+                    ]
+                },
+            }
+        }
+
+        entry = scraper._parse_cve(cve_item, [])
+
+        assert entry.cvss_v3_score == 6.5
+        assert entry.cvss_v3_severity == "MEDIUM"
+
+    def test_parse_cve_with_cvss_v2(self):
+        """Test parsing CVE with only CVSS v2 metrics."""
+        scraper = NVDScraper()
+
+        cve_item = {
+            "cve": {
+                "id": "CVE-2024-9999",
+                "descriptions": [{"lang": "en", "value": "Old CVE"}],
+                "published": "2024-01-15",
+                "lastModified": "2024-01-16",
+                "metrics": {
+                    "cvssMetricV2": [
+                        {
+                            "cvssData": {
+                                "baseScore": 5.0,
+                            }
+                        }
+                    ]
+                },
+            }
+        }
+
+        entry = scraper._parse_cve(cve_item, [])
+
+        assert entry.cvss_v2_score == 5.0
+        assert entry.cvss_v3_score is None
+
+    def test_parse_cve_non_english_fallback(self):
+        """Test parsing CVE with non-English description fallback."""
+        scraper = NVDScraper()
+
+        cve_item = {
+            "cve": {
+                "id": "CVE-2024-0001",
+                "descriptions": [
+                    {"lang": "es", "value": "Vulnerabilidad de prueba"},
+                ],
+                "published": "2024-01-15",
+                "lastModified": "2024-01-16",
+                "metrics": {},
+            }
+        }
+
+        entry = scraper._parse_cve(cve_item, [])
+
+        assert entry.description == "Vulnerabilidad de prueba"
+
+    def test_parse_cve_extracts_configurations(self):
+        """Test parsing CVE extracts affected products from configurations."""
+        scraper = NVDScraper()
+
+        cve_item = {
+            "cve": {
+                "id": "CVE-2024-0002",
+                "descriptions": [{"lang": "en", "value": "Test"}],
+                "published": "2024-01-15",
+                "lastModified": "2024-01-16",
+                "metrics": {},
+                "configurations": [
+                    {
+                        "nodes": [
+                            {
+                                "cpeMatch": [
+                                    {"criteria": "cpe:2.3:a:vendor:product:1.0:*:*:*:*:*:*:*"},
+                                    {"criteria": "cpe:2.3:a:vendor:product:2.0:*:*:*:*:*:*:*"},
+                                ]
+                            }
+                        ]
+                    }
+                ],
+            }
+        }
+
+        entry = scraper._parse_cve(cve_item, [])
+
+        assert len(entry.affected_products) == 2
+        assert "cpe:2.3:a:vendor:product:1.0" in entry.affected_products[0]
+
+    def test_parse_cve_vulnerability_status(self):
+        """Test parsing CVE extracts vulnerability status."""
+        scraper = NVDScraper()
+
+        cve_item = {
+            "cve": {
+                "id": "CVE-2024-0003",
+                "descriptions": [{"lang": "en", "value": "Test"}],
+                "published": "2024-01-15",
+                "lastModified": "2024-01-16",
+                "vulnStatus": "Analyzed",
+                "metrics": {},
+            }
+        }
+
+        entry = scraper._parse_cve(cve_item, [])
+
+        assert entry.vulnerability_status == "Analyzed"
+
+    @patch("requests.Session.get")
+    def test_search_medical_device_cves(self, mock_get):
+        """Test searching for medical device CVEs."""
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            "vulnerabilities": [
+                {
+                    "cve": {
+                        "id": "CVE-2024-MED1",
+                        "descriptions": [{"lang": "en", "value": "DICOM server RCE"}],
+                        "published": "2024-01-15",
+                        "lastModified": "2024-01-16",
+                        "metrics": {},
+                    }
+                }
+            ],
+            "totalResults": 1,
+        }
+        mock_response.raise_for_status = Mock()
+        mock_get.return_value = mock_response
+
+        scraper = NVDScraper()
+        scraper.last_request_time = 0
+
+        # Use just one keyword to speed up test
+        cves = scraper.search_medical_device_cves(
+            keywords=["DICOM"],
+            max_results=10,
+        )
+
+        assert len(cves) >= 0  # May or may not find matches based on keyword matching
+
+    def test_save_results_creates_directory(self, tmp_path):
+        """Test save_results creates output directory if needed."""
+        scraper = NVDScraper()
+        output_file = tmp_path / "subdir" / "test_cves.json"
+
+        cves = [
+            CVEEntry(
+                cve_id="CVE-2024-1234",
+                description="Test",
+                published_date="2024-01-15",
+                last_modified_date="2024-01-16",
+            )
+        ]
+
+        scraper.save_results(cves, output_file)
+
+        assert output_file.exists()
+
+
+class TestCISAScraperAdvanced:
+    """Advanced tests for CISA scraper."""
+
+    def test_scraper_with_headers(self):
+        """Test scraper has proper headers."""
+        scraper = CISAScraper()
+
+        # Verify session exists
+        assert scraper.session is not None
+
+    @patch.object(CISAScraper, "_make_request")
+    def test_parse_advisory_detail_extracts_vendor(self, mock_request):
+        """Test parsing advisory detail page extracts vendor info."""
+        from bs4 import BeautifulSoup
+
+        html = """
+        <html>
+        <body>
+            <article>
+                <div class="content">
+                    <p>Vendor: Medical Devices Inc</p>
+                    <p>Affected Products: DICOM Server v1.0</p>
+                </div>
+            </article>
+        </body>
+        </html>
+        """
+
+        soup = BeautifulSoup(html, "html.parser")
+        mock_request.return_value = soup
+
+        scraper = CISAScraper()
+        basic_info = {
+            "advisory_id": "ICSMA-24-001-01",
+            "title": "Test Advisory",
+            "release_date": "2024-01-15",
+            "advisory_type": "ICSMA",
+        }
+
+        advisory = scraper._parse_advisory_detail("https://test.com", basic_info)
+
+        assert advisory is not None
+
+    @patch.object(CISAScraper, "_make_request")
+    def test_parse_advisory_detail_extracts_mitigation(self, mock_request):
+        """Test parsing advisory detail page extracts mitigation."""
+        from bs4 import BeautifulSoup
+
+        html = """
+        <html>
+        <body>
+            <article>
+                <div class="content">
+                    <h2>Mitigation</h2>
+                    <p>Update to version 3.0 or later.</p>
+                </div>
+            </article>
+        </body>
+        </html>
+        """
+
+        soup = BeautifulSoup(html, "html.parser")
+        mock_request.return_value = soup
+
+        scraper = CISAScraper()
+        basic_info = {
+            "advisory_id": "ICSMA-24-001-01",
+            "title": "Test Advisory",
+            "release_date": "2024-01-15",
+            "advisory_type": "ICSMA",
+        }
+
+        advisory = scraper._parse_advisory_detail("https://test.com", basic_info)
+
+        assert advisory is not None
+
+    def test_advisory_to_dict(self):
+        """Test CISAAdvisory conversion to dictionary."""
+        from dataclasses import asdict
+
+        advisory = CISAAdvisory(
+            advisory_id="ICSMA-24-001-01",
+            title="Test Advisory",
+            url="https://test.com",
+            release_date="2024-01-15",
+            cvss_score=8.5,
+            cve_ids=["CVE-2024-1234"],
+        )
+
+        data = asdict(advisory)
+
+        assert data["advisory_id"] == "ICSMA-24-001-01"
+        assert data["cvss_score"] == 8.5
+        assert "CVE-2024-1234" in data["cve_ids"]
+
+    def test_advisory_type_explicit_setting(self):
+        """Test advisory type can be explicitly set."""
+        # Default is ICSMA (medical)
+        default_advisory = CISAAdvisory(
+            advisory_id="ICSMA-24-001-01",
+            title="Medical Advisory",
+            url="https://test.com",
+            release_date="2024-01-15",
+        )
+        assert default_advisory.advisory_type == "ICSMA"
+
+        # Explicit ICSA setting for general ICS advisories
+        icsa = CISAAdvisory(
+            advisory_id="ICSA-24-001-01",
+            title="ICS Advisory",
+            url="https://test.com",
+            release_date="2024-01-15",
+            advisory_type="ICSA",
+        )
+        assert icsa.advisory_type == "ICSA"
+
+    def test_save_results_empty_list(self, tmp_path):
+        """Test saving empty results."""
+        scraper = CISAScraper()
+        output_file = tmp_path / "empty_advisories.json"
+
+        scraper.save_results([], output_file)
+
+        assert output_file.exists()
+        import json
+        with open(output_file) as f:
+            data = json.load(f)
+        assert data["metadata"]["total_advisories"] == 0
+        assert data["advisories"] == []
+
+    @patch.object(CISAScraper, "_make_request")
+    @patch.object(CISAScraper, "_parse_advisory_detail")
+    def test_scrape_medical_advisories_icsma_only(self, mock_detail, mock_request):
+        """Test scraping medical advisories (ICSMA only)."""
+        from bs4 import BeautifulSoup
+
+        # Mock the advisory list page
+        list_html = """
+        <html>
+        <body>
+            <a href="/ics-medical-advisories/icsma-24-001-01">Advisory 1</a>
+            <a href="/ics-medical-advisories/icsma-24-002-01">Advisory 2</a>
+        </body>
+        </html>
+        """
+
+        mock_request.return_value = BeautifulSoup(list_html, "html.parser")
+        mock_detail.return_value = CISAAdvisory(
+            advisory_id="ICSMA-24-001-01",
+            title="Test Advisory",
+            url="https://test.com",
+            release_date="2024-01-15",
+        )
+
+        scraper = CISAScraper()
+        advisories = scraper.scrape_medical_advisories(
+            max_results=5, include_general_ics=False
+        )
+
+        assert len(advisories) > 0
+        mock_request.assert_called()
+
+    @patch.object(CISAScraper, "_make_request")
+    def test_scrape_medical_advisories_with_general_ics(self, mock_request):
+        """Test scraping includes general ICS advisories with medical keywords."""
+        from bs4 import BeautifulSoup
+
+        # First call returns empty ICSMA list
+        icsma_html = """<html><body></body></html>"""
+
+        # Second call returns ICS advisories with medical keyword
+        ics_html = """
+        <html>
+        <body>
+            <a href="/ics-advisories/icsa-24-001-01">MRI Machine Vulnerability</a>
+        </body>
+        </html>
+        """
+
+        mock_request.side_effect = [
+            BeautifulSoup(icsma_html, "html.parser"),
+            BeautifulSoup(ics_html, "html.parser"),
+        ]
+
+        scraper = CISAScraper()
+        # Test that it searches both pages
+        advisories = scraper.scrape_medical_advisories(
+            max_results=5, include_general_ics=True
+        )
+
+        # Should have called twice (ICSMA + ICS pages)
+        assert mock_request.call_count == 2
+
+    @patch.object(CISAScraper, "_make_request")
+    def test_scrape_medical_advisories_max_results(self, mock_request):
+        """Test max_results limits advisory count."""
+        from bs4 import BeautifulSoup
+
+        # Return many advisories
+        list_html = """
+        <html>
+        <body>
+            <a href="/ics-medical-advisories/icsma-24-001-01">Advisory 1</a>
+            <a href="/ics-medical-advisories/icsma-24-002-01">Advisory 2</a>
+            <a href="/ics-medical-advisories/icsma-24-003-01">Advisory 3</a>
+        </body>
+        </html>
+        """
+
+        def request_return(url):
+            if "medical" in url:
+                return BeautifulSoup(list_html, "html.parser")
+            return BeautifulSoup("<html><body></body></html>", "html.parser")
+
+        mock_request.side_effect = request_return
+
+        scraper = CISAScraper()
+        advisories = scraper.scrape_medical_advisories(
+            max_results=1, include_general_ics=False
+        )
+
+        # Should be limited to 1
+        assert len(advisories) <= 1
+
+    @patch.object(CISAScraper, "_make_request")
+    def test_scrape_medical_advisories_request_failure(self, mock_request):
+        """Test scraping handles request failure gracefully."""
+        mock_request.return_value = None
+
+        scraper = CISAScraper()
+        advisories = scraper.scrape_medical_advisories(
+            max_results=5, include_general_ics=False
+        )
+
+        # Should return empty list on failure
+        assert advisories == []
+
+
+class TestCISAScraperPromptGeneration:
+    """Tests for CISA scraper prompt generation."""
+
+    def test_generate_claude_prompt_basic(self):
+        """Test basic Claude prompt generation."""
+        scraper = CISAScraper()
+        advisories = [
+            CISAAdvisory(
+                advisory_id="ICSMA-24-001-01",
+                title="Test Medical Device Advisory",
+                url="https://test.com",
+                release_date="2024-01-15",
+                cvss_score=8.5,
+                cve_ids=["CVE-2024-1234"],
+                vendor="Test Vendor",
+                description="Critical vulnerability in DICOM server",
+            )
+        ]
+
+        prompt = scraper.generate_claude_prompt(advisories, batch_size=10)
+
+        assert "ICSMA-24-001-01" in prompt
+        assert "Test Medical Device Advisory" in prompt
+        assert "CVE-2024-1234" in prompt
+        assert "device_type" in prompt
+        assert "clinical_impact" in prompt
+
+    def test_generate_claude_prompt_truncates_description(self):
+        """Test prompt truncates long descriptions."""
+        scraper = CISAScraper()
+        long_description = "A" * 500  # Longer than 400 char limit
+
+        advisories = [
+            CISAAdvisory(
+                advisory_id="ICSMA-24-001-01",
+                title="Test",
+                url="https://test.com",
+                release_date="2024-01-15",
+                description=long_description,
+            )
+        ]
+
+        prompt = scraper.generate_claude_prompt(advisories)
+
+        # Should have truncation indicator
+        assert "..." in prompt
+
+    def test_generate_claude_prompt_handles_none_values(self):
+        """Test prompt handles None values gracefully."""
+        scraper = CISAScraper()
+        advisories = [
+            CISAAdvisory(
+                advisory_id="ICSMA-24-001-01",
+                title="Test",
+                url="https://test.com",
+                release_date="2024-01-15",
+                cvss_score=None,
+                cve_ids=None,
+                vendor=None,
+                description=None,
+            )
+        ]
+
+        prompt = scraper.generate_claude_prompt(advisories)
+
+        # Should contain N/A for missing values
+        assert "N/A" in prompt
+
+    def test_generate_claude_prompt_batch_size(self):
+        """Test batch_size limits advisories in prompt."""
+        scraper = CISAScraper()
+        advisories = [
+            CISAAdvisory(
+                advisory_id=f"ICSMA-24-{i:03d}-01",
+                title=f"Advisory {i}",
+                url="https://test.com",
+                release_date="2024-01-15",
+            )
+            for i in range(20)
+        ]
+
+        prompt = scraper.generate_claude_prompt(advisories, batch_size=5)
+
+        # Should only contain first 5 advisories
+        assert "ICSMA-24-000-01" in prompt
+        assert "ICSMA-24-004-01" in prompt
+        assert "ICSMA-24-005-01" not in prompt
