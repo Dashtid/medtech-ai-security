@@ -3,6 +3,8 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![codecov](https://codecov.io/gh/Dashtid/medtech-ai-security/branch/main/graph/badge.svg)](https://codecov.io/gh/Dashtid/medtech-ai-security)
+[![CI](https://github.com/Dashtid/medtech-ai-security/actions/workflows/ci.yml/badge.svg)](https://github.com/Dashtid/medtech-ai-security/actions/workflows/ci.yml)
 
 AI and machine learning platform for medical device cybersecurity, combining NLP threat intelligence, anomaly detection, adversarial ML testing, and graph neural networks for SBOM analysis. Built for FDA and EU MDR compliance.
 
@@ -287,7 +289,7 @@ pip install -e ".[dev]"  # Include development tools
 
 ## Testing
 
-Comprehensive test suite covering all 5 phases with 672 tests (55%+ code coverage):
+Comprehensive test suite covering all 5 phases with 672 tests (77% code coverage):
 
 ```bash
 # Run all tests
