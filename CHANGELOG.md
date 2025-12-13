@@ -8,7 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
 - Unit test suite for all 5 phases
+
+### Changed
+
+- Removed legacy biomedical AI code and data (~1.6GB cleanup)
+  - Removed `src/med_seg/` and `src/medical_image_segmentation/` packages
+  - Removed legacy training/evaluation scripts (19 files)
+  - Removed legacy configs (brain_tumor, kidney, prostate)
+  - Removed `requirements.txt` (use pyproject.toml)
+  - Removed legacy `medseg-*` CLI entry points from pyproject.toml
+  - Archived `docs/PIVOT_PLAN.md` to `docs/archive/`
 
 ### Fixed
 
@@ -23,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2025-11-30
 
 ### Added
+
 - **Phase 5: SBOM Supply Chain Analysis with GNNs**
   - CycloneDX and SPDX SBOM parsing
   - Graph Neural Network (GCN/GAT) for vulnerability propagation
@@ -58,16 +70,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Project documentation (README.md, CONTRIBUTING.md)
 
 ### Changed
+
 - Strategic pivot from biomedical AI (PET/CT segmentation) to medical device cybersecurity
 - Complete project restructure under `src/medtech_ai_security/`
 
 ### Removed
+
 - Legacy biomedical AI code (`med_seg` package)
 - Obsolete documentation files (15 markdown files from previous project)
 
 ## [0.1.0] - 2025-11-01
 
 ### Added
+
 - Initial project setup
 - Multi-task PET/CT learning system (deprecated)
 - U-Net architecture with shared encoder + dual decoders

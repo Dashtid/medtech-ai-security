@@ -30,7 +30,7 @@ from pathlib import Path
 from urllib.parse import urljoin
 
 import requests
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -203,13 +203,14 @@ class CISAScraper:
         if not soup:
             return None
 
-        # Extract content
-        content = soup.find("article") or soup.find("main") or soup
+        # Extract content - find article or main tag, fallback to soup
+        content_elem = soup.find("article") or soup.find("main")
+        content: BeautifulSoup | Tag = content_elem if isinstance(content_elem, Tag) else soup
 
         # Get full description
         description = ""
         desc_section = content.find(["div", "section"], class_=re.compile(r"content|body", re.I))
-        if desc_section:
+        if isinstance(desc_section, Tag):
             # Get first few paragraphs
             paragraphs = desc_section.find_all("p", limit=5)
             description = " ".join(p.get_text(strip=True) for p in paragraphs)
@@ -261,7 +262,7 @@ class CISAScraper:
             parent = affected_section.find_parent()
             if parent:
                 next_list = parent.find_next(["ul", "ol"])
-                if next_list:
+                if isinstance(next_list, Tag):
                     for li in next_list.find_all("li", limit=10):
                         affected_products.append(li.get_text(strip=True))
 

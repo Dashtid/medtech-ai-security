@@ -8,7 +8,7 @@ AI and machine learning platform for medical device cybersecurity, combining NLP
 
 ## Project Status: All 5 Phases Complete
 
-**November 2025 - Feature Complete**
+November 2025 - Feature Complete
 
 This repository implements a comprehensive AI-powered medical device cybersecurity platform with 5 integrated modules:
 
@@ -66,12 +66,14 @@ medsec-defectdojo       # DefectDojo API integration
 Automated extraction and enrichment of medical device vulnerability data.
 
 **Features:**
+
 - NVD API scraping for medical device CVEs (100+ CVEs collected)
 - CISA ICS-CERT advisory parsing
 - Claude.ai integration for vulnerability enrichment
 - Structured JSON output for downstream processing
 
 **Usage:**
+
 ```bash
 medsec-nvd --days 30 --output data/nvd_cves.json
 medsec-cisa --output data/cisa_advisories.json
@@ -83,12 +85,14 @@ medsec-enrich --input data/nvd_cves.json --output data/enriched.json
 Machine learning model for prioritizing medical device vulnerabilities.
 
 **Features:**
+
 - Naive Bayes + KNN ensemble classifier
 - 75% test accuracy on medical device CVE dataset
 - Feature engineering: CVSS scores, CWE domains, device type, clinical impact
 - Automated risk prioritization with actionable recommendations
 
 **Usage:**
+
 ```bash
 medsec-risk train --data data/enriched.json --output models/risk_model.joblib
 medsec-risk predict --model models/risk_model.joblib --cve CVE-2024-1234
@@ -99,6 +103,7 @@ medsec-risk predict --model models/risk_model.joblib --cve CVE-2024-1234
 Autoencoder-based detection of malicious network traffic in healthcare protocols.
 
 **Features:**
+
 - Synthetic DICOM/HL7 traffic generator with realistic clinical patterns
 - 10 attack types: data exfiltration, message injection, ransomware, DoS, etc.
 - 92.5% accuracy, 0.62 F1-score, 0.86 AUC
@@ -106,6 +111,7 @@ Autoencoder-based detection of malicious network traffic in healthcare protocols
 - Model persistence for deployment
 
 **Usage:**
+
 ```bash
 # Generate synthetic traffic
 medsec-traffic-gen --normal 1000 --attack 200 --output data/traffic.json
@@ -122,12 +128,14 @@ medsec-anomaly detect --model models/detector.keras --input live_traffic.json
 Robustness testing framework for medical imaging AI models.
 
 **Features:**
+
 - Attack methods: FGSM, PGD, Carlini & Wagner (C&W)
 - Defense methods: JPEG compression, Gaussian blur, feature squeezing, adversarial training
 - Clinical impact assessment (false negatives = CRITICAL for cancer detection)
 - Automated robustness reports with defense recommendations
 
 **Usage:**
+
 ```bash
 # Evaluate model robustness
 medsec-adversarial evaluate --model models/xray_classifier.keras --data data/test_images/
@@ -144,6 +152,7 @@ medsec-adversarial defend --method adversarial_training --model models/classifie
 Graph Neural Network-based analysis of Software Bill of Materials.
 
 **Features:**
+
 - SBOM parsing: CycloneDX (JSON/XML), SPDX (JSON/Tag-Value)
 - GNN architecture: Graph Convolutional Networks + Graph Attention Networks
 - Vulnerability propagation prediction through dependency graph
@@ -152,6 +161,7 @@ Graph Neural Network-based analysis of Software Bill of Materials.
 - Interactive HTML visualization with D3.js
 
 **Usage:**
+
 ```bash
 # Analyze SBOM
 medsec-sbom analyze sbom.json --output report.json --html report.html
@@ -164,7 +174,8 @@ medsec-sbom parse sbom.json
 ```
 
 **Sample Output:**
-```
+
+```text
 Supply Chain Risk: HIGH (51.1/100)
 
 Analysis of 5 packages:
@@ -183,7 +194,7 @@ FDA Compliance Notes:
 
 ## Architecture
 
-```
+```text
 medtech-ai-security/
 ├── src/medtech_ai_security/
 │   ├── threat_intel/          # Phase 1: NVD/CISA scrapers
@@ -199,17 +210,17 @@ medtech-ai-security/
 │   │   ├── attacks.py
 │   │   ├── defenses.py
 │   │   └── evaluator.py
-│   └── sbom_analysis/         # Phase 5: SBOM GNN
-│       ├── parser.py
-│       ├── graph_builder.py
-│       ├── gnn_model.py
-│       ├── risk_scorer.py
-│       └── analyzer.py
-│   └── integration/          # External integrations
+│   ├── sbom_analysis/         # Phase 5: SBOM GNN
+│   │   ├── parser.py
+│   │   ├── graph_builder.py
+│   │   ├── gnn_model.py
+│   │   ├── risk_scorer.py
+│   │   └── analyzer.py
+│   └── integration/           # External integrations
 │       └── defectdojo.py
 ├── scripts/
 │   └── demo_security.py       # Comprehensive demo
-├── tests/                     # Unit tests (666 tests)
+├── tests/                     # Unit tests (672 tests)
 │   ├── test_threat_intel.py   # Phase 1 tests
 │   ├── test_risk_scorer.py    # Phase 2 tests
 │   ├── test_anomaly.py        # Phase 3 tests
@@ -218,25 +229,27 @@ medtech-ai-security/
 │   ├── test_defectdojo.py     # Integration tests
 │   └── test_integration.py    # Cross-phase integration tests
 ├── data/                      # Sample data and outputs
-├── models/                    # Trained models
 └── docs/                      # Documentation
 ```
 
 ## Technical Highlights
 
 ### Graph Neural Networks (Phase 5)
+
 - **GCN Layers**: Aggregate neighbor features for vulnerability propagation
 - **GAT Layers**: Attention-weighted message passing
 - **Node Classification**: Predict vulnerability status (clean/direct/transitive)
 - **88-dimensional features**: Name embedding, version, package type, CVSS scores
 
 ### Adversarial ML (Phase 4)
+
 - **FGSM**: Fast single-step attack using gradient sign
 - **PGD**: Iterative projected gradient descent (stronger attack)
 - **C&W**: Optimization-based minimal perturbation attack
 - **Medical context**: Clinical impact assessment for misclassification
 
 ### Anomaly Detection (Phase 3)
+
 - **Autoencoder**: Learn normal traffic patterns, detect deviations
 - **Protocol-aware**: DICOM Association, C-FIND, C-STORE, C-MOVE, C-ECHO
 - **Attack simulation**: 10 realistic medical device attack scenarios
@@ -253,17 +266,20 @@ This platform supports compliance with:
 ## Installation
 
 ### Requirements
+
 - Python 3.10+
 - TensorFlow 2.13+ (for GNN and adversarial ML)
 - UV package manager (recommended)
 
 ### Install with UV
+
 ```bash
 uv sync
 uv sync --extra dev  # Include development tools
 ```
 
 ### Install with pip
+
 ```bash
 pip install -e .
 pip install -e ".[dev]"  # Include development tools
@@ -271,7 +287,7 @@ pip install -e ".[dev]"  # Include development tools
 
 ## Testing
 
-Comprehensive test suite covering all 5 phases with 666 tests (74% code coverage):
+Comprehensive test suite covering all 5 phases with 672 tests (55%+ code coverage):
 
 ```bash
 # Run all tests
@@ -315,24 +331,10 @@ uv run ruff check src/ tests/
 uv run mypy src/
 ```
 
-## Biomedical AI Foundation
-
-This project builds on a completed multi-task PET/CT learning system:
-
-- **Architecture**: U-Net with shared encoder + dual decoders (31.6M parameters)
-- **Training**: 30 epochs on synthetic PET/CT data
-- **Performance**: DICE 0.340, C-index 0.669
-- **Features**: Monte Carlo Dropout uncertainty, Focal Tversky loss
-
-The biomedical AI work demonstrates transferable skills in:
-- Multi-task deep learning
-- Uncertainty quantification
-- Production model optimization
-- Medical imaging preprocessing
-
 ## Roadmap
 
 ### Completed
+
 - [x] Phase 1: NLP Threat Intelligence
 - [x] Phase 2: ML Vulnerability Risk Scoring
 - [x] Phase 3: Anomaly Detection
@@ -340,6 +342,7 @@ The biomedical AI work demonstrates transferable skills in:
 - [x] Phase 5: SBOM GNN Analysis
 
 ### Future Enhancements
+
 - [x] DefectDojo API integration
 - [x] Kubernetes deployment manifests
 - [x] Real-time monitoring dashboard (WebSocket-based)
@@ -352,10 +355,11 @@ MIT License - See [LICENSE](LICENSE) for details.
 
 ## Contact
 
-**David Dashti**
-- Email: david.dashti@hermesmedical.com
+David Dashti
+
+- Email: <david.dashti@hermesmedical.com>
 - GitHub: [@Dashtid](https://github.com/Dashtid)
 
 ---
 
-**Built for healthcare security. Designed for compliance. Powered by AI.**
+Built for healthcare security. Designed for compliance. Powered by AI.
