@@ -78,9 +78,35 @@ When using MedTech AI Security in production:
 This project includes several security measures:
 
 - **Static Analysis**: Bandit security linting in CI pipeline
-- **Dependency Scanning**: Safety and Dependabot for vulnerability detection
+- **Dependency Scanning**: Dependabot for vulnerability detection
 - **Type Checking**: Mypy for catching potential runtime errors
 - **Code Quality**: Ruff and Black for consistent, secure code patterns
+- **Semgrep**: Static analysis for security patterns
+
+### Latest Security Scan Results
+
+```text
+Bandit v1.9.2 (December 2024)
+------------------------------
+Total lines scanned: 13,248
+High Severity:   0
+Medium Severity: 0
+Low Severity:    44
+
+Low severity findings (acceptable):
+- B101 (assert_used): Runtime assertions for input validation
+- B311 (random): Standard random for non-cryptographic simulation
+- B404/B603 (subprocess): Controlled CLI file operations
+```
+
+### Medical Device Security Considerations
+
+As a security toolkit for medical devices, this project considers:
+
+- **IEC 62304**: Medical device software lifecycle processes
+- **IEC 81001-5-1**: Health software and systems security
+- **FDA Cybersecurity Guidance**: Pre/postmarket recommendations
+- **EU MDR 2017/745**: Cybersecurity as essential requirement
 
 ## Acknowledgments
 

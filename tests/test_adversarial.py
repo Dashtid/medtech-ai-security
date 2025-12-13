@@ -1843,3 +1843,415 @@ class TestVulnerabilityAssessment:
         )
 
         assert any("HIGH CLINICAL RISK" in r for r in recs)
+
+
+# =============================================================================
+# Tests for New Attack Methods (DeepFool, Square Attack, AutoAttack)
+# =============================================================================
+
+
+class TestDeepFoolAttack:
+    """Test DeepFool attack implementation."""
+
+    @pytest.fixture
+    def simple_model(self):
+        """Create a simple model for testing."""
+
+        def model(x):
+            mean_val = np.mean(x, axis=(1, 2, 3))
+            probs = np.column_stack([1 - mean_val, mean_val])
+            return probs
+
+        return model
+
+    @pytest.fixture
+    def attacker(self, simple_model):
+        """Create an attacker instance."""
+        return AdversarialAttacker(
+            model=simple_model,
+            clip_min=0.0,
+            clip_max=1.0,
+            num_classes=2,
+        )
+
+    @pytest.fixture
+    def sample_images(self):
+        """Generate sample images."""
+        np.random.seed(42)
+        return np.random.rand(5, 28, 28, 1).astype(np.float32) * 0.5
+
+    @pytest.fixture
+    def sample_labels(self):
+        """Generate sample labels."""
+        return np.array([0] * 5)
+
+    def test_deepfool_attack_basic(self, attacker, sample_images, sample_labels):
+        """Test basic DeepFool attack execution."""
+        result = attacker.deepfool(
+            images=sample_images,
+            labels=sample_labels,
+            max_iterations=10,
+        )
+
+        assert isinstance(result, AttackResult)
+        assert result.attack_type == AttackType.DEEPFOOL
+        assert result.adversarial_images.shape == sample_images.shape
+
+    def test_deepfool_produces_valid_images(self, attacker, sample_images, sample_labels):
+        """Test DeepFool produces images in valid range."""
+        result = attacker.deepfool(
+            images=sample_images,
+            labels=sample_labels,
+            max_iterations=20,
+        )
+
+        assert np.all(result.adversarial_images >= 0.0)
+        assert np.all(result.adversarial_images <= 1.0)
+
+    def test_deepfool_overshoot_parameter(self, attacker, sample_images, sample_labels):
+        """Test DeepFool with different overshoot values."""
+        result = attacker.deepfool(
+            images=sample_images,
+            labels=sample_labels,
+            max_iterations=10,
+            overshoot=0.1,
+        )
+
+        assert isinstance(result, AttackResult)
+        assert "overshoot" in result.attack_params
+
+    def test_deepfool_attack_via_router(self, attacker, sample_images, sample_labels):
+        """Test DeepFool attack via attack() router method."""
+        result = attacker.attack(
+            attack_type=AttackType.DEEPFOOL,
+            images=sample_images,
+            labels=sample_labels,
+            max_iterations=5,
+        )
+
+        assert result.attack_type == AttackType.DEEPFOOL
+
+
+class TestSquareAttack:
+    """Test Square Attack implementation."""
+
+    @pytest.fixture
+    def simple_model(self):
+        """Create a simple model for testing."""
+
+        def model(x):
+            mean_val = np.mean(x, axis=(1, 2, 3))
+            probs = np.column_stack([1 - mean_val, mean_val])
+            return probs
+
+        return model
+
+    @pytest.fixture
+    def attacker(self, simple_model):
+        """Create an attacker instance."""
+        return AdversarialAttacker(
+            model=simple_model,
+            clip_min=0.0,
+            clip_max=1.0,
+            num_classes=2,
+        )
+
+    @pytest.fixture
+    def sample_images(self):
+        """Generate sample images."""
+        np.random.seed(42)
+        return np.random.rand(3, 28, 28, 1).astype(np.float32) * 0.5
+
+    @pytest.fixture
+    def sample_labels(self):
+        """Generate sample labels."""
+        return np.array([0] * 3)
+
+    def test_square_attack_basic(self, attacker, sample_images, sample_labels):
+        """Test basic Square Attack execution."""
+        result = attacker.square_attack(
+            images=sample_images,
+            labels=sample_labels,
+            epsilon=0.1,
+            n_queries=100,
+        )
+
+        assert isinstance(result, AttackResult)
+        assert result.attack_type == AttackType.SQUARE
+        assert result.adversarial_images.shape == sample_images.shape
+
+    def test_square_attack_respects_epsilon(self, attacker, sample_images, sample_labels):
+        """Test Square Attack respects epsilon bound."""
+        epsilon = 0.05
+        result = attacker.square_attack(
+            images=sample_images,
+            labels=sample_labels,
+            epsilon=epsilon,
+            n_queries=50,
+        )
+
+        perturbation = np.abs(result.adversarial_images - sample_images)
+        assert np.all(perturbation <= epsilon + 1e-5)
+
+    def test_square_attack_valid_range(self, attacker, sample_images, sample_labels):
+        """Test Square Attack produces images in valid range."""
+        result = attacker.square_attack(
+            images=sample_images,
+            labels=sample_labels,
+            epsilon=0.1,
+            n_queries=50,
+        )
+
+        assert np.all(result.adversarial_images >= 0.0)
+        assert np.all(result.adversarial_images <= 1.0)
+
+    def test_square_attack_via_router(self, attacker, sample_images, sample_labels):
+        """Test Square Attack via attack() router method."""
+        result = attacker.attack(
+            attack_type=AttackType.SQUARE,
+            images=sample_images,
+            labels=sample_labels,
+            epsilon=0.1,
+            n_queries=50,
+        )
+
+        assert result.attack_type == AttackType.SQUARE
+
+
+class TestAutoAttack:
+    """Test AutoAttack ensemble implementation."""
+
+    @pytest.fixture
+    def simple_model(self):
+        """Create a simple model for testing."""
+
+        def model(x):
+            mean_val = np.mean(x, axis=(1, 2, 3))
+            probs = np.column_stack([1 - mean_val, mean_val])
+            return probs
+
+        return model
+
+    @pytest.fixture
+    def attacker(self, simple_model):
+        """Create an attacker instance."""
+        return AdversarialAttacker(
+            model=simple_model,
+            clip_min=0.0,
+            clip_max=1.0,
+            num_classes=2,
+        )
+
+    @pytest.fixture
+    def sample_images(self):
+        """Generate sample images."""
+        np.random.seed(42)
+        return np.random.rand(3, 28, 28, 1).astype(np.float32) * 0.5
+
+    @pytest.fixture
+    def sample_labels(self):
+        """Generate sample labels."""
+        return np.array([0] * 3)
+
+    def test_autoattack_basic(self, attacker, sample_images, sample_labels):
+        """Test basic AutoAttack execution."""
+        result = attacker.autoattack(
+            images=sample_images,
+            labels=sample_labels,
+            epsilon=0.1,
+            version="standard",
+        )
+
+        assert isinstance(result, AttackResult)
+        assert result.attack_type == AttackType.AUTOATTACK
+        assert result.adversarial_images.shape == sample_images.shape
+
+    def test_autoattack_valid_range(self, attacker, sample_images, sample_labels):
+        """Test AutoAttack produces images in valid range."""
+        result = attacker.autoattack(
+            images=sample_images,
+            labels=sample_labels,
+            epsilon=0.1,
+        )
+
+        assert np.all(result.adversarial_images >= 0.0)
+        assert np.all(result.adversarial_images <= 1.0)
+
+    def test_autoattack_via_router(self, attacker, sample_images, sample_labels):
+        """Test AutoAttack via attack() router method."""
+        result = attacker.attack(
+            attack_type=AttackType.AUTOATTACK,
+            images=sample_images,
+            labels=sample_labels,
+            epsilon=0.1,
+        )
+
+        assert result.attack_type == AttackType.AUTOATTACK
+
+    def test_autoattack_version_plus(self, attacker, sample_images, sample_labels):
+        """Test AutoAttack with 'plus' version."""
+        result = attacker.autoattack(
+            images=sample_images,
+            labels=sample_labels,
+            epsilon=0.1,
+            version="plus",
+        )
+
+        assert isinstance(result, AttackResult)
+        assert result.attack_params.get("version") == "plus"
+
+
+# =============================================================================
+# Tests for New Defense Methods
+# =============================================================================
+
+
+class TestRandomizedSmoothing:
+    """Test Randomized Smoothing defense."""
+
+    @pytest.fixture
+    def simple_model(self):
+        """Create a simple model for testing."""
+
+        def model(x):
+            mean_val = np.mean(x, axis=(1, 2, 3))
+            probs = np.column_stack([1 - mean_val, mean_val])
+            return probs
+
+        return model
+
+    @pytest.fixture
+    def defender(self, simple_model):
+        """Create a defender instance."""
+        return AdversarialDefender(model=simple_model)
+
+    @pytest.fixture
+    def sample_images(self):
+        """Generate sample images."""
+        np.random.seed(42)
+        return np.random.rand(5, 28, 28, 1).astype(np.float32)
+
+    def test_randomized_smoothing_basic(self, defender, sample_images):
+        """Test basic randomized smoothing execution."""
+        smoothed_preds, certified_radii = defender.randomized_smoothing(
+            images=sample_images,
+            sigma=0.25,
+            n_samples=10,
+        )
+
+        assert smoothed_preds.shape[0] == len(sample_images)
+        assert certified_radii.shape[0] == len(sample_images)
+
+    def test_randomized_smoothing_certified_radii(self, defender, sample_images):
+        """Test certified radii are non-negative."""
+        _, certified_radii = defender.randomized_smoothing(
+            images=sample_images,
+            sigma=0.25,
+            n_samples=20,
+        )
+
+        assert np.all(certified_radii >= 0.0)
+
+    def test_randomized_smoothing_predictions_valid(self, defender, sample_images):
+        """Test smoothed predictions are valid probabilities."""
+        smoothed_preds, _ = defender.randomized_smoothing(
+            images=sample_images,
+            sigma=0.25,
+            n_samples=10,
+        )
+
+        assert np.all(smoothed_preds >= 0.0)
+        assert np.all(smoothed_preds <= 1.0)
+
+    def test_randomized_smoothing_requires_model(self, sample_images):
+        """Test that randomized smoothing requires a model."""
+        defender = AdversarialDefender(model=None)
+        with pytest.raises(ValueError, match="Model required"):
+            defender.randomized_smoothing(sample_images, sigma=0.25, n_samples=10)
+
+
+class TestInputTransformation:
+    """Test Input Transformation defense."""
+
+    @pytest.fixture
+    def simple_model(self):
+        """Create a simple model for testing."""
+
+        def model(x):
+            mean_val = np.mean(x, axis=(1, 2, 3))
+            probs = np.column_stack([1 - mean_val, mean_val])
+            return probs
+
+        return model
+
+    @pytest.fixture
+    def defender(self, simple_model):
+        """Create a defender instance."""
+        return AdversarialDefender(model=simple_model)
+
+    @pytest.fixture
+    def sample_images(self):
+        """Generate sample images."""
+        np.random.seed(42)
+        return np.random.rand(5, 28, 28, 3).astype(np.float32)
+
+    def test_input_transformation_basic(self, defender, sample_images):
+        """Test basic input transformation execution."""
+        transformed = defender.input_transformation(
+            images=sample_images,
+            rotation_range=5.0,
+            translation_range=0.05,
+        )
+
+        assert transformed.shape == sample_images.shape
+
+    def test_input_transformation_preserves_dtype(self, defender, sample_images):
+        """Test input transformation preserves dtype."""
+        transformed = defender.input_transformation(
+            images=sample_images,
+            rotation_range=5.0,
+        )
+
+        assert transformed.dtype == np.float32
+
+    def test_input_transformation_with_scale(self, defender, sample_images):
+        """Test input transformation with scale range."""
+        transformed = defender.input_transformation(
+            images=sample_images,
+            rotation_range=0.0,
+            translation_range=0.0,
+            scale_range=(0.9, 1.1),
+        )
+
+        assert transformed.shape == sample_images.shape
+
+
+class TestNewDefenseTypes:
+    """Test new DefenseType enum values."""
+
+    def test_new_defense_types_exist(self):
+        """Test new defense types are defined."""
+        assert DefenseType.RANDOMIZED_SMOOTHING.value == "randomized_smoothing"
+        assert DefenseType.GRADIENT_REGULARIZATION.value == "gradient_regularization"
+        assert DefenseType.INPUT_TRANSFORMATION.value == "input_transformation"
+
+    def test_all_defense_types_have_values(self):
+        """Test all defense types have string values."""
+        for defense in DefenseType:
+            assert isinstance(defense.value, str)
+            assert len(defense.value) > 0
+
+
+class TestNewAttackTypes:
+    """Test new AttackType enum values."""
+
+    def test_new_attack_types_exist(self):
+        """Test new attack types are defined."""
+        assert AttackType.DEEPFOOL.value == "deepfool"
+        assert AttackType.SQUARE.value == "square"
+        assert AttackType.AUTOATTACK.value == "autoattack"
+
+    def test_attack_type_count(self):
+        """Test total number of attack types."""
+        # FGSM, PGD, CW_L2, CW_LINF, DEEPFOOL, SQUARE, AUTOATTACK = 7
+        assert len(AttackType) == 7
