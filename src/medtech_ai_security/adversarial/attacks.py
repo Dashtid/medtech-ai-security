@@ -51,6 +51,9 @@ class AttackType(Enum):
     PGD = "pgd"
     CW_L2 = "cw_l2"
     CW_LINF = "cw_linf"
+    DEEPFOOL = "deepfool"
+    SQUARE = "square"
+    AUTOATTACK = "autoattack"
 
 
 class AttackTarget(Enum):
@@ -596,6 +599,325 @@ class AdversarialAttacker:
             },
         )
 
+    def deepfool(
+        self,
+        images: np.ndarray,
+        labels: np.ndarray,
+        num_classes: int | None = None,
+        max_iterations: int = 50,
+        overshoot: float = 0.02,
+    ) -> AttackResult:
+        """
+        DeepFool attack - minimal perturbation to cross decision boundary.
+
+        Moosavi-Dezfooli et al., 2016: "DeepFool: a simple and accurate method
+        to fool deep neural networks"
+
+        Args:
+            images: Input images (batch, height, width, channels)
+            labels: True labels
+            num_classes: Number of classes (auto-detected if None)
+            max_iterations: Maximum iterations to find adversarial
+            overshoot: Overshoot factor to ensure crossing boundary
+
+        Returns:
+            AttackResult with minimal-perturbation adversarial examples
+        """
+        logger.info(f"Running DeepFool attack with max_iterations={max_iterations}")
+
+        images = np.asarray(images, dtype=np.float32)
+        labels = np.asarray(labels)
+        batch_size = images.shape[0]
+
+        if num_classes is None:
+            num_classes = self.num_classes
+
+        adversarial_images = images.copy()
+        perturbations = np.zeros_like(images)
+
+        for i in range(batch_size):
+            x = images[i:i+1].copy()
+            original_label = labels[i]
+
+            for iteration in range(max_iterations):
+                # Get predictions
+                pred = self.model(x)
+                if hasattr(pred, "numpy"):
+                    pred = pred.numpy()
+
+                if len(pred.shape) == 1 or pred.shape[-1] == 1:
+                    # Binary classification
+                    current_label = int(np.squeeze(pred) > 0.5)
+                    if current_label != original_label:
+                        break
+                    # Simple gradient-based perturbation for binary
+                    gradient = self._compute_gradient(x, np.array([original_label]))
+                    perturbation = 0.01 * gradient / (np.linalg.norm(gradient) + 1e-8)
+                    x = x + perturbation
+                else:
+                    # Multi-class classification
+                    current_label = np.argmax(pred[0])
+                    if current_label != original_label:
+                        break
+
+                    # Find minimal perturbation to closest class boundary
+                    gradients = {}
+                    f_values = {}
+
+                    for k in range(num_classes):
+                        if k == original_label:
+                            continue
+                        # Compute gradient of f_k - f_original
+                        grad_k = self._compute_gradient(x, np.array([k]))
+                        grad_orig = self._compute_gradient(x, np.array([original_label]))
+                        gradients[k] = grad_k - grad_orig
+                        f_values[k] = pred[0, k] - pred[0, original_label]
+
+                    # Find closest boundary
+                    min_dist = np.inf
+                    best_k = None
+                    best_w = None
+
+                    for k, w in gradients.items():
+                        w_norm = np.linalg.norm(w)
+                        if w_norm > 1e-8:
+                            dist = abs(f_values[k]) / w_norm
+                            if dist < min_dist:
+                                min_dist = dist
+                                best_k = k
+                                best_w = w
+
+                    if best_w is not None:
+                        # Compute minimal perturbation
+                        w_norm = np.linalg.norm(best_w)
+                        r = (abs(f_values[best_k]) / (w_norm ** 2 + 1e-8)) * best_w
+                        x = x + (1 + overshoot) * r
+
+                x = np.clip(x, self.clip_min, self.clip_max)
+
+            adversarial_images[i] = x[0]
+            perturbations[i] = x[0] - images[i]
+
+        return self._evaluate_attack(
+            images,
+            adversarial_images,
+            perturbations,
+            labels,
+            AttackType.DEEPFOOL,
+            {"max_iterations": max_iterations, "overshoot": overshoot},
+        )
+
+    def square_attack(
+        self,
+        images: np.ndarray,
+        labels: np.ndarray,
+        epsilon: float = 0.05,
+        n_queries: int = 5000,
+        p_init: float = 0.8,
+    ) -> AttackResult:
+        """
+        Square Attack - query-efficient black-box attack.
+
+        Andriushchenko et al., 2020: "Square Attack: a query-efficient
+        black-box adversarial attack via random search"
+
+        Args:
+            images: Input images
+            labels: True labels
+            epsilon: L-inf perturbation bound
+            n_queries: Maximum number of queries
+            p_init: Initial probability of changing a pixel
+
+        Returns:
+            AttackResult with adversarial examples
+        """
+        logger.info(f"Running Square Attack with epsilon={epsilon}, n_queries={n_queries}")
+
+        images = np.asarray(images, dtype=np.float32)
+        labels = np.asarray(labels)
+        batch_size = images.shape[0]
+
+        adversarial_images = images.copy()
+        perturbations = np.zeros_like(images)
+
+        for i in range(batch_size):
+            x = images[i].copy()
+            label = labels[i]
+            best_adv = x.copy()
+            best_loss = -np.inf
+
+            # Initialize random perturbation
+            h, w = x.shape[:2]
+            c = x.shape[2] if len(x.shape) > 2 else 1
+
+            for query in range(n_queries):
+                # Decreasing probability schedule
+                p = p_init * (1 - query / n_queries)
+
+                # Random square size
+                s = max(1, int(np.sqrt(p * h * w)))
+
+                # Random position
+                x_start = np.random.randint(0, max(1, h - s + 1))
+                y_start = np.random.randint(0, max(1, w - s + 1))
+
+                # Random perturbation direction
+                delta = np.random.choice([-epsilon, epsilon])
+
+                # Apply square perturbation
+                x_new = x.copy()
+                if len(x.shape) > 2:
+                    x_new[x_start:x_start+s, y_start:y_start+s, :] += delta
+                else:
+                    x_new[x_start:x_start+s, y_start:y_start+s] += delta
+
+                # Clip to valid range and epsilon bound
+                x_new = np.clip(x_new, images[i] - epsilon, images[i] + epsilon)
+                x_new = np.clip(x_new, self.clip_min, self.clip_max)
+
+                # Query the model
+                pred = self.model(x_new[np.newaxis, ...])
+                if hasattr(pred, "numpy"):
+                    pred = pred.numpy()
+
+                # Check if attack succeeded
+                if len(pred.shape) == 1 or pred.shape[-1] == 1:
+                    pred_label = int(np.squeeze(pred) > 0.5)
+                    loss = -pred[0] if label == 1 else pred[0]
+                else:
+                    pred_label = np.argmax(pred[0])
+                    loss = -pred[0, label]
+
+                # Update if better or successful
+                if loss > best_loss or pred_label != label:
+                    best_loss = loss
+                    best_adv = x_new.copy()
+                    x = x_new
+
+                    if pred_label != label:
+                        break  # Early stopping on success
+
+            adversarial_images[i] = best_adv
+            perturbations[i] = best_adv - images[i]
+
+        return self._evaluate_attack(
+            images,
+            adversarial_images,
+            perturbations,
+            labels,
+            AttackType.SQUARE,
+            {"epsilon": epsilon, "n_queries": n_queries, "p_init": p_init},
+        )
+
+    def autoattack(
+        self,
+        images: np.ndarray,
+        labels: np.ndarray,
+        epsilon: float = 0.03,
+        version: str = "standard",
+    ) -> AttackResult:
+        """
+        AutoAttack - ensemble of complementary attacks.
+
+        Croce & Hein, 2020: "Reliable evaluation of adversarial robustness
+        with an ensemble of diverse parameter-free attacks"
+
+        Standard version runs: APGD-CE, APGD-DLR, FAB, Square
+        Simplified version here runs: PGD variants + Square
+
+        Args:
+            images: Input images
+            labels: True labels
+            epsilon: L-inf perturbation bound
+            version: "standard" or "plus"
+
+        Returns:
+            AttackResult with best adversarial examples from ensemble
+        """
+        logger.info(f"Running AutoAttack ({version}) with epsilon={epsilon}")
+
+        images = np.asarray(images, dtype=np.float32)
+        labels = np.asarray(labels)
+        batch_size = images.shape[0]
+
+        # Track best adversarial per sample
+        best_adv = images.copy()
+        best_success = np.zeros(batch_size, dtype=bool)
+
+        # Attack 1: APGD-CE (Approximation via standard PGD)
+        logger.info("  Running PGD with cross-entropy loss...")
+        result_pgd = self.pgd(
+            images, labels,
+            epsilon=epsilon,
+            alpha=epsilon / 4,
+            num_iterations=100,
+            random_start=True,
+        )
+        for i in range(batch_size):
+            if i in result_pgd.successful_indices and not best_success[i]:
+                best_adv[i] = result_pgd.adversarial_images[i]
+                best_success[i] = True
+
+        # Attack 2: PGD with different step size (mimics APGD-DLR)
+        remaining = ~best_success
+        if remaining.any():
+            logger.info("  Running PGD with smaller step size...")
+            result_pgd2 = self.pgd(
+                images[remaining], labels[remaining],
+                epsilon=epsilon,
+                alpha=epsilon / 10,
+                num_iterations=100,
+                random_start=True,
+            )
+            remaining_indices = np.where(remaining)[0]
+            for j, i in enumerate(remaining_indices):
+                if j in result_pgd2.successful_indices and not best_success[i]:
+                    best_adv[i] = result_pgd2.adversarial_images[j]
+                    best_success[i] = True
+
+        # Attack 3: Square Attack (black-box)
+        remaining = ~best_success
+        if remaining.any():
+            logger.info("  Running Square Attack...")
+            result_square = self.square_attack(
+                images[remaining], labels[remaining],
+                epsilon=epsilon,
+                n_queries=1000,
+            )
+            remaining_indices = np.where(remaining)[0]
+            for j, i in enumerate(remaining_indices):
+                if j in result_square.successful_indices and not best_success[i]:
+                    best_adv[i] = result_square.adversarial_images[j]
+                    best_success[i] = True
+
+        # Attack 4: DeepFool (if still remaining)
+        remaining = ~best_success
+        if remaining.any() and version == "plus":
+            logger.info("  Running DeepFool...")
+            result_df = self.deepfool(
+                images[remaining], labels[remaining],
+                max_iterations=50,
+            )
+            remaining_indices = np.where(remaining)[0]
+            for j, i in enumerate(remaining_indices):
+                if j in result_df.successful_indices:
+                    # Check if perturbation is within epsilon bound
+                    pert = result_df.adversarial_images[j] - images[i]
+                    if np.max(np.abs(pert)) <= epsilon:
+                        best_adv[i] = result_df.adversarial_images[j]
+                        best_success[i] = True
+
+        perturbations = best_adv - images
+
+        return self._evaluate_attack(
+            images,
+            best_adv,
+            perturbations,
+            labels,
+            AttackType.AUTOATTACK,
+            {"epsilon": epsilon, "version": version},
+        )
+
     def _evaluate_attack(
         self,
         original_images: np.ndarray,
@@ -687,5 +1009,11 @@ class AdversarialAttacker:
             return self.pgd(images, labels, **kwargs)
         elif attack_type == AttackType.CW_L2:
             return self.cw_l2(images, labels, **kwargs)
+        elif attack_type == AttackType.DEEPFOOL:
+            return self.deepfool(images, labels, **kwargs)
+        elif attack_type == AttackType.SQUARE:
+            return self.square_attack(images, labels, **kwargs)
+        elif attack_type == AttackType.AUTOATTACK:
+            return self.autoattack(images, labels, **kwargs)
         else:
             raise ValueError(f"Unknown attack type: {attack_type}")

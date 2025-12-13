@@ -44,6 +44,9 @@ class DefenseType(Enum):
     SPATIAL_SMOOTHING = "spatial_smoothing"
     FEATURE_SQUEEZING = "feature_squeezing"
     ENSEMBLE = "ensemble"
+    RANDOMIZED_SMOOTHING = "randomized_smoothing"
+    GRADIENT_REGULARIZATION = "gradient_regularization"
+    INPUT_TRANSFORMATION = "input_transformation"
 
 
 @dataclass
@@ -296,6 +299,153 @@ class AdversarialDefender:
         # Average all defended versions
         ensemble = np.mean(defended_images, axis=0)
         return np.asarray(ensemble.astype(np.float32))
+
+    def randomized_smoothing(
+        self,
+        images: np.ndarray,
+        sigma: float = 0.25,
+        n_samples: int = 100,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Apply randomized smoothing for certified robustness.
+
+        Cohen et al., 2019: "Certified Adversarial Robustness via Randomized Smoothing"
+
+        Adds Gaussian noise to inputs and aggregates predictions for certified
+        robustness guarantees. Returns smoothed predictions and certified radii.
+
+        Args:
+            images: Input images
+            sigma: Standard deviation of Gaussian noise
+            n_samples: Number of noisy samples per image
+
+        Returns:
+            Tuple of (smoothed_predictions, certified_radii)
+        """
+        if self.model is None:
+            raise ValueError("Model required for randomized smoothing")
+
+        batch_size = len(images)
+        all_predictions = []
+
+        # Generate noisy predictions
+        for _ in range(n_samples):
+            noise = np.random.randn(*images.shape).astype(np.float32) * sigma
+            noisy_images = np.clip(images + noise, 0, 1)
+
+            preds = self.model(noisy_images)
+            if hasattr(preds, "numpy"):
+                preds = preds.numpy()
+            all_predictions.append(preds)
+
+        # Stack predictions: (n_samples, batch_size, num_classes)
+        all_predictions = np.array(all_predictions)
+
+        # Compute class counts for each sample
+        if len(all_predictions.shape) == 2 or all_predictions.shape[-1] == 1:
+            # Binary classification
+            class_votes = (np.squeeze(all_predictions) > 0.5).astype(int)
+            counts = np.zeros((batch_size, 2))
+            for i in range(batch_size):
+                counts[i, 0] = np.sum(class_votes[:, i] == 0)
+                counts[i, 1] = np.sum(class_votes[:, i] == 1)
+            smoothed_preds = counts[:, 1] / n_samples
+            smoothed_preds = smoothed_preds[:, np.newaxis]
+        else:
+            # Multi-class: count votes per class
+            class_votes = np.argmax(all_predictions, axis=-1)  # (n_samples, batch_size)
+            num_classes = all_predictions.shape[-1]
+            counts = np.zeros((batch_size, num_classes))
+            for i in range(batch_size):
+                for c in range(num_classes):
+                    counts[i, c] = np.sum(class_votes[:, i] == c)
+            smoothed_preds = counts / n_samples
+
+        # Compute certified radius using Neyman-Pearson lemma
+        # For binary, radius = sigma * Phi^(-1)(p_A) where p_A is top class probability
+        from scipy.stats import norm
+
+        certified_radii = np.zeros(batch_size)
+        for i in range(batch_size):
+            p_a = np.max(counts[i]) / n_samples
+            if p_a > 0.5:
+                certified_radii[i] = sigma * norm.ppf(p_a)
+            else:
+                certified_radii[i] = 0.0
+
+        logger.info(
+            f"Randomized smoothing: mean certified radius = {np.mean(certified_radii):.4f}"
+        )
+
+        return smoothed_preds, certified_radii
+
+    def input_transformation(
+        self,
+        images: np.ndarray,
+        rotation_range: float = 5.0,
+        translation_range: float = 0.05,
+        scale_range: tuple[float, float] = (0.95, 1.05),
+    ) -> np.ndarray:
+        """
+        Apply random input transformations as a defense.
+
+        Random geometric transformations can break adversarial perturbations
+        while preserving semantic content.
+
+        Args:
+            images: Input images
+            rotation_range: Max rotation in degrees
+            translation_range: Max translation as fraction of image size
+            scale_range: Scale range (min, max)
+
+        Returns:
+            Transformed images
+        """
+        from scipy.ndimage import affine_transform
+
+        batch_size = len(images)
+        transformed = np.zeros_like(images)
+
+        for i in range(batch_size):
+            img = images[i]
+            h, w = img.shape[:2]
+            center = (h / 2, w / 2)
+
+            # Random rotation
+            angle = np.random.uniform(-rotation_range, rotation_range)
+            angle_rad = np.deg2rad(angle)
+
+            # Random translation
+            tx = np.random.uniform(-translation_range, translation_range) * w
+            ty = np.random.uniform(-translation_range, translation_range) * h
+
+            # Random scale
+            scale = np.random.uniform(scale_range[0], scale_range[1])
+
+            # Build transformation matrix
+            cos_a, sin_a = np.cos(angle_rad), np.sin(angle_rad)
+            rotation_matrix = np.array([
+                [cos_a / scale, -sin_a / scale],
+                [sin_a / scale, cos_a / scale]
+            ])
+
+            # Offset to rotate around center
+            offset = np.array([
+                center[0] - center[0] * cos_a / scale + center[1] * sin_a / scale - ty,
+                center[1] - center[0] * sin_a / scale - center[1] * cos_a / scale - tx
+            ])
+
+            # Apply to each channel
+            for c in range(img.shape[-1]):
+                transformed[i, :, :, c] = affine_transform(
+                    img[:, :, c],
+                    rotation_matrix,
+                    offset=offset,
+                    order=1,
+                    mode="nearest"
+                )
+
+        return transformed.astype(np.float32)
 
     def detect_adversarial(
         self,
@@ -602,5 +752,215 @@ class AdversarialTrainer:
             else:
                 if verbose:
                     logger.info(f"Epoch {epoch + 1}/{epochs} - loss: {mean_loss:.4f}")
+
+        return history
+
+
+class GradientRegularizedTrainer:
+    """
+    Training with input gradient regularization for improved robustness.
+
+    Ross & Doshi-Velez, 2018: "Improving the Adversarial Robustness and
+    Interpretability of Deep Neural Networks by Regularizing their Input Gradients"
+
+    Penalizes large input gradients during training, which makes the model
+    more robust to small input perturbations.
+    """
+
+    def __init__(
+        self,
+        model: Any,
+        lambda_grad: float = 0.1,
+        grad_norm: str = "l2",
+    ) -> None:
+        """
+        Initialize gradient-regularized trainer.
+
+        Args:
+            model: Keras model to train
+            lambda_grad: Regularization strength for gradient penalty
+            grad_norm: Gradient norm type ("l1", "l2", or "linf")
+        """
+        self.model = model
+        self.lambda_grad = lambda_grad
+        self.grad_norm = grad_norm
+
+        try:
+            import tensorflow as tf
+            self.tf = tf
+        except ImportError:
+            raise ImportError("TensorFlow required for gradient regularization")
+
+    def _compute_gradient_penalty(
+        self,
+        images: Any,  # tf.Tensor
+        labels: Any,  # tf.Tensor
+    ) -> Any:  # tf.Tensor
+        """Compute gradient penalty term."""
+        with self.tf.GradientTape() as tape:
+            tape.watch(images)
+            predictions = self.model(images, training=True)
+
+            if len(predictions.shape) == 1 or predictions.shape[-1] == 1:
+                loss = self.tf.keras.losses.binary_crossentropy(
+                    self.tf.cast(labels, self.tf.float32),
+                    self.tf.squeeze(predictions),
+                )
+            else:
+                loss = self.tf.keras.losses.sparse_categorical_crossentropy(
+                    labels, predictions
+                )
+
+        gradients = tape.gradient(loss, images)
+
+        # Compute gradient norm
+        if self.grad_norm == "l1":
+            grad_penalty = self.tf.reduce_mean(self.tf.abs(gradients))
+        elif self.grad_norm == "l2":
+            grad_penalty = self.tf.reduce_mean(self.tf.square(gradients))
+        else:  # linf
+            grad_penalty = self.tf.reduce_max(self.tf.abs(gradients))
+
+        return grad_penalty
+
+    def training_step(
+        self,
+        images: np.ndarray,
+        labels: np.ndarray,
+    ) -> tuple[float, float]:
+        """
+        Single training step with gradient regularization.
+
+        Args:
+            images: Training images
+            labels: Training labels
+
+        Returns:
+            Tuple of (classification_loss, gradient_penalty)
+        """
+        images_tensor = self.tf.constant(images, dtype=self.tf.float32)
+        labels_tensor = self.tf.constant(labels, dtype=self.tf.int32)
+
+        with self.tf.GradientTape(persistent=True) as tape:
+            tape.watch(images_tensor)
+            predictions = self.model(images_tensor, training=True)
+
+            # Classification loss
+            if len(predictions.shape) == 1 or predictions.shape[-1] == 1:
+                cls_loss = self.tf.keras.losses.binary_crossentropy(
+                    self.tf.cast(labels_tensor, self.tf.float32),
+                    self.tf.squeeze(predictions),
+                )
+            else:
+                cls_loss = self.tf.keras.losses.sparse_categorical_crossentropy(
+                    labels_tensor, predictions
+                )
+            cls_loss = self.tf.reduce_mean(cls_loss)
+
+            # Gradient penalty
+            input_grads = tape.gradient(cls_loss, images_tensor)
+
+            if self.grad_norm == "l1":
+                grad_penalty = self.tf.reduce_mean(self.tf.abs(input_grads))
+            elif self.grad_norm == "l2":
+                grad_penalty = self.tf.reduce_mean(self.tf.square(input_grads))
+            else:
+                grad_penalty = self.tf.reduce_max(self.tf.abs(input_grads))
+
+            # Total loss
+            total_loss = cls_loss + self.lambda_grad * grad_penalty
+
+        # Update model weights
+        model_gradients = tape.gradient(total_loss, self.model.trainable_variables)
+        self.model.optimizer.apply_gradients(
+            zip(model_gradients, self.model.trainable_variables)
+        )
+
+        del tape  # Release persistent tape
+
+        return float(cls_loss.numpy()), float(grad_penalty.numpy())
+
+    def fit(
+        self,
+        x_train: np.ndarray,
+        y_train: np.ndarray,
+        epochs: int = 10,
+        batch_size: int = 32,
+        validation_data: tuple[np.ndarray, np.ndarray] | None = None,
+        verbose: bool = True,
+    ) -> dict:
+        """
+        Train model with gradient regularization.
+
+        Args:
+            x_train: Training images
+            y_train: Training labels
+            epochs: Number of training epochs
+            batch_size: Batch size
+            validation_data: Optional (x_val, y_val) tuple
+            verbose: Print progress
+
+        Returns:
+            Training history dictionary
+        """
+        history: dict[str, list[float]] = {
+            "loss": [],
+            "grad_penalty": [],
+            "val_accuracy": [],
+        }
+
+        num_batches = len(x_train) // batch_size
+
+        for epoch in range(epochs):
+            indices = np.random.permutation(len(x_train))
+            x_shuffled = x_train[indices]
+            y_shuffled = y_train[indices]
+
+            epoch_losses = []
+            epoch_penalties = []
+
+            for batch_idx in range(num_batches):
+                start = batch_idx * batch_size
+                end = start + batch_size
+
+                batch_x = x_shuffled[start:end]
+                batch_y = y_shuffled[start:end]
+
+                cls_loss, grad_penalty = self.training_step(batch_x, batch_y)
+                epoch_losses.append(cls_loss)
+                epoch_penalties.append(grad_penalty)
+
+            mean_loss = float(np.mean(epoch_losses))
+            mean_penalty = float(np.mean(epoch_penalties))
+            history["loss"].append(mean_loss)
+            history["grad_penalty"].append(mean_penalty)
+
+            if validation_data is not None:
+                x_val, y_val = validation_data
+                val_preds = self.model(x_val)
+                if hasattr(val_preds, "numpy"):
+                    val_preds = val_preds.numpy()
+
+                if len(val_preds.shape) == 1 or val_preds.shape[-1] == 1:
+                    val_classes = (np.squeeze(val_preds) > 0.5).astype(int)
+                else:
+                    val_classes = np.argmax(val_preds, axis=1)
+
+                val_accuracy = np.mean(val_classes == y_val)
+                history["val_accuracy"].append(float(val_accuracy))
+
+                if verbose:
+                    logger.info(
+                        f"Epoch {epoch + 1}/{epochs} - "
+                        f"loss: {mean_loss:.4f} - "
+                        f"grad_penalty: {mean_penalty:.6f} - "
+                        f"val_accuracy: {val_accuracy:.4f}"
+                    )
+            else:
+                if verbose:
+                    logger.info(
+                        f"Epoch {epoch + 1}/{epochs} - "
+                        f"loss: {mean_loss:.4f} - grad_penalty: {mean_penalty:.6f}"
+                    )
 
         return history
