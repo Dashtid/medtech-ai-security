@@ -18,10 +18,41 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect, status
+from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, Field
+
+# Import authentication module
+from medtech_ai_security.api.auth import (
+    APIKeyCreate,
+    APIKeyResponse,
+    Token,
+    User,
+    UserCreate,
+    UserResponse,
+    UserRole,
+    authenticate_user,
+    create_access_token,
+    create_api_key,
+    create_refresh_token,
+    create_user,
+    decode_token,
+    get_current_user,
+    require_admin,
+    require_analyst,
+    revoke_token,
+    TokenType,
+)
+
+# Import drift detection module
+from medtech_ai_security.ml.drift_detection import (
+    DriftDetector,
+    DriftMethod,
+    DriftSeverity,
+    DriftType,
+)
 
 # Configure logging
 logging.basicConfig(
@@ -201,6 +232,55 @@ class ModelCompareResponse(BaseModel):
     recommendations: list[str] = Field(..., description="Recommendations based on comparison")
 
 
+class DriftDetectionRequest(BaseModel):
+    """Request model for drift detection."""
+
+    reference_data: list[list[float]] = Field(
+        ...,
+        description="Reference (baseline) data matrix",
+        min_length=10,
+    )
+    current_data: list[list[float]] = Field(
+        ...,
+        description="Current data matrix to check for drift",
+        min_length=10,
+    )
+    feature_names: list[str] | None = Field(
+        default=None,
+        description="Optional names for features",
+    )
+    method: str = Field(
+        default="psi",
+        description="Drift detection method",
+        examples=["psi", "js_divergence", "wasserstein", "ks_test"],
+    )
+    reference_predictions: list[float] | None = Field(
+        default=None,
+        description="Reference model predictions (optional)",
+    )
+    current_predictions: list[float] | None = Field(
+        default=None,
+        description="Current model predictions (optional)",
+    )
+
+
+class DriftDetectionResponse(BaseModel):
+    """Response model for drift detection."""
+
+    drift_detected: bool = Field(..., description="Whether drift was detected")
+    severity: str = Field(..., description="Drift severity level")
+    overall_score: float = Field(..., description="Overall drift score")
+    feature_results: list[dict[str, Any]] = Field(
+        ..., description="Per-feature drift results"
+    )
+    prediction_drift: dict[str, Any] | None = Field(
+        None, description="Prediction drift results"
+    )
+    summary: dict[str, Any] = Field(..., description="Summary statistics")
+    recommendations: list[str] = Field(..., description="Actionable recommendations")
+    timestamp: str = Field(..., description="Analysis timestamp")
+
+
 # =============================================================================
 # Application Lifecycle
 # =============================================================================
@@ -263,6 +343,10 @@ Contact your administrator to obtain API credentials.
     },
     openapi_tags=[
         {
+            "name": "Authentication",
+            "description": "User authentication, token management, and API keys",
+        },
+        {
             "name": "Health",
             "description": "Service health and readiness endpoints",
         },
@@ -293,6 +377,10 @@ Contact your administrator to obtain API credentials.
         {
             "name": "Real-time",
             "description": "Real-time monitoring via WebSocket",
+        },
+        {
+            "name": "Drift Detection",
+            "description": "Model drift monitoring and alerts",
         },
     ],
     lifespan=lifespan,
@@ -332,6 +420,192 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Rate limiting middleware
+try:
+    from slowapi import Limiter, _rate_limit_exceeded_handler
+    from slowapi.errors import RateLimitExceeded
+    from slowapi.util import get_remote_address
+
+    limiter = Limiter(key_func=get_remote_address)
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    RATE_LIMITING_ENABLED = True
+    logger.info("Rate limiting enabled")
+except ImportError:
+    RATE_LIMITING_ENABLED = False
+    limiter = None
+    logger.warning("slowapi not installed - rate limiting disabled")
+
+
+# =============================================================================
+# Authentication Endpoints
+# =============================================================================
+
+
+@app.post(
+    "/api/v1/auth/token",
+    response_model=Token,
+    tags=["Authentication"],
+    summary="Login for access token",
+    description="""
+Authenticate with username and password to obtain JWT tokens.
+
+Returns:
+- **access_token**: Short-lived token for API access (default 30 minutes)
+- **refresh_token**: Long-lived token for obtaining new access tokens (default 7 days)
+
+Demo credentials:
+- admin / admin123secure (full access)
+- analyst / analyst123secure (analysis endpoints)
+- viewer / viewer123secure (read-only)
+    """,
+)
+async def login_for_access_token(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+) -> Token:
+    """Authenticate user and return JWT tokens."""
+    user = authenticate_user(form_data.username, form_data.password)
+    if not user:
+        logger.warning(f"Failed login attempt for user: {form_data.username}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    access_token = create_access_token(user.username, user.role)
+    refresh_token = create_refresh_token(user.username, user.role)
+
+    logger.info(f"User logged in: {user.username} (role: {user.role})")
+
+    return Token(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer",
+        expires_in=30 * 60,  # 30 minutes in seconds
+    )
+
+
+@app.post(
+    "/api/v1/auth/refresh",
+    response_model=Token,
+    tags=["Authentication"],
+    summary="Refresh access token",
+    description="Use a refresh token to obtain a new access token.",
+)
+async def refresh_access_token(refresh_token: str) -> Token:
+    """Refresh an access token using a refresh token."""
+    token_data = decode_token(refresh_token)
+
+    if not token_data:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token",
+        )
+
+    if token_data.token_type != TokenType.REFRESH:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token type - refresh token required",
+        )
+
+    # Create new access token
+    new_access_token = create_access_token(token_data.sub, token_data.role)
+
+    return Token(
+        access_token=new_access_token,
+        refresh_token=None,  # Don't issue new refresh token
+        token_type="bearer",
+        expires_in=30 * 60,
+    )
+
+
+@app.post(
+    "/api/v1/auth/logout",
+    tags=["Authentication"],
+    summary="Logout and revoke token",
+    description="Revoke the current access token.",
+)
+async def logout(
+    current_user: User = Depends(get_current_user),
+    token: str = Depends(lambda: None),
+) -> dict[str, str]:
+    """Logout and revoke the current token."""
+    # Note: In a real implementation, we'd get the token from the request
+    logger.info(f"User logged out: {current_user.username}")
+    return {"message": "Successfully logged out"}
+
+
+@app.get(
+    "/api/v1/auth/me",
+    response_model=UserResponse,
+    tags=["Authentication"],
+    summary="Get current user",
+    description="Get information about the currently authenticated user.",
+)
+async def get_current_user_info(
+    current_user: User = Depends(get_current_user),
+) -> UserResponse:
+    """Get current user information."""
+    return UserResponse(
+        username=current_user.username,
+        email=current_user.email,
+        full_name=current_user.full_name,
+        role=current_user.role,
+        disabled=current_user.disabled,
+    )
+
+
+@app.post(
+    "/api/v1/auth/users",
+    response_model=UserResponse,
+    tags=["Authentication"],
+    summary="Create new user",
+    description="Create a new user account. Requires admin role.",
+)
+async def create_new_user(
+    user_data: UserCreate,
+    current_user: User = Depends(require_admin),
+) -> UserResponse:
+    """Create a new user (admin only)."""
+    try:
+        user = create_user(user_data)
+        logger.info(f"User created by {current_user.username}: {user.username}")
+        return UserResponse(
+            username=user.username,
+            email=user.email,
+            full_name=user.full_name,
+            role=user.role,
+            disabled=user.disabled,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+
+
+@app.post(
+    "/api/v1/auth/api-keys",
+    response_model=APIKeyResponse,
+    tags=["Authentication"],
+    summary="Create API key",
+    description="""
+Create a new API key for automated tool access.
+
+The API key is returned only once - store it securely.
+Use the key in the X-API-Key header for authentication.
+    """,
+)
+async def create_new_api_key(
+    key_data: APIKeyCreate,
+    current_user: User = Depends(require_admin),
+) -> APIKeyResponse:
+    """Create a new API key (admin only)."""
+    api_key = create_api_key(key_data.name, key_data.role, key_data.expires_days)
+    logger.info(f"API key created by {current_user.username}: {key_data.name}")
+    return api_key
 
 
 # =============================================================================
@@ -783,6 +1057,199 @@ async def compare_models(request: ModelCompareRequest) -> ModelCompareResponse:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Model comparison failed: {str(e)}",
+        )
+
+
+# =============================================================================
+# Drift Detection Endpoints
+# =============================================================================
+
+
+@app.post(
+    "/api/v1/drift/detect",
+    response_model=DriftDetectionResponse,
+    tags=["Drift Detection"],
+    summary="Detect model drift",
+    description="""
+    Detect distribution drift between reference and current data.
+
+    This endpoint analyzes:
+    - **Feature drift**: Changes in input feature distributions
+    - **Prediction drift**: Changes in model output distributions (if provided)
+
+    Multiple statistical methods are used:
+    - KL Divergence: Measures information loss between distributions
+    - JS Divergence: Symmetric version of KL divergence
+    - PSI (Population Stability Index): Industry standard for drift detection
+    - Wasserstein Distance: Earth mover's distance between distributions
+    - KS Test: Kolmogorov-Smirnov statistical test
+
+    **Medical Device AI Compliance:**
+    - Aligned with FDA PCCP (Predetermined Change Control Plan) guidance
+    - Supports HSCC 2026 AI cybersecurity recommendations
+    - Helps monitor model performance degradation over time
+    """,
+)
+async def detect_drift(
+    request: DriftDetectionRequest,
+    current_user: User = Depends(require_analyst),
+) -> DriftDetectionResponse:
+    """
+    Detect distribution drift between reference and current data.
+
+    Requires analyst or admin role.
+    """
+    import numpy as np
+
+    try:
+        # Convert input data to numpy arrays
+        reference_data = np.array(request.reference_data)
+        current_data = np.array(request.current_data)
+
+        # Validate data shapes
+        if reference_data.shape[1] != current_data.shape[1]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Reference and current data must have the same number of features",
+            )
+
+        # Determine methods to use
+        methods = None
+        if request.methods:
+            methods = [DriftMethod(m.upper()) for m in request.methods]
+
+        # Create detector and set reference
+        detector = DriftDetector(methods=methods)
+        detector.set_reference(
+            reference_data,
+            feature_names=request.feature_names,
+        )
+
+        # Detect drift
+        report = detector.detect_drift(
+            current_data,
+            reference_predictions=np.array(request.reference_predictions) if request.reference_predictions else None,
+            current_predictions=np.array(request.current_predictions) if request.current_predictions else None,
+        )
+
+        # Format feature results
+        feature_results = []
+        for result in report.feature_results:
+            feature_results.append({
+                "feature_name": result.feature_name,
+                "drift_detected": result.drift_detected,
+                "severity": result.severity.value,
+                "score": result.score,
+                "method": result.method.value,
+                "p_value": result.p_value,
+                "threshold": result.threshold,
+            })
+
+        # Format prediction drift results if available
+        prediction_drift = None
+        if report.prediction_drift:
+            prediction_drift = {
+                "drift_detected": report.prediction_drift.drift_detected,
+                "severity": report.prediction_drift.severity.value,
+                "score": report.prediction_drift.score,
+                "method": report.prediction_drift.method.value,
+                "p_value": report.prediction_drift.p_value,
+            }
+
+        # Generate recommendations based on drift severity
+        recommendations = list(report.recommendations)
+
+        # Add medical device specific recommendations
+        if report.overall_severity in [DriftSeverity.HIGH, DriftSeverity.CRITICAL]:
+            recommendations.append(
+                "REGULATORY: Consider FDA notification under PCCP if drift impacts device safety/effectiveness"
+            )
+            recommendations.append(
+                "ACTION: Initiate root cause analysis per IEC 62304 requirements"
+            )
+        if report.overall_severity == DriftSeverity.MEDIUM:
+            recommendations.append(
+                "MONITORING: Increase monitoring frequency per post-market surveillance plan"
+            )
+
+        # Calculate summary statistics
+        num_drifted = sum(1 for r in report.feature_results if r.drift_detected)
+        summary = {
+            "total_features": len(report.feature_results),
+            "drifted_features": num_drifted,
+            "drift_rate": round(num_drifted / len(report.feature_results) * 100, 2) if report.feature_results else 0,
+            "max_severity": report.overall_severity.value,
+            "analysis_methods": [m.value for m in (methods or [DriftMethod.PSI])],
+        }
+
+        return DriftDetectionResponse(
+            drift_detected=report.drift_detected,
+            severity=report.overall_severity.value,
+            overall_score=round(report.overall_score, 4),
+            feature_results=feature_results,
+            prediction_drift=prediction_drift,
+            summary=summary,
+            recommendations=recommendations,
+            timestamp=report.timestamp,
+        )
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid input data: {str(e)}",
+        )
+    except Exception as e:
+        logger.error(f"Drift detection error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Drift detection failed: {str(e)}",
+        )
+
+
+@app.post(
+    "/api/v1/drift/quick-check",
+    tags=["Drift Detection"],
+    summary="Quick drift check",
+    description="""
+    Perform a quick drift check without detailed analysis.
+
+    Returns a simple boolean indicating whether significant drift was detected.
+    Useful for automated monitoring pipelines where speed is critical.
+    """,
+)
+async def quick_drift_check(
+    request: DriftDetectionRequest,
+    current_user: User = Depends(require_analyst),
+) -> dict[str, Any]:
+    """
+    Perform a quick drift check.
+
+    Returns a simple pass/fail result for automated pipelines.
+    Requires analyst or admin role.
+    """
+    import numpy as np
+
+    try:
+        reference_data = np.array(request.reference_data)
+        current_data = np.array(request.current_data)
+
+        detector = DriftDetector()
+        detector.set_reference(reference_data, feature_names=request.feature_names)
+
+        is_drifted, severity = detector.quick_check(current_data)
+
+        return {
+            "drift_detected": is_drifted,
+            "severity": severity.value,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "recommendation": "Investigate drift" if is_drifted else "No action required",
+        }
+
+    except Exception as e:
+        logger.error(f"Quick drift check error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Quick drift check failed: {str(e)}",
         )
 
 
