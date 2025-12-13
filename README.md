@@ -5,8 +5,23 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![codecov](https://codecov.io/gh/Dashtid/medtech-ai-security/branch/main/graph/badge.svg)](https://codecov.io/gh/Dashtid/medtech-ai-security)
 [![CI](https://github.com/Dashtid/medtech-ai-security/actions/workflows/ci.yml/badge.svg)](https://github.com/Dashtid/medtech-ai-security/actions/workflows/ci.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Dashtid/medtech-ai-security/badge)](https://scorecard.dev/viewer/?uri=github.com/Dashtid/medtech-ai-security)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/9999/badge)](https://www.bestpractices.dev/projects/9999)
+[![Last Commit](https://img.shields.io/github/last-commit/Dashtid/medtech-ai-security)](https://github.com/Dashtid/medtech-ai-security/commits/main)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/Dashtid/medtech-ai-security/pulls)
 
 AI and machine learning platform for medical device cybersecurity, combining NLP threat intelligence, anomaly detection, adversarial ML testing, and graph neural networks for SBOM analysis. Built for FDA and EU MDR compliance.
+
+## Why This Project Matters
+
+Medical devices are increasingly connected, creating new attack surfaces that threaten patient safety. The healthcare sector faces unique cybersecurity challenges:
+
+- **1,250+ AI-enabled medical devices** authorized by the FDA as of 2025
+- **23% increase** in healthcare intrusion frequency (CrowdStrike 2025)
+- **New FDA guidance** (June 2025) requires SBOM transparency and lifecycle security
+- **Emerging threats** like data poisoning and model drift can silently degrade diagnostic AI
+
+This platform addresses these challenges with production-ready tools for threat intelligence, anomaly detection, adversarial ML testing, and supply chain analysis - all designed with FDA 510(k) and EU MDR compliance in mind.
 
 ## Project Status: All 5 Phases Complete
 
@@ -196,6 +211,56 @@ FDA Compliance Notes:
 
 ## Architecture
 
+```mermaid
+flowchart TB
+    subgraph External["External Systems"]
+        NVD["NVD API"]
+        CISA["CISA ICS-CERT"]
+        DD["DefectDojo"]
+        MD["Medical Devices"]
+    end
+
+    subgraph Gateway["API Gateway"]
+        API["FastAPI / Ingress"]
+    end
+
+    subgraph Core["Core Services"]
+        TI["Threat Intel"]
+        SBOM["SBOM Analyzer"]
+        AD["Anomaly Detector"]
+        AML["Adversarial ML"]
+        FL["Federated Learning"]
+    end
+
+    subgraph ML["ML Models"]
+        NLP["NLP Enrichment"]
+        GNN["GNN Risk Scorer"]
+        AE["Autoencoder"]
+        ATK["Attack/Defense"]
+    end
+
+    subgraph Data["Data Layer"]
+        CVE["CVE Database"]
+        SB["SBOM Storage"]
+        TL["Traffic Logs"]
+        MS["Model Store"]
+    end
+
+    NVD --> TI
+    CISA --> TI
+    MD --> AD
+    TI --> NLP
+    SBOM --> GNN
+    AD --> AE
+    AML --> ATK
+    API --> Core
+    Core --> ML
+    ML --> Data
+    Core --> DD
+```
+
+### Directory Structure
+
 ```text
 medtech-ai-security/
 ├── src/medtech_ai_security/
@@ -335,21 +400,28 @@ uv run mypy src/
 
 ## Roadmap
 
-### Completed
+### Completed (v1.1.0)
 
 - [x] Phase 1: NLP Threat Intelligence
 - [x] Phase 2: ML Vulnerability Risk Scoring
 - [x] Phase 3: Anomaly Detection
 - [x] Phase 4: Adversarial ML Testing
 - [x] Phase 5: SBOM GNN Analysis
-
-### Future Enhancements
-
 - [x] DefectDojo API integration
 - [x] Kubernetes deployment manifests
 - [x] Real-time monitoring dashboard (WebSocket-based)
 - [x] Federated learning for multi-site deployment
 - [x] DICOM/HL7 live traffic capture
+
+### Future Vision (v2.0+)
+
+- [ ] Event-driven architecture (Kafka/RabbitMQ)
+- [ ] Service mesh integration (Istio)
+- [ ] PostgreSQL backend for persistent CVE storage
+- [ ] TensorFlow Serving for high-throughput inference
+- [ ] Extended protocol support (FHIR, IHE XDS)
+- [ ] Automated remediation workflows
+- [ ] Multi-cloud deployment (AWS, Azure, GCP)
 
 ## License
 

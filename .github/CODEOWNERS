@@ -1,0 +1,24 @@
+# CODEOWNERS - Automatic review assignment
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything
+* @Dashtid
+
+# Security-critical code requires explicit review
+/src/medtech_ai_security/threat_intel/ @Dashtid
+/src/medtech_ai_security/adversarial/ @Dashtid
+/src/medtech_ai_security/sbom_analyzer/ @Dashtid
+
+# CI/CD and infrastructure
+/.github/ @Dashtid
+/Dockerfile @Dashtid
+/docker-compose.yml @Dashtid
+/k8s/ @Dashtid
+
+# Documentation
+/docs/ @Dashtid
+README.md @Dashtid
+SECURITY.md @Dashtid
+
+# Configuration files
+pyproject.toml @Dashtid

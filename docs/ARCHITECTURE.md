@@ -8,39 +8,59 @@ MedTech AI Security is a modular AI-powered cybersecurity platform for medical d
 
 ## System Architecture
 
-```
-+------------------------------------------------------------------+
-|                      External Systems                              |
-+------------------------------------------------------------------+
-|  NVD API  |  CISA ICS-CERT  |  DefectDojo  |  Medical Devices    |
-+------------------------------------------------------------------+
-      |            |                |                  |
-      v            v                v                  v
-+------------------------------------------------------------------+
-|                         API Gateway                               |
-|                    (FastAPI / Ingress)                            |
-+------------------------------------------------------------------+
-      |            |                |                  |
-      v            v                v                  v
-+------------------------------------------------------------------+
-|                      Core Services                                 |
-+------------------------------------------------------------------+
-| Threat Intel | SBOM Analyzer | Anomaly Detector | Adversarial ML |
-+------------------------------------------------------------------+
-      |            |                |                  |
-      v            v                v                  v
-+------------------------------------------------------------------+
-|                      ML Models Layer                              |
-+------------------------------------------------------------------+
-|  NLP Enrichment | GNN Risk Scorer | Autoencoder | Attack/Defense |
-+------------------------------------------------------------------+
-      |            |                |                  |
-      v            v                v                  v
-+------------------------------------------------------------------+
-|                      Data Layer                                   |
-+------------------------------------------------------------------+
-|   CVE Database  |  SBOM Storage  |  Traffic Logs  |  Model Store |
-+------------------------------------------------------------------+
+```mermaid
+graph TB
+    subgraph External["External Systems"]
+        NVD["NVD API"]
+        CISA["CISA ICS-CERT"]
+        DD["DefectDojo"]
+        MD["Medical Devices"]
+    end
+
+    subgraph Gateway["API Gateway Layer"]
+        API["FastAPI / Ingress"]
+    end
+
+    subgraph Services["Core Services"]
+        TI["Threat Intelligence"]
+        SA["SBOM Analyzer"]
+        AD["Anomaly Detector"]
+        AML["Adversarial ML"]
+    end
+
+    subgraph ML["ML Models Layer"]
+        NLP["NLP Enrichment"]
+        GNN["GNN Risk Scorer"]
+        AE["Autoencoder"]
+        ATK["Attack/Defense"]
+    end
+
+    subgraph Data["Data Layer"]
+        CVE["CVE Database"]
+        SBOM["SBOM Storage"]
+        TL["Traffic Logs"]
+        MS["Model Store"]
+    end
+
+    NVD --> API
+    CISA --> API
+    DD --> API
+    MD --> API
+
+    API --> TI
+    API --> SA
+    API --> AD
+    API --> AML
+
+    TI --> NLP
+    SA --> GNN
+    AD --> AE
+    AML --> ATK
+
+    NLP --> CVE
+    GNN --> SBOM
+    AE --> TL
+    ATK --> MS
 ```
 
 ## Component Details
@@ -55,8 +75,13 @@ MedTech AI Security is a modular AI-powered cybersecurity platform for medical d
 - `claude_processor.py` - AI-powered vulnerability enrichment
 
 **Data Flow**:
-```
-NVD/CISA APIs --> Scrapers --> Raw CVE Data --> Claude Enrichment --> Enriched CVEs
+
+```mermaid
+flowchart LR
+    A["NVD/CISA APIs"] --> B["Scrapers"]
+    B --> C["Raw CVE Data"]
+    C --> D["Claude Enrichment"]
+    D --> E["Enriched CVEs"]
 ```
 
 **Key Features**:
@@ -266,21 +291,18 @@ Readout:
 - `privacy.py` - Differential privacy and secure aggregation
 
 **Architecture**:
-```
-                    +-------------------+
-                    | Federated Server  |
-                    | (Coordinator)     |
-                    +-------------------+
-                           |
-          +----------------+----------------+
-          |                |                |
-    +----------+     +----------+     +----------+
-    | Client A |     | Client B |     | Client C |
-    | Hospital |     | Clinic   |     | Lab      |
-    +----------+     +----------+     +----------+
-         |                |                |
-    [Local Data]    [Local Data]    [Local Data]
-    (Never shared)  (Never shared)  (Never shared)
+
+```mermaid
+graph TB
+    Server["Federated Server<br/>(Coordinator)"]
+
+    Server --> ClientA["Client A<br/>Hospital"]
+    Server --> ClientB["Client B<br/>Clinic"]
+    Server --> ClientC["Client C<br/>Lab"]
+
+    ClientA --> DataA["Local Data<br/>(Never shared)"]
+    ClientB --> DataB["Local Data<br/>(Never shared)"]
+    ClientC --> DataC["Local Data<br/>(Never shared)"]
 ```
 
 **Aggregation Strategies**:
@@ -311,13 +333,29 @@ Readout:
 - Configurable privacy budget
 
 **Training Flow**:
-```
-1. Server broadcasts global model
-2. Clients train locally on institution data
-3. Clients apply differential privacy to gradients
-4. Clients send protected updates to server
-5. Server aggregates updates (FedAvg/FedProx)
-6. Repeat for N rounds
+
+```mermaid
+sequenceDiagram
+    participant S as Server
+    participant C1 as Client A
+    participant C2 as Client B
+    participant C3 as Client C
+
+    loop N Rounds
+        S->>C1: Broadcast global model
+        S->>C2: Broadcast global model
+        S->>C3: Broadcast global model
+
+        C1->>C1: Train locally + Apply DP
+        C2->>C2: Train locally + Apply DP
+        C3->>C3: Train locally + Apply DP
+
+        C1->>S: Protected updates
+        C2->>S: Protected updates
+        C3->>S: Protected updates
+
+        S->>S: Aggregate (FedAvg/FedProx)
+    end
 ```
 
 ## API Architecture
@@ -344,32 +382,33 @@ Readout:
 
 ### Kubernetes Deployment
 
-```
-Namespace: medtech-security
-+------------------------------------------------------------------+
-|  Ingress (NGINX)                                                  |
-|  - TLS termination                                                |
-|  - Rate limiting                                                  |
-|  - Path-based routing                                             |
-+------------------------------------------------------------------+
-          |
-          v
-+------------------------------------------------------------------+
-|  Services                                                         |
-+------------------------------------------------------------------+
-|  sbom-analyzer     | anomaly-detector   | threat-intel-scanner   |
-|  (Deployment)      | (Deployment)       | (CronJob)              |
-|  Replicas: 2-10    | Replicas: 2-8      | Schedule: Daily        |
-|  HPA: CPU 70%      | HPA: CPU 70%       |                        |
-+------------------------------------------------------------------+
-          |
-          v
-+------------------------------------------------------------------+
-|  Persistent Storage                                               |
-+------------------------------------------------------------------+
-|  PVC: medtech-security-data    | PVC: medtech-security-models    |
-|  Size: 10Gi (RWX)              | Size: 5Gi (ROX)                  |
-+------------------------------------------------------------------+
+```mermaid
+graph TB
+    subgraph NS["Namespace: medtech-security"]
+        subgraph Ingress["Ingress (NGINX)"]
+            ING["TLS termination<br/>Rate limiting<br/>Path-based routing"]
+        end
+
+        subgraph Services["Services"]
+            SBOM["sbom-analyzer<br/>Deployment<br/>Replicas: 2-10<br/>HPA: CPU 70%"]
+            ANOM["anomaly-detector<br/>Deployment<br/>Replicas: 2-8<br/>HPA: CPU 70%"]
+            TI["threat-intel-scanner<br/>CronJob<br/>Schedule: Daily"]
+        end
+
+        subgraph Storage["Persistent Storage"]
+            PVC1["PVC: medtech-security-data<br/>Size: 10Gi (RWX)"]
+            PVC2["PVC: medtech-security-models<br/>Size: 5Gi (ROX)"]
+        end
+
+        ING --> SBOM
+        ING --> ANOM
+        ING --> TI
+
+        SBOM --> PVC1
+        ANOM --> PVC1
+        SBOM --> PVC2
+        ANOM --> PVC2
+    end
 ```
 
 ### Security Configuration
@@ -383,57 +422,43 @@ Namespace: medtech-security
 
 ### SBOM Analysis Flow
 
-```
-User/CI Pipeline
-      |
-      v
-[SBOM Upload] --> [Parser] --> [Graph Builder] --> [GNN Model]
-                                                         |
-                                                         v
-                                               [Risk Scorer] --> [Report]
-                                                         |
-                                                         v
-                                               [DefectDojo Import]
+```mermaid
+flowchart LR
+    A["User/CI Pipeline"] --> B["SBOM Upload"]
+    B --> C["Parser"]
+    C --> D["Graph Builder"]
+    D --> E["GNN Model"]
+    E --> F["Risk Scorer"]
+    F --> G["Report"]
+    F --> H["DefectDojo Import"]
 ```
 
 ### Anomaly Detection Flow
 
-```
-Medical Device Network
-      |
-      v
-[Traffic Capture] --> [Feature Extraction] --> [Autoencoder]
-                                                     |
-                                             [Reconstruction Error]
-                                                     |
-                                                     v
-                              [Threshold Check] --> [Alert/Log]
-                                                     |
-                                                     v
-                                               [Dashboard]
+```mermaid
+flowchart LR
+    A["Medical Device Network"] --> B["Traffic Capture"]
+    B --> C["Feature Extraction"]
+    C --> D["Autoencoder"]
+    D --> E["Reconstruction Error"]
+    E --> F["Threshold Check"]
+    F --> G["Alert/Log"]
+    G --> H["Dashboard"]
 ```
 
 ### Threat Intelligence Flow
 
-```
-NVD API              CISA ICS-CERT
-    |                      |
-    v                      v
-[NVD Scraper]       [CISA Scraper]
-    |                      |
-    +----------+-----------+
-               |
-               v
-      [CVE Aggregation]
-               |
-               v
-      [Claude Enrichment]
-               |
-               v
-      [Risk Scoring ML]
-               |
-               v
-      [DefectDojo Import]
+```mermaid
+flowchart TB
+    NVD["NVD API"] --> NS["NVD Scraper"]
+    CISA["CISA ICS-CERT"] --> CS["CISA Scraper"]
+
+    NS --> AGG["CVE Aggregation"]
+    CS --> AGG
+
+    AGG --> CE["Claude Enrichment"]
+    CE --> RS["Risk Scoring ML"]
+    RS --> DD["DefectDojo Import"]
 ```
 
 ## Technology Stack
