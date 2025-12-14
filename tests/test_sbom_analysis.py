@@ -8,9 +8,9 @@ import numpy as np
 import pytest
 
 from medtech_ai_security.sbom_analysis.gnn_model import (
+    TF_AVAILABLE,
     GNNConfig,
     SimpleVulnerabilityClassifier,
-    TF_AVAILABLE,
 )
 from medtech_ai_security.sbom_analysis.graph_builder import (
     NodeFeatures,
@@ -1354,10 +1354,10 @@ class TestVisualizationGeneration:
 
     def test_visualization_includes_all_risk_levels(self):
         """Test visualization includes different risk level colors."""
-        vuln_crit = VulnerabilityInfo(cve_id="CVE-2021-0001", severity="critical", cvss_score=10.0)
-        vuln_high = VulnerabilityInfo(cve_id="CVE-2021-0002", severity="high", cvss_score=8.0)
-        vuln_medium = VulnerabilityInfo(cve_id="CVE-2021-0003", severity="medium", cvss_score=5.0)
-        vuln_low = VulnerabilityInfo(cve_id="CVE-2021-0004", severity="low", cvss_score=2.0)
+        VulnerabilityInfo(cve_id="CVE-2021-0001", severity="critical", cvss_score=10.0)
+        VulnerabilityInfo(cve_id="CVE-2021-0002", severity="high", cvss_score=8.0)
+        VulnerabilityInfo(cve_id="CVE-2021-0003", severity="medium", cvss_score=5.0)
+        VulnerabilityInfo(cve_id="CVE-2021-0004", severity="low", cvss_score=2.0)
 
         sbom = json.dumps(
             {

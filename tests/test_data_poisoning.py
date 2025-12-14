@@ -16,6 +16,7 @@ import pytest
 
 from medtech_ai_security.ml.data_poisoning import (
     BatchAnalysisResult,
+    BatchAnalyzer,
     ContaminationType,
     DataPoisoningDefense,
     DefenseStrategy,
@@ -27,9 +28,7 @@ from medtech_ai_security.ml.data_poisoning import (
     ValidationReport,
     ValidationResult,
     ValidationSeverity,
-    BatchAnalyzer,
 )
-
 
 # =============================================================================
 # Fixtures

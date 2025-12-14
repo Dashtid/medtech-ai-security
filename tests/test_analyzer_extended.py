@@ -1,7 +1,6 @@
 """Extended tests for SBOM Analyzer - covering GNN, CLI, and visualization."""
 
 import json
-from pathlib import Path
 
 import numpy as np
 import pytest

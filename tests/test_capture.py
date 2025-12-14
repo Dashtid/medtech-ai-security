@@ -9,25 +9,22 @@ Tests cover:
 
 from datetime import datetime, timezone
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock
 
 from medtech_ai_security.capture.dicom_capture import (
     DICOMCapture,
     DICOMRecord,
 )
 from medtech_ai_security.capture.hl7_capture import (
+    MLLP_END,
+    MLLP_START,
     HL7Capture,
     HL7Record,
-    MLLP_START,
-    MLLP_END,
 )
 from medtech_ai_security.capture.traffic_analyzer import (
     TrafficAnalyzer,
     TrafficAnomaly,
 )
-
 
 # =============================================================================
 # DICOM Capture Tests

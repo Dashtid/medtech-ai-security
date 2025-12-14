@@ -11,7 +11,6 @@ import pytest
 from medtech_ai_security.adversarial import (
     AdversarialAttacker,
     AdversarialDefender,
-    AttackType,
 )
 
 

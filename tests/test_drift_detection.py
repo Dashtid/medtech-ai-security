@@ -28,7 +28,6 @@ from medtech_ai_security.ml.drift_detection import (
     compute_wasserstein,
 )
 
-
 # =============================================================================
 # Fixtures
 # =============================================================================
@@ -711,7 +710,7 @@ class TestDriftIntegration:
 
         # Step 4: Monitor batch 2 - gradual drift
         batch2 = np.random.normal(0.55, 0.12, (500, 5))
-        report2 = detector.detect_drift(batch2)
+        detector.detect_drift(batch2)
         # May detect low-medium drift
 
         # Step 5: Monitor batch 3 - significant drift

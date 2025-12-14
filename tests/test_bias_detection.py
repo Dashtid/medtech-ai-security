@@ -22,7 +22,6 @@ from medtech_ai_security.ml.bias_detection import (
     quick_bias_check,
 )
 
-
 # =============================================================================
 # Fixtures
 # =============================================================================
@@ -32,7 +31,6 @@ from medtech_ai_security.ml.bias_detection import (
 def balanced_binary_data():
     """Generate balanced binary classification data with no bias."""
     np.random.seed(42)
-    n = 200
     # Both groups have equal distribution of labels
     # Group 0: 50 samples with label 0, 50 samples with label 1
     # Group 1: 50 samples with label 0, 50 samples with label 1
@@ -46,7 +44,6 @@ def balanced_binary_data():
 def biased_data():
     """Generate data with intentional bias."""
     np.random.seed(42)
-    n = 200
 
     # Two groups of 100 each
     groups = np.array([0] * 100 + [1] * 100)

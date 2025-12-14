@@ -8,21 +8,12 @@ Tests cover:
 - Federated server coordination
 """
 
-import threading
-import time
 from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
 
-from medtech_ai_security.federated.privacy import (
-    CombinedPrivacy,
-    DifferentialPrivacy,
-    PrivacyBudget,
-    PrivacyMetrics,
-    SecureAggregation,
-)
 from medtech_ai_security.federated.aggregator import (
     AggregationResult,
     ClientUpdate,
@@ -38,6 +29,13 @@ from medtech_ai_security.federated.client import (
     FederatedClient,
     TrainingMetrics,
 )
+from medtech_ai_security.federated.privacy import (
+    CombinedPrivacy,
+    DifferentialPrivacy,
+    PrivacyBudget,
+    PrivacyMetrics,
+    SecureAggregation,
+)
 from medtech_ai_security.federated.server import (
     ClientInfo,
     FederatedServer,
@@ -45,7 +43,6 @@ from medtech_ai_security.federated.server import (
     ServerConfig,
     ServerState,
 )
-
 
 # =============================================================================
 # Privacy Module Tests
@@ -1281,7 +1278,6 @@ class TestServerRoundAggregation:
 
         # Create round info
         from medtech_ai_security.federated.server import RoundInfo
-        from datetime import datetime, timezone
 
         round_info = RoundInfo(
             round_number=1,
@@ -1309,7 +1305,6 @@ class TestServerRoundAggregation:
         server.submit_update("client_2", weights, num_samples=150, metrics={"loss": 0.4})
 
         from medtech_ai_security.federated.server import RoundInfo
-        from datetime import datetime, timezone
 
         round_info = RoundInfo(
             round_number=1,
@@ -1450,7 +1445,6 @@ class TestRoundInfoDataclass:
     def test_round_info_to_dict(self):
         """Test RoundInfo to_dict conversion."""
         from medtech_ai_security.federated.server import RoundInfo
-        from datetime import datetime, timezone
 
         round_info = RoundInfo(
             round_number=5,
@@ -1472,7 +1466,6 @@ class TestRoundInfoDataclass:
     def test_round_info_with_completion_time(self):
         """Test RoundInfo with completion time."""
         from medtech_ai_security.federated.server import RoundInfo
-        from datetime import datetime, timezone
 
         started = datetime.now(timezone.utc)
         completed = datetime.now(timezone.utc)

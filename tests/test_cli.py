@@ -12,7 +12,7 @@ Tests cover:
 
 import tempfile
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import pytest
 from typer.testing import CliRunner
@@ -27,7 +27,6 @@ from medtech_ai_security.cli.main import (
     print_warning,
     setup_logging,
 )
-
 
 # =============================================================================
 # Fixtures

@@ -35,7 +35,6 @@ from medtech_ai_security.config import (
 )
 from medtech_ai_security.config.loader import ConfigError, validate_config
 
-
 # =============================================================================
 # Fixtures
 # =============================================================================

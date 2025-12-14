@@ -15,8 +15,10 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from medtech_ai_security.api.auth import (
+    DEMO_USERS,
     APIKeyCreate,
     APIKeyResponse,
+    RoleChecker,
     Token,
     TokenData,
     TokenType,
@@ -33,10 +35,7 @@ from medtech_ai_security.api.auth import (
     revoke_token,
     validate_api_key,
     verify_password,
-    DEMO_USERS,
-    RoleChecker,
 )
-
 
 # =============================================================================
 # Pydantic Model Tests

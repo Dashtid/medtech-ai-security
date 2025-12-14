@@ -16,18 +16,15 @@ import pytest
 
 from medtech_ai_security.ml.model_integrity import (
     ChainOfCustody,
-    CustodyEvent,
     HashAlgorithm,
     IntegrityRecord,
     IntegrityStatus,
     ModelFormat,
     ModelHash,
     ModelIntegrityVerifier,
-    VerificationResult,
     generate_model_record,
     verify_model,
 )
-
 
 # =============================================================================
 # Fixtures
@@ -460,7 +457,7 @@ class TestConvenienceFunctions:
             output_path = f.name
 
         try:
-            record = generate_model_record(
+            generate_model_record(
                 model_path=sample_model_file,
                 model_name="test",
                 model_version="1.0.0",

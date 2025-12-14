@@ -4,8 +4,6 @@ Tests for Model Rollback Automation Module.
 Tests model version management, rollback triggers, and FDA PCCP compliance.
 """
 
-import json
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -20,7 +18,6 @@ from medtech_ai_security.ml.rollback import (
     VersionStatus,
     create_default_rollback_policy,
 )
-
 
 # =============================================================================
 # Fixtures

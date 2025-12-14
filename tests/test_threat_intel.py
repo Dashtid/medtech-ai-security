@@ -857,7 +857,7 @@ class TestNVDScraperAdvanced:
 
         try:
             scraper._make_request({"keywordSearch": "test"})
-            assert False, "Should have raised exception"
+            raise AssertionError("Should have raised exception")
         except requests.exceptions.RequestException:
             pass  # Expected
 
@@ -1287,7 +1287,7 @@ class TestCISAScraperAdvanced:
 
         scraper = CISAScraper()
         # Test that it searches both pages
-        advisories = scraper.scrape_medical_advisories(max_results=5, include_general_ics=True)
+        scraper.scrape_medical_advisories(max_results=5, include_general_ics=True)
 
         # Should have called twice (ICSMA + ICS pages)
         assert mock_request.call_count == 2

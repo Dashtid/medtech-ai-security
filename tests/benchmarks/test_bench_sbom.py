@@ -7,11 +7,12 @@ Run with:
 
 import json
 import random
+
 import pytest
 
 from medtech_ai_security.sbom_analysis import (
-    SBOMParser,
     SBOMAnalyzer,
+    SBOMParser,
     SupplyChainRiskScorer,
 )
 
