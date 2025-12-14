@@ -521,7 +521,9 @@ if __name__ == "__main__":
 
     print("\n[+] Node labels (vulnerability):")
     if graph_data.node_labels is not None:
-        for _i, (node_id, label) in enumerate(zip(graph_data.node_ids, graph_data.node_labels, strict=False)):
+        for _i, (node_id, label) in enumerate(
+            zip(graph_data.node_ids, graph_data.node_labels, strict=False)
+        ):
             label_str = {0: "clean", 1: "vulnerable", 2: "transitive"}.get(label, "?")
             print(f"    {node_id}: {label_str}")
 

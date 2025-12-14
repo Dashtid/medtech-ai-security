@@ -287,7 +287,8 @@ class FedProxAggregator(FedAvgAggregator):
             Proximal gradient for each layer
         """
         return [
-            self.mu * (local - global_w) for local, global_w in zip(local_weights, global_weights, strict=False)
+            self.mu * (local - global_w)
+            for local, global_w in zip(local_weights, global_weights, strict=False)
         ]
 
 

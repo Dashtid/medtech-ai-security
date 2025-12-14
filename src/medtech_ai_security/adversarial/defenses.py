@@ -856,7 +856,9 @@ class GradientRegularizedTrainer:
 
         # Update model weights
         model_gradients = tape.gradient(total_loss, self.model.trainable_variables)
-        self.model.optimizer.apply_gradients(zip(model_gradients, self.model.trainable_variables, strict=False))
+        self.model.optimizer.apply_gradients(
+            zip(model_gradients, self.model.trainable_variables, strict=False)
+        )
 
         del tape  # Release persistent tape
 

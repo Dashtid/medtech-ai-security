@@ -577,7 +577,9 @@ class ModelExplainer:
 
         feature_names = self.feature_names or [f"feature_{i}" for i in range(len(mean_importance))]
 
-        importance_dict = {name: float(imp) for name, imp in zip(feature_names, mean_importance, strict=False)}
+        importance_dict = {
+            name: float(imp) for name, imp in zip(feature_names, mean_importance, strict=False)
+        }
 
         base_value = None
         if hasattr(self._shap_explainer, "expected_value"):
@@ -611,7 +613,8 @@ class ModelExplainer:
         feature_names = self.feature_names or [f"feature_{i}" for i in range(X.shape[1])]
 
         importance_dict = {
-            name: float(imp) for name, imp in zip(feature_names, result.importances_mean, strict=False)
+            name: float(imp)
+            for name, imp in zip(feature_names, result.importances_mean, strict=False)
         }
 
         return GlobalExplanation(
