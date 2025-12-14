@@ -21,12 +21,12 @@ Usage:
 import json
 import logging
 import queue
-import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from medtech_ai_security.capture.dicom_capture import DICOMCapture, DICOMRecord
 from medtech_ai_security.capture.hl7_capture import HL7Capture, HL7Record

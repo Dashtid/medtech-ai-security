@@ -472,7 +472,7 @@ class VulnerabilityGNN:
             epoch_accs = []
 
             for features, edges, labels, num_nodes in zip(
-                all_features, all_edges, all_labels, all_num_nodes
+                all_features, all_edges, all_labels, all_num_nodes, strict=False
             ):
                 # Prepare inputs - GNN processes nodes as batch, no extra dimension
                 x = {

@@ -248,7 +248,7 @@ class SupplyChainRiskScorer:
         dependents = self._compute_dependents(dep_graph)
 
         # Analyze each package
-        for pkg_id, pkg in dep_graph.packages.items():
+        for _pkg_id, pkg in dep_graph.packages.items():
             pkg_risk = self._score_package(pkg, dep_graph, depths, dependents)
             report.package_risks.append(pkg_risk)
 

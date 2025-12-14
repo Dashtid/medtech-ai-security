@@ -25,7 +25,6 @@ from typing import Any
 
 import typer
 from rich.console import Console
-from rich.live import Live
 from rich.logging import RichHandler
 from rich.panel import Panel
 from rich.progress import (
@@ -651,42 +650,15 @@ enabled: true
 
 def _check_optional_dependencies() -> dict[str, bool]:
     """Check availability of optional dependencies."""
-    deps = {}
+    import importlib.util
 
-    try:
-        import torch
-
-        deps["PyTorch"] = True
-    except ImportError:
-        deps["PyTorch"] = False
-
-    try:
-        import numpy
-
-        deps["NumPy"] = True
-    except ImportError:
-        deps["NumPy"] = False
-
-    try:
-        import sklearn
-
-        deps["Scikit-learn"] = True
-    except ImportError:
-        deps["Scikit-learn"] = False
-
-    try:
-        import tensorboard
-
-        deps["TensorBoard"] = True
-    except ImportError:
-        deps["TensorBoard"] = False
-
-    try:
-        import wandb
-
-        deps["Weights & Biases"] = True
-    except ImportError:
-        deps["Weights & Biases"] = False
+    deps = {
+        "PyTorch": importlib.util.find_spec("torch") is not None,
+        "NumPy": importlib.util.find_spec("numpy") is not None,
+        "Scikit-learn": importlib.util.find_spec("sklearn") is not None,
+        "TensorBoard": importlib.util.find_spec("tensorboard") is not None,
+        "Weights & Biases": importlib.util.find_spec("wandb") is not None,
+    }
 
     return deps
 

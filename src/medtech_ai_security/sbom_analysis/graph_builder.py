@@ -462,7 +462,7 @@ def build_batch(graphs: list[GraphData]) -> GraphData:
     # Concatenate and adjust edge indices
     all_edges_src = []
     all_edges_tgt = []
-    for g, offset in zip(graphs, node_offsets):
+    for g, offset in zip(graphs, node_offsets, strict=False):
         if g.num_edges > 0:
             all_edges_src.extend((g.edge_index[0] + offset).tolist())
             all_edges_tgt.extend((g.edge_index[1] + offset).tolist())
@@ -521,7 +521,7 @@ if __name__ == "__main__":
 
     print("\n[+] Node labels (vulnerability):")
     if graph_data.node_labels is not None:
-        for i, (node_id, label) in enumerate(zip(graph_data.node_ids, graph_data.node_labels)):
+        for _i, (node_id, label) in enumerate(zip(graph_data.node_ids, graph_data.node_labels, strict=False)):
             label_str = {0: "clean", 1: "vulnerable", 2: "transitive"}.get(label, "?")
             print(f"    {node_id}: {label_str}")
 

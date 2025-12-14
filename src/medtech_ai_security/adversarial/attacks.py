@@ -361,7 +361,7 @@ class AdversarialAttacker:
             adversarial_images = images.copy()
 
         # Iterative attack
-        for iteration in range(num_iterations):
+        for _iteration in range(num_iterations):
             # Compute gradient at current adversarial images
             gradient = self._compute_gradient(adversarial_images, attack_labels)
 
@@ -452,13 +452,13 @@ class AdversarialAttacker:
         c_upper = np.full(batch_size, 1e10)
         c = np.full(batch_size, initial_const)
 
-        for search_step in range(binary_search_steps):
+        for _search_step in range(binary_search_steps):
             # Initialize perturbation in tanh space
             # Map images to (-1, 1) range for tanh optimization
             images_tanh = np.arctanh(np.clip(images * 2 - 1, -0.999999, 0.999999))
             w = images_tanh.copy()  # Optimization variable
 
-            for iteration in range(max_iterations):
+            for _iteration in range(max_iterations):
                 # Transform w back to image space
                 adv_images = (np.tanh(w) + 1) / 2  # Map to (0, 1)
                 adv_images = np.clip(adv_images, self.clip_min, self.clip_max)
@@ -513,7 +513,7 @@ class AdversarialAttacker:
                 gradient = np.zeros_like(w)
                 eps = 1e-4
                 for i in range(batch_size):
-                    for idx in range(min(100, np.prod(w.shape[1:]))):
+                    for _idx in range(min(100, np.prod(w.shape[1:]))):
                         # Sample random indices for efficiency
                         flat_idx = np.random.randint(0, np.prod(w.shape[1:]))
                         idx_tuple = np.unravel_index(flat_idx, w.shape[1:])
@@ -635,7 +635,7 @@ class AdversarialAttacker:
             x = images[i : i + 1].copy()
             original_label = labels[i]
 
-            for iteration in range(max_iterations):
+            for _iteration in range(max_iterations):
                 # Get predictions
                 pred = self.model(x)
                 if hasattr(pred, "numpy"):
@@ -744,7 +744,7 @@ class AdversarialAttacker:
 
             # Initialize random perturbation
             h, w = x.shape[:2]
-            c = x.shape[2] if len(x.shape) > 2 else 1
+            x.shape[2] if len(x.shape) > 2 else 1
 
             for query in range(n_queries):
                 # Decreasing probability schedule

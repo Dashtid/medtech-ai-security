@@ -95,7 +95,7 @@ class ModelHash:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "ModelHash":
+    def from_dict(cls, data: dict[str, Any]) -> ModelHash:
         """Create from dictionary."""
         return cls(
             algorithm=HashAlgorithm(data["algorithm"]),
@@ -133,7 +133,7 @@ class IntegrityRecord:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "IntegrityRecord":
+    def from_dict(cls, data: dict[str, Any]) -> IntegrityRecord:
         """Create from dictionary."""
         return cls(
             model_name=data["model_name"],

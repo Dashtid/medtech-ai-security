@@ -24,6 +24,7 @@ from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Annotated, Any
 
+import bcrypt
 from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import (
     APIKeyHeader,
@@ -31,7 +32,6 @@ from fastapi.security import (
     HTTPBearer,
     OAuth2PasswordBearer,
 )
-import bcrypt
 from jose import JWTError, jwt
 from pydantic import BaseModel, EmailStr, Field
 

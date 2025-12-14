@@ -110,7 +110,7 @@ class ModelAggregator(ABC):
                 logger.error(f"Client {update.client_id} has different number of layers")
                 return False
 
-            for i, (w, ref_shape) in enumerate(zip(update.weights, reference_shapes)):
+            for i, (w, ref_shape) in enumerate(zip(update.weights, reference_shapes, strict=False)):
                 if w.shape != ref_shape:
                     logger.error(
                         f"Client {update.client_id} layer {i} shape mismatch: "
@@ -265,7 +265,7 @@ class FedProxAggregator(FedAvgAggregator):
             Proximal term value: (mu/2) * ||w - w_global||^2
         """
         total = 0.0
-        for local, global_w in zip(local_weights, global_weights):
+        for local, global_w in zip(local_weights, global_weights, strict=False):
             diff = local - global_w
             total += np.sum(diff**2)
         return (self.mu / 2) * total
@@ -287,7 +287,7 @@ class FedProxAggregator(FedAvgAggregator):
             Proximal gradient for each layer
         """
         return [
-            self.mu * (local - global_w) for local, global_w in zip(local_weights, global_weights)
+            self.mu * (local - global_w) for local, global_w in zip(local_weights, global_weights, strict=False)
         ]
 
 
@@ -515,7 +515,7 @@ def main() -> None:
     result = aggregator.aggregate(updates)
 
     if result:
-        print(f"Aggregation successful:")
+        print("Aggregation successful:")
         print(f"  Clients: {result.num_clients}")
         print(f"  Total samples: {result.total_samples}")
         print(f"  Metrics: {result.round_metrics}")

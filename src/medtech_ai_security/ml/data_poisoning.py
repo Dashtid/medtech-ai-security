@@ -27,10 +27,11 @@ References:
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable
+from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
@@ -656,7 +657,7 @@ class BatchAnalyzer:
 
         # Compute global statistics for comparison
         all_means = [s["mean"] for s in batch_stats]
-        all_stds = [s["std"] for s in batch_stats]
+        [s["std"] for s in batch_stats]
         global_mean = np.mean(all_means)
         global_std = np.std(all_means) + 1e-8
 
@@ -754,7 +755,7 @@ class RONIDefense:
             n_jobs=-1,
         )
 
-        predictions = iso_forest.fit_predict(features)
+        iso_forest.fit_predict(features)
         anomaly_scores = iso_forest.decision_function(features)
 
         # Reject samples with negative anomaly scores

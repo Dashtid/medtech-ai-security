@@ -25,17 +25,16 @@ import logging
 import os
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import numpy as np
 
 from medtech_ai_security.federated.aggregator import (
-    AggregationResult,
     ClientUpdate,
-    FedAvgAggregator,
     ModelAggregator,
     create_aggregator,
 )
@@ -794,7 +793,7 @@ def main() -> None:
     )
     server.add_callback(event_handler)
 
-    print(f"Starting federated server")
+    print("Starting federated server")
     print(f"Address: {args.host}:{args.port}")
     print(f"Min clients: {args.min_clients}")
     print(f"Rounds: {args.rounds}")

@@ -25,13 +25,13 @@ Requirements:
 
 import logging
 import queue
-import re
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -216,7 +216,7 @@ class HL7Capture:
     def _capture_live(self) -> None:
         """Capture from live network interface."""
         try:
-            from scapy.all import sniff, TCP
+            from scapy.all import TCP, sniff
 
             filter_expr = " or ".join([f"tcp port {p}" for p in self.ports])
 
@@ -254,7 +254,7 @@ class HL7Capture:
     def _capture_from_file(self) -> None:
         """Capture from pcap file."""
         try:
-            from scapy.all import rdpcap, TCP
+            from scapy.all import TCP, rdpcap
 
             packets = rdpcap(str(self.pcap_file))
 

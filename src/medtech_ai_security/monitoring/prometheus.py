@@ -444,7 +444,7 @@ class MetricsExporter:
     def _export_prometheus(self) -> str:
         """Export metrics in Prometheus text format."""
         lines = []
-        timestamp_ms = int(time.time() * 1000)
+        int(time.time() * 1000)
 
         # Helper to format metric line
         def format_metric(sample: MetricSample) -> str:

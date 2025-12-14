@@ -283,7 +283,7 @@ class RobustnessEvaluator:
             "none": 0,  # Correct
         }
 
-        for true_label, pred_label in zip(original_labels, pred_classes):
+        for true_label, pred_label in zip(original_labels, pred_classes, strict=False):
             if true_label == pred_label:
                 impact_counts["none"] += 1
             elif self.num_classes == 2:

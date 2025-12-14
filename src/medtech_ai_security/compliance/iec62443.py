@@ -171,8 +171,8 @@ class AssessmentReport:
             "",
             "## System Information",
             "",
-            f"| Field | Value |",
-            f"|-------|-------|",
+            "| Field | Value |",
+            "|-------|-------|",
             f"| Report ID | {self.report_id} |",
             f"| System Name | {self.system_name} |",
             f"| Assessment Date | {self.assessment_date} |",
@@ -863,12 +863,12 @@ class IEC62443Assessor:
             Markdown checklist for manual assessment
         """
         lines = [
-            f"# IEC 62443 Assessment Checklist",
-            f"",
+            "# IEC 62443 Assessment Checklist",
+            "",
             f"**System**: {self.system_name}",
             f"**Target Security Level**: SL-{self.target_sl.value}",
             f"**Generated**: {datetime.now(timezone.utc).isoformat()}",
-            f"",
+            "",
         ]
 
         # Group by foundational requirement
@@ -903,7 +903,7 @@ class IEC62443Assessor:
 
                 lines.append(f"- [{status_mark}] **{sr_id}**: {sr_name}")
                 lines.append(f"  - Requirement (SL-{self.target_sl.value}): {sl_req}")
-                lines.append(f"  - Evidence: _________________")
+                lines.append("  - Evidence: _________________")
                 lines.append("")
 
         return "\n".join(lines)

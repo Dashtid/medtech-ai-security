@@ -30,11 +30,12 @@ import queue
 import struct
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import IntEnum
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -231,7 +232,7 @@ class DICOMCapture:
         """Capture from live network interface."""
         try:
             # Import scapy here to avoid import errors if not installed
-            from scapy.all import sniff, TCP
+            from scapy.all import TCP, sniff
 
             filter_expr = " or ".join([f"tcp port {p}" for p in self.ports])
 
@@ -269,7 +270,7 @@ class DICOMCapture:
     def _capture_from_file(self) -> None:
         """Capture from pcap file."""
         try:
-            from scapy.all import rdpcap, TCP
+            from scapy.all import TCP, rdpcap
 
             packets = rdpcap(str(self.pcap_file))
 

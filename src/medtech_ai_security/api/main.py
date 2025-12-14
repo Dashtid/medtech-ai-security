@@ -29,10 +29,10 @@ from medtech_ai_security.api.auth import (
     APIKeyCreate,
     APIKeyResponse,
     Token,
+    TokenType,
     User,
     UserCreate,
     UserResponse,
-    UserRole,
     authenticate_user,
     create_access_token,
     create_api_key,
@@ -42,8 +42,6 @@ from medtech_ai_security.api.auth import (
     get_current_user,
     require_admin,
     require_analyst,
-    revoke_token,
-    TokenType,
 )
 
 # Import drift detection module
@@ -51,7 +49,6 @@ from medtech_ai_security.ml.drift_detection import (
     DriftDetector,
     DriftMethod,
     DriftSeverity,
-    DriftType,
 )
 
 # Configure logging
@@ -680,7 +677,7 @@ async def analyze_sbom(request: SBOMRequest) -> SBOMResponse:
         # Import here to avoid circular imports
         from medtech_ai_security.sbom_analysis.analyzer import SBOMAnalyzer
 
-        analyzer = SBOMAnalyzer()
+        SBOMAnalyzer()
         # In production, this would call the actual analyzer
         # For now, return a sample response
 

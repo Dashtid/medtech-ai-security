@@ -7,15 +7,15 @@ This module provides production monitoring capabilities including:
 - Grafana dashboard templates for visualization
 """
 
+from medtech_ai_security.monitoring.alerts import (
+    AlertRule,
+    AlertRulesGenerator,
+    AlertSeverity,
+)
 from medtech_ai_security.monitoring.prometheus import (
     DriftMetrics,
     MetricsExporter,
     ModelPerformanceMetrics,
-)
-from medtech_ai_security.monitoring.alerts import (
-    AlertRule,
-    AlertSeverity,
-    AlertRulesGenerator,
 )
 
 __all__ = [

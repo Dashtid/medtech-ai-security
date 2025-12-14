@@ -14,11 +14,9 @@ Usage:
 from __future__ import annotations
 
 from enum import Enum
-from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-
 
 # =============================================================================
 # Enums
@@ -208,7 +206,7 @@ class DatasetConfig(BaseModel):
     )
 
     @model_validator(mode="after")
-    def validate_custom_dataset(self) -> "DatasetConfig":
+    def validate_custom_dataset(self) -> DatasetConfig:
         """Validate custom dataset configuration."""
         if self.type == DatasetType.CUSTOM and not self.custom_path:
             raise ValueError("custom_path is required when type is 'custom'")
@@ -298,14 +296,14 @@ class AttackConfig(BaseConfig):
     )
 
     @model_validator(mode="after")
-    def validate_targeted(self) -> "AttackConfig":
+    def validate_targeted(self) -> AttackConfig:
         """Validate targeted attack configuration."""
         if self.targeted and self.target_class is None:
             raise ValueError("target_class is required for targeted attacks")
         return self
 
     @model_validator(mode="after")
-    def compute_step_size(self) -> "AttackConfig":
+    def compute_step_size(self) -> AttackConfig:
         """Auto-compute step size if not provided."""
         if self.step_size is None and self.iterations > 0:
             # Default step size: 2.5 * epsilon / iterations
@@ -504,7 +502,7 @@ class ExperimentConfig(BaseConfig):
     )
 
     @model_validator(mode="after")
-    def validate_experiment(self) -> "ExperimentConfig":
+    def validate_experiment(self) -> ExperimentConfig:
         """Validate experiment configuration."""
         if not self.attacks and not self.defenses:
             raise ValueError("At least one attack or defense must be specified")

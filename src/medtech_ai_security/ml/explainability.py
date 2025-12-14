@@ -17,10 +17,11 @@ Features:
 - FDA-aligned transparency documentation
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Optional, Union
+from typing import Any
 
 import numpy as np
 
@@ -34,7 +35,6 @@ except ImportError:
 
 try:
     from lime import lime_tabular
-    from lime import lime_text
 
     HAS_LIME = True
 except ImportError:
@@ -70,7 +70,7 @@ class FeatureContribution:
     base_value: float
     feature_value: Any
     direction: str  # "positive" or "negative"
-    clinical_significance: Optional[str] = None
+    clinical_significance: str | None = None
 
     def to_dict(self) -> dict:
         """Convert to dictionary."""
@@ -89,15 +89,15 @@ class PredictionExplanation:
     """Complete explanation for a single prediction."""
 
     prediction: Any
-    prediction_probability: Optional[float]
+    prediction_probability: float | None
     explanation_type: ExplanationType
     feature_contributions: list[FeatureContribution]
     base_value: float
     timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-    model_name: Optional[str] = None
-    input_hash: Optional[str] = None
-    clinical_context: Optional[str] = None
-    confidence_interval: Optional[tuple[float, float]] = None
+    model_name: str | None = None
+    input_hash: str | None = None
+    clinical_context: str | None = None
+    confidence_interval: tuple[float, float] | None = None
 
     def to_dict(self) -> dict:
         """Convert to dictionary for serialization."""
@@ -142,8 +142,8 @@ class GlobalExplanation:
     feature_names: list[str]
     num_samples_analyzed: int
     timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-    interaction_effects: Optional[dict[str, dict[str, float]]] = None
-    model_baseline: Optional[float] = None
+    interaction_effects: dict[str, dict[str, float]] | None = None
+    model_baseline: float | None = None
 
     def to_dict(self) -> dict:
         """Convert to dictionary."""
@@ -172,7 +172,7 @@ class GlobalExplanation:
 class ClinicalExplanationReport:
     """FDA-compliant clinical explanation report."""
 
-    patient_id: Optional[str]
+    patient_id: str | None
     model_name: str
     model_version: str
     prediction: Any
@@ -207,7 +207,7 @@ class ClinicalExplanationReport:
     def to_markdown(self) -> str:
         """Generate markdown report for clinical documentation."""
         lines = [
-            f"# Clinical AI Decision Report",
+            "# Clinical AI Decision Report",
             "",
             f"**Generated:** {self.timestamp}",
             f"**Model:** {self.model_name} v{self.model_version}",
@@ -296,8 +296,8 @@ class ModelExplainer:
         self,
         model: Any,
         model_name: str = "unnamed_model",
-        feature_names: Optional[list[str]] = None,
-        background_data: Optional[np.ndarray] = None,
+        feature_names: list[str] | None = None,
+        background_data: np.ndarray | None = None,
         model_type: str = "auto",  # "tree", "linear", "kernel", "deep", "auto"
     ):
         """Initialize the explainer.
@@ -314,8 +314,8 @@ class ModelExplainer:
         self.feature_names = feature_names
         self.background_data = background_data
         self.model_type = model_type
-        self._shap_explainer: Optional[Any] = None
-        self._lime_explainer: Optional[Any] = None
+        self._shap_explainer: Any | None = None
+        self._lime_explainer: Any | None = None
 
     def _get_predict_function(self) -> Callable:
         """Get the appropriate prediction function from the model."""
@@ -372,7 +372,7 @@ class ModelExplainer:
     def explain_prediction_shap(
         self,
         instance: np.ndarray,
-        X_background: Optional[np.ndarray] = None,
+        X_background: np.ndarray | None = None,
     ) -> PredictionExplanation:
         """Generate SHAP explanation for a single prediction.
 
@@ -427,7 +427,7 @@ class ModelExplainer:
         feature_contributions = []
         feature_names = self.feature_names or [f"feature_{i}" for i in range(len(shap_values_flat))]
 
-        for i, (name, value) in enumerate(zip(feature_names, shap_values_flat)):
+        for i, (name, value) in enumerate(zip(feature_names, shap_values_flat, strict=False)):
             fc = FeatureContribution(
                 feature_name=name,
                 contribution=float(value),
@@ -459,7 +459,7 @@ class ModelExplainer:
     def explain_prediction_lime(
         self,
         instance: np.ndarray,
-        X_train: Optional[np.ndarray] = None,
+        X_train: np.ndarray | None = None,
         num_features: int = 10,
         num_samples: int = 5000,
     ) -> PredictionExplanation:
@@ -577,7 +577,7 @@ class ModelExplainer:
 
         feature_names = self.feature_names or [f"feature_{i}" for i in range(len(mean_importance))]
 
-        importance_dict = {name: float(imp) for name, imp in zip(feature_names, mean_importance)}
+        importance_dict = {name: float(imp) for name, imp in zip(feature_names, mean_importance, strict=False)}
 
         base_value = None
         if hasattr(self._shap_explainer, "expected_value"):
@@ -611,7 +611,7 @@ class ModelExplainer:
         feature_names = self.feature_names or [f"feature_{i}" for i in range(X.shape[1])]
 
         importance_dict = {
-            name: float(imp) for name, imp in zip(feature_names, result.importances_mean)
+            name: float(imp) for name, imp in zip(feature_names, result.importances_mean, strict=False)
         }
 
         return GlobalExplanation(
@@ -625,10 +625,10 @@ class ModelExplainer:
     def generate_clinical_report(
         self,
         instance: np.ndarray,
-        X_background: Optional[np.ndarray] = None,
-        patient_id: Optional[str] = None,
+        X_background: np.ndarray | None = None,
+        patient_id: str | None = None,
         model_version: str = "1.0.0",
-        clinical_context: Optional[str] = None,
+        clinical_context: str | None = None,
     ) -> ClinicalExplanationReport:
         """Generate FDA-compliant clinical explanation report.
 
@@ -716,7 +716,7 @@ def quick_explain(
     model: Any,
     instance: np.ndarray,
     X_background: np.ndarray,
-    feature_names: Optional[list[str]] = None,
+    feature_names: list[str] | None = None,
     method: str = "shap",
 ) -> dict:
     """Quick explanation for a single prediction.

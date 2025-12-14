@@ -35,12 +35,12 @@ Usage:
 
 import json
 import logging
-import joblib
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+import joblib
 import numpy as np
 from scipy.spatial.distance import cdist
 
@@ -623,7 +623,7 @@ class VulnerabilityRiskScorer:
 
         # Class distribution
         unique, counts = np.unique(y, return_counts=True)
-        class_dist = {PRIORITY_ORDER[int(u)]: int(c) for u, c in zip(unique, counts)}
+        class_dist = {PRIORITY_ORDER[int(u)]: int(c) for u, c in zip(unique, counts, strict=False)}
 
         metrics = {
             "samples_total": len(X),
@@ -699,7 +699,7 @@ class VulnerabilityRiskScorer:
         )
 
         # Contributing factors
-        feature_values = dict(zip(self.feature_names, X[0]))
+        feature_values = dict(zip(self.feature_names, X[0], strict=False))
         contributions = {
             f: self.feature_importance.get(f, 0) * abs(feature_values[f])
             for f in self.feature_names

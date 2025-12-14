@@ -355,7 +355,7 @@ class SecureAggregation(PrivacyEngine):
             Masked gradients
         """
         masks = self.generate_mask(client_id, [g.shape for g in gradients])
-        return [g + m for g, m in zip(gradients, masks)]
+        return [g + m for g, m in zip(gradients, masks, strict=False)]
 
     def aggregate(self, masked_updates: dict[str, list[np.ndarray]]) -> list[np.ndarray] | None:
         """
@@ -383,7 +383,7 @@ class SecureAggregation(PrivacyEngine):
         # Sum all masked updates
         for client_id, updates in masked_updates.items():
             masks = self._masks.get(client_id, [np.zeros_like(g) for g in updates])
-            for i, (update, mask) in enumerate(zip(updates, masks)):
+            for i, (update, mask) in enumerate(zip(updates, masks, strict=False)):
                 # Remove mask and add to aggregate
                 aggregated[i] += update - mask
 

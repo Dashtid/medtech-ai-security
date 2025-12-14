@@ -26,12 +26,12 @@ Example:
 
 import hashlib
 import json
-import shutil
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 
 class RollbackTrigger(Enum):
@@ -850,7 +850,7 @@ class ModelVersionManager:
             self._rollbacks_today = state.get("rollbacks_today", 0)
             self._rollbacks_today_date = state.get("rollbacks_today_date", "")
 
-        except (json.JSONDecodeError, KeyError) as e:
+        except (json.JSONDecodeError, KeyError):
             # Log error but continue with empty state
             pass
 

@@ -32,7 +32,6 @@ import json
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 
@@ -150,7 +149,7 @@ class Autoencoder:
     def encode(self, x: np.ndarray) -> np.ndarray:
         """Encode input to latent space."""
         h = x
-        for i, (w, b) in enumerate(zip(self.encoder_weights, self.encoder_biases)):
+        for i, (w, b) in enumerate(zip(self.encoder_weights, self.encoder_biases, strict=False)):
             h = h @ w + b
             if i < len(self.encoder_weights) - 1:
                 h = self._relu(h)
@@ -159,7 +158,7 @@ class Autoencoder:
     def decode(self, z: np.ndarray) -> np.ndarray:
         """Decode latent representation to output."""
         h = z
-        for i, (w, b) in enumerate(zip(self.decoder_weights, self.decoder_biases)):
+        for i, (w, b) in enumerate(zip(self.decoder_weights, self.decoder_biases, strict=False)):
             h = h @ w + b
             if i < len(self.decoder_weights) - 1:
                 h = self._relu(h)
@@ -177,7 +176,7 @@ class Autoencoder:
         # Encoder forward pass
         encoder_activations = [x]
         h = x
-        for i, (w, b) in enumerate(zip(self.encoder_weights, self.encoder_biases)):
+        for i, (w, b) in enumerate(zip(self.encoder_weights, self.encoder_biases, strict=False)):
             z = h @ w + b
             if i < len(self.encoder_weights) - 1:
                 h = self._relu(z)
@@ -187,7 +186,7 @@ class Autoencoder:
 
         # Decoder forward pass
         decoder_activations = [h]
-        for i, (w, b) in enumerate(zip(self.decoder_weights, self.decoder_biases)):
+        for i, (w, b) in enumerate(zip(self.decoder_weights, self.decoder_biases, strict=False)):
             z = h @ w + b
             if i < len(self.decoder_weights) - 1:
                 h = self._relu(z)

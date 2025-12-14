@@ -26,7 +26,6 @@ from enum import Enum
 from typing import Any
 
 import numpy as np
-from scipy import stats
 from scipy.spatial.distance import jensenshannon
 from scipy.stats import entropy, ks_2samp, wasserstein_distance
 
@@ -598,7 +597,7 @@ class DriftDetector:
             "prediction_drift_detected": (
                 prediction_drift.drift_detected if prediction_drift else False
             ),
-            "methods_used": list(set(r.method.value for r in all_results)),
+            "methods_used": list({r.method.value for r in all_results}),
             "severity_counts": {
                 s.value: sum(1 for r in all_results if r.severity == s) for s in DriftSeverity
             },

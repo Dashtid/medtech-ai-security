@@ -14,11 +14,12 @@ Supported formats:
 import json
 import logging
 import re
-import defusedxml.ElementTree as ET
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Any
+
+import defusedxml.ElementTree as ET
 
 logger = logging.getLogger(__name__)
 
@@ -686,7 +687,7 @@ if __name__ == "__main__":
     print(f"    Vulnerabilities: {graph.vulnerability_count}")
 
     print("\n[+] Packages:")
-    for pkg_id, pkg in graph.packages.items():
+    for _pkg_id, pkg in graph.packages.items():
         vuln_count = len(pkg.vulnerabilities)
         vuln_str = f" [{vuln_count} vulns]" if vuln_count > 0 else ""
         print(f"    - {pkg.name}@{pkg.version}{vuln_str}")
