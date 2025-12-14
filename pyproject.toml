@@ -25,6 +25,16 @@ dependencies = [
     "scikit-learn>=1.3.0",
     "pandas>=2.0.0",
     "joblib>=1.3.0",
+    # Configuration & Validation
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "email-validator>=2.0.0",
+    # CLI Enhancement
+    "typer>=0.9.0",
+    "rich>=13.0.0",
+    # Authentication
+    "bcrypt>=4.0.0",
+    "python-jose[cryptography]>=3.3.0",
 ]
 keywords = [
     "medical-device",
@@ -93,6 +103,9 @@ api = [
 ]
 
 [project.scripts]
+# Main CLI (Rich enhanced)
+medtech-ai-security = "medtech_ai_security.cli:main"
+medsec = "medtech_ai_security.cli:main"
 # Security CLI tools
 medsec-nvd = "medtech_ai_security.threat_intel.nvd_scraper:main"
 medsec-cisa = "medtech_ai_security.threat_intel.cisa_scraper:main"
@@ -179,3 +192,23 @@ ignore = ["E501"]
 [tool.black]
 line-length = 100
 target-version = ["py310", "py311", "py312"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+markers = [
+    "unit: Unit tests (fast, isolated)",
+    "integration: Integration tests (may require external services)",
+    "security: Security-related tests (auth, RBAC, rate limiting)",
+    "slow: Long-running tests (model training, large datasets)",
+    "ml: Machine learning tests (requires numpy/sklearn)",
+    "api: API endpoint tests (requires fastapi)",
+    "drift: Drift detection tests",
+    "poisoning: Data poisoning defense tests",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]

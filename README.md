@@ -23,11 +23,11 @@ Medical devices are increasingly connected, creating new attack surfaces that th
 
 This platform addresses these challenges with production-ready tools for threat intelligence, anomaly detection, adversarial ML testing, and supply chain analysis - all designed with FDA 510(k) and EU MDR compliance in mind.
 
-## Project Status: All 5 Phases Complete
+## Project Status: All 5 Phases Complete + Enterprise Features
 
-November 2025 - Feature Complete
+December 2025 - Feature Complete
 
-This repository implements a comprehensive AI-powered medical device cybersecurity platform with 5 integrated modules:
+This repository implements a comprehensive AI-powered medical device cybersecurity platform with 5 core modules plus enterprise-grade security and monitoring:
 
 | Phase | Module | Status | Description |
 |-------|--------|--------|-------------|
@@ -36,6 +36,9 @@ This repository implements a comprehensive AI-powered medical device cybersecuri
 | 3 | Anomaly Detection | Complete | DICOM/HL7 traffic analysis (92.5% accuracy) |
 | 4 | Adversarial ML | Complete | FGSM/PGD/C&W attacks and defenses |
 | 5 | SBOM Analysis | Complete | GNN-based supply chain risk scoring |
+| + | Enterprise Security | Complete | JWT auth, RBAC, rate limiting, API hardening |
+| + | ML Ops | Complete | Drift detection, data poisoning defense |
+| + | Developer Experience | Complete | Rich CLI, YAML configuration, structured logging |
 
 ## Quick Start
 
@@ -51,9 +54,15 @@ uv run python scripts/demo_security.py
 
 ## CLI Tools
 
-All modules are accessible via command-line tools:
+All modules are accessible via command-line tools. The main CLI features Rich-enhanced output with progress bars, colored output, and interactive configuration wizards.
 
 ```bash
+# Main CLI (Rich-enhanced)
+medsec run experiment.yaml          # Run experiment with progress tracking
+medsec validate config.yaml         # Validate configuration files
+medsec generate --type experiment   # Generate config templates
+medsec info                         # Show system information
+
 # Phase 1: Threat Intelligence
 medsec-nvd              # Scrape NVD for medical device CVEs
 medsec-cisa             # Scrape CISA ICS-CERT advisories
@@ -74,6 +83,7 @@ medsec-sbom             # Analyze SBOM supply chain risk
 
 # Integration Tools
 medsec-defectdojo       # DefectDojo API integration
+medsec-api              # Start REST API server (with JWT auth)
 ```
 
 ## Module Details
@@ -268,8 +278,10 @@ medtech-ai-security/
 │   │   ├── nvd_scraper.py
 │   │   ├── cisa_scraper.py
 │   │   └── claude_processor.py
-│   ├── ml/                    # Phase 2: Risk scoring
-│   │   └── risk_scorer.py
+│   ├── ml/                    # Phase 2: Risk scoring + ML Ops
+│   │   ├── risk_scorer.py
+│   │   ├── drift_detection.py # Model/data drift monitoring
+│   │   └── data_poisoning.py  # Training data defense
 │   ├── anomaly/               # Phase 3: Traffic analysis
 │   │   ├── traffic_generator.py
 │   │   └── detector.py
@@ -283,18 +295,29 @@ medtech-ai-security/
 │   │   ├── gnn_model.py
 │   │   ├── risk_scorer.py
 │   │   └── analyzer.py
+│   ├── api/                   # REST API with auth
+│   │   ├── main.py
+│   │   ├── auth.py            # JWT + RBAC
+│   │   └── rate_limit.py      # Rate limiting
+│   ├── config/                # YAML configuration
+│   │   ├── schema.py          # Pydantic models
+│   │   └── loader.py          # Config loading
+│   ├── cli/                   # Rich CLI
+│   │   └── main.py
 │   └── integration/           # External integrations
 │       └── defectdojo.py
+├── config/templates/          # YAML config templates
 ├── scripts/
 │   └── demo_security.py       # Comprehensive demo
-├── tests/                     # Unit tests (672 tests)
+├── tests/                     # Unit tests (770+ tests)
 │   ├── test_threat_intel.py   # Phase 1 tests
 │   ├── test_risk_scorer.py    # Phase 2 tests
 │   ├── test_anomaly.py        # Phase 3 tests
 │   ├── test_adversarial.py    # Phase 4 tests
 │   ├── test_sbom_analysis.py  # Phase 5 tests
-│   ├── test_defectdojo.py     # Integration tests
-│   └── test_integration.py    # Cross-phase integration tests
+│   ├── test_auth.py           # Auth/RBAC tests
+│   ├── test_drift_detection.py # Drift detection tests
+│   └── test_data_poisoning.py # Data poisoning tests
 ├── data/                      # Sample data and outputs
 └── docs/                      # Documentation
 ```
@@ -320,6 +343,45 @@ medtech-ai-security/
 - **Autoencoder**: Learn normal traffic patterns, detect deviations
 - **Protocol-aware**: DICOM Association, C-FIND, C-STORE, C-MOVE, C-ECHO
 - **Attack simulation**: 10 realistic medical device attack scenarios
+
+### Enterprise Security
+
+- **JWT Authentication**: HS256 tokens with configurable expiration
+- **Role-Based Access Control**: Admin, Analyst, Viewer, API Service roles
+- **API Key Support**: Long-lived keys for automated tools
+- **Rate Limiting**: IP-based throttling with configurable limits
+- **Security Headers**: CORS, CSP, HSTS, X-Frame-Options
+
+### ML Operations
+
+- **Drift Detection**: Statistical (KS, PSI, Wasserstein) and model-based monitoring
+- **Data Poisoning Defense**: Outlier detection, influence analysis, RONI defense
+- **Ensemble Validation**: Multiple anomaly detection algorithms
+- **Batch Analysis**: Clustering and distribution analysis for training data
+
+### YAML Configuration
+
+All experiments are configurable via YAML files with Pydantic validation:
+
+```yaml
+# experiment.yaml
+name: "adversarial_robustness_evaluation"
+seed: 42
+
+model:
+  architecture: "resnet18"
+  pretrained: true
+
+attacks:
+  - attack_type: "fgsm"
+    epsilon: 0.3
+  - attack_type: "pgd"
+    iterations: 40
+
+defenses:
+  - defense_type: "randomized_smoothing"
+    noise_std: 0.25
+```
 
 ## Regulatory Compliance
 
@@ -354,7 +416,7 @@ pip install -e ".[dev]"  # Include development tools
 
 ## Testing
 
-Comprehensive test suite covering all 5 phases with 672 tests (77% code coverage):
+Comprehensive test suite covering all 5 phases plus enterprise features with 770+ tests:
 
 ```bash
 # Run all tests
@@ -369,6 +431,12 @@ uv run pytest tests/test_risk_scorer.py -v       # Phase 2: ML Risk Scoring
 uv run pytest tests/test_anomaly.py -v           # Phase 3: Anomaly Detection
 uv run pytest tests/test_adversarial.py -v       # Phase 4: Adversarial ML
 uv run pytest tests/test_sbom_analysis.py -v     # Phase 5: SBOM Analysis
+
+# Run by category (pytest markers)
+uv run pytest -m unit -v                         # Unit tests only
+uv run pytest -m integration -v                  # Integration tests only
+uv run pytest -m security -v                     # Security-related tests
+uv run pytest -m slow -v                         # Long-running tests
 ```
 
 **Test Coverage by Module:**
@@ -382,6 +450,9 @@ uv run pytest tests/test_sbom_analysis.py -v     # Phase 5: SBOM Analysis
 | SBOM Analysis | 100+ tests | Parser, graph builder, GNN, risk scorer, analyzer |
 | Network Capture | 150+ tests | DICOM/HL7 capture, traffic analysis |
 | DefectDojo Integration | 41 tests | API client, findings import, CLI |
+| Authentication/RBAC | 60+ tests | JWT tokens, API keys, role-based access |
+| Drift Detection | 50+ tests | Statistical drift, model degradation |
+| Data Poisoning | 40+ tests | Outlier detection, influence analysis |
 | Integration Tests | 15 tests | Cross-phase workflows |
 
 ## Development

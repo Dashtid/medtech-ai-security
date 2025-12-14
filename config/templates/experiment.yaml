@@ -1,0 +1,96 @@
+# Experiment Configuration Template
+# MedTech AI Security - Complete Experiment
+# Version: 1.0.0
+#
+# This template defines a complete adversarial ML experiment including
+# model, dataset, attacks, defenses, and output configuration.
+
+name: "adversarial_robustness_evaluation"
+description: "Evaluate model robustness against multiple adversarial attacks"
+version: "1.0.0"
+
+# Reproducibility settings
+seed: 42
+deterministic: true
+
+# Model configuration
+model:
+  architecture: "resnet18"
+  pretrained: true
+  num_classes: 10
+  input_shape: [3, 224, 224]
+  device: "auto"
+  checkpoint: null  # Path to model checkpoint if loading custom weights
+
+# Dataset configuration
+dataset:
+  type: "cifar10"
+  root: "./data"
+  download: true
+  train: false
+  subset_size: 1000  # Number of samples to evaluate (null for full dataset)
+  batch_size: 32
+  num_workers: 4
+  normalize: true
+  augmentation: false
+
+# Attack configurations - list of attacks to evaluate
+attacks:
+  # Fast Gradient Sign Method
+  - name: "fgsm_attack"
+    attack_type: "fgsm"
+    epsilon: 0.3
+    norm: "Linf"
+    targeted: false
+
+  # Projected Gradient Descent
+  - name: "pgd_attack"
+    attack_type: "pgd"
+    epsilon: 0.3
+    norm: "Linf"
+    iterations: 40
+    step_size: 0.01
+    random_start: true
+    num_restarts: 1
+
+  # Carlini & Wagner L2 Attack
+  - name: "cw_attack"
+    attack_type: "cw"
+    epsilon: 0.3
+    norm: "L2"
+    iterations: 100
+    learning_rate: 0.01
+    confidence: 0.0
+    binary_search_steps: 9
+
+# Defense configurations - list of defenses to apply
+defenses:
+  # JPEG Compression Defense
+  - name: "jpeg_defense"
+    defense_type: "input_transformation"
+    enabled: true
+    jpeg_quality: 75
+
+  # Randomized Smoothing
+  - name: "smoothing_defense"
+    defense_type: "randomized_smoothing"
+    enabled: true
+    noise_std: 0.25
+    num_samples: 100
+
+# Output configuration
+output:
+  output_dir: "./results"
+  save_adversarial: false  # Save adversarial examples
+  save_perturbations: false  # Save perturbation vectors
+  save_metrics: true  # Save evaluation metrics
+  log_level: "INFO"
+  tensorboard: false  # Enable TensorBoard logging
+  wandb: false  # Enable Weights & Biases logging
+  wandb_project: null  # W&B project name
+  wandb_entity: null  # W&B entity name
+
+# Execution settings
+device: "auto"
+num_workers: 4
+verbose: true

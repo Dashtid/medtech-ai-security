@@ -1,0 +1,47 @@
+# Attack Configuration Template
+# MedTech AI Security - Adversarial Attack
+# Version: 1.0.0
+
+name: "fgsm_attack"
+description: "Fast Gradient Sign Method attack for adversarial robustness testing"
+version: "1.0.0"
+
+# Attack type: fgsm, pgd, cw, deepfool, autoattack
+attack_type: "fgsm"
+
+# Perturbation budget (0.0 to 1.0)
+epsilon: 0.3
+
+# Norm constraint: Linf, L2, L1, L0
+norm: "Linf"
+
+# Whether attack is targeted (requires target_class if true)
+targeted: false
+# target_class: 0  # Uncomment for targeted attacks
+
+# Iterative attack parameters (PGD, C&W)
+iterations: 40
+step_size: null  # Auto-computed as epsilon/iterations if null
+random_start: true
+num_restarts: 1
+
+# C&W specific parameters
+confidence: 0.0
+learning_rate: 0.01
+binary_search_steps: 9
+
+# Optional: Model configuration for standalone attack
+model:
+  architecture: "resnet18"
+  pretrained: true
+  num_classes: 10
+  input_shape: [3, 224, 224]
+  device: "auto"
+
+# Optional: Dataset configuration for standalone attack
+dataset:
+  type: "cifar10"
+  root: "./data"
+  download: true
+  train: false
+  batch_size: 32
