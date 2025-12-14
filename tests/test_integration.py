@@ -380,12 +380,8 @@ class TestPhase4AdversarialMLIntegration:
             model_name="test_model",
             evaluation_date="2024-01-15",
             clean_accuracy=0.95,
-            attack_results={
-                "fgsm": {"robust_accuracy": 0.75, "attack_success_rate": 0.25}
-            },
-            defense_results={
-                "gaussian_blur": {"defended_accuracy": 0.85}
-            },
+            attack_results={"fgsm": {"robust_accuracy": 0.75, "attack_success_rate": 0.25}},
+            defense_results={"gaussian_blur": {"defended_accuracy": 0.85}},
             vulnerability_assessment="Model shows moderate vulnerability to FGSM attacks",
             recommendations=["Apply adversarial training", "Use input preprocessing"],
             clinical_risk_level="MEDIUM",
@@ -524,7 +520,9 @@ class TestCrossPhaseIntegration:
         assert prediction.risk_score >= 50
 
     @pytest.mark.integration
-    def test_sbom_vulnerability_to_risk_scoring(self, trained_scorer: VulnerabilityRiskScorer) -> None:
+    def test_sbom_vulnerability_to_risk_scoring(
+        self, trained_scorer: VulnerabilityRiskScorer
+    ) -> None:
         """Test SBOM vulnerability analysis integrated with risk scoring."""
         # Create package with known vulnerability
         vuln = VulnerabilityInfo(

@@ -47,6 +47,7 @@ class TestAnomalyDetectionBenchmarks:
 
     def test_bench_detector_fit(self, benchmark, sample_traffic_data):
         """Benchmark detector fitting/training."""
+
         def run_fit():
             detector = AnomalyDetector(latent_dim=4)
             detector.fit(sample_traffic_data, epochs=20, verbose=False)
@@ -58,6 +59,7 @@ class TestAnomalyDetectionBenchmarks:
 
     def test_bench_detect_anomalies_small(self, benchmark, trained_detector, sample_traffic_data):
         """Benchmark anomaly detection on small dataset."""
+
         def run_detect():
             return trained_detector.detect(sample_traffic_data)
 
@@ -80,6 +82,7 @@ class TestAnomalyDetectionBenchmarks:
 
     def test_bench_detect_batch(self, benchmark, trained_detector, sample_traffic_data):
         """Benchmark batch anomaly detection."""
+
         def run_batch():
             return trained_detector.detect_batch(sample_traffic_data)
 
@@ -89,6 +92,7 @@ class TestAnomalyDetectionBenchmarks:
 
     def test_bench_get_top_anomalies(self, benchmark, trained_detector, sample_traffic_data):
         """Benchmark getting top anomalies."""
+
         def run_top():
             return trained_detector.get_top_anomalies(sample_traffic_data, top_k=50)
 
@@ -130,6 +134,7 @@ class TestProtocolBenchmarks:
 
     def test_bench_dicom_packet_creation(self, benchmark):
         """Benchmark DICOM packet creation."""
+
         def create_packets():
             packets = []
             for i in range(100):
@@ -155,6 +160,7 @@ class TestProtocolBenchmarks:
 
     def test_bench_dicom_feature_vector(self, benchmark, dicom_packets):
         """Benchmark DICOM feature vector extraction."""
+
         def extract_features():
             return [p.to_feature_vector() for p in dicom_packets[:100]]
 

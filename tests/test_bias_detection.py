@@ -215,9 +215,7 @@ class TestBiasDetector:
     def test_analyze_with_attribute_name(self, detector, balanced_binary_data):
         """Test analysis with custom attribute name."""
         y_true, y_pred, groups = balanced_binary_data
-        report = detector.analyze(
-            y_true, y_pred, groups, attribute_name="sex"
-        )
+        report = detector.analyze(y_true, y_pred, groups, attribute_name="sex")
 
         assert report.protected_attribute == "sex"
 
@@ -238,9 +236,7 @@ class TestBiasDetector:
         report = detector.analyze(y_true, y_pred, groups)
 
         dp_results = [
-            r
-            for r in report.fairness_results
-            if r.metric == FairnessMetric.DEMOGRAPHIC_PARITY
+            r for r in report.fairness_results if r.metric == FairnessMetric.DEMOGRAPHIC_PARITY
         ]
         assert len(dp_results) == 1
         assert dp_results[0].value >= 0
@@ -251,9 +247,7 @@ class TestBiasDetector:
         report = detector.analyze(y_true, y_pred, groups)
 
         eo_results = [
-            r
-            for r in report.fairness_results
-            if r.metric == FairnessMetric.EQUALIZED_ODDS
+            r for r in report.fairness_results if r.metric == FairnessMetric.EQUALIZED_ODDS
         ]
         assert len(eo_results) == 1
 
@@ -263,9 +257,7 @@ class TestBiasDetector:
         report = detector.analyze(y_true, y_pred, groups)
 
         eop_results = [
-            r
-            for r in report.fairness_results
-            if r.metric == FairnessMetric.EQUAL_OPPORTUNITY
+            r for r in report.fairness_results if r.metric == FairnessMetric.EQUAL_OPPORTUNITY
         ]
         assert len(eop_results) == 1
 

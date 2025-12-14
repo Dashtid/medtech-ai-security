@@ -290,12 +290,8 @@ class TestDefectDojoClient:
         """Test get_or_create_product when product doesn't exist."""
         # First call returns empty results, second creates product
         responses = [
-            MagicMock(
-                status_code=200, json=MagicMock(return_value={"results": [], "count": 0})
-            ),
-            MagicMock(
-                status_code=201, json=MagicMock(return_value={"id": 10, "name": "New"})
-            ),
+            MagicMock(status_code=200, json=MagicMock(return_value={"results": [], "count": 0})),
+            MagicMock(status_code=201, json=MagicMock(return_value={"id": 10, "name": "New"})),
         ]
         mock_request.side_effect = responses
 
@@ -340,9 +336,7 @@ class TestDefectDojoClient:
         responses = [
             MagicMock(
                 status_code=200,
-                json=MagicMock(
-                    return_value={"results": [{"id": 1, "name": "SBOM Analysis"}]}
-                ),
+                json=MagicMock(return_value={"results": [{"id": 1, "name": "SBOM Analysis"}]}),
             ),
             MagicMock(
                 status_code=201,
@@ -517,15 +511,15 @@ class TestDefectDojoClientImportMethods:
 
         for cve_data, expected_severity in test_cases:
             findings = client._convert_cves_to_findings([cve_data])
-            assert findings[0].severity == expected_severity, f"Failed for CVSS {cve_data['cvss_score']}"
+            assert (
+                findings[0].severity == expected_severity
+            ), f"Failed for CVSS {cve_data['cvss_score']}"
 
     @patch.object(DefectDojoClient, "create_engagement")
     @patch.object(DefectDojoClient, "create_test")
     @patch.object(DefectDojoClient, "create_findings_batch")
     @patch.object(DefectDojoClient, "close_engagement")
-    def test_import_sbom_findings(
-        self, mock_close, mock_batch, mock_test, mock_engagement, client
-    ):
+    def test_import_sbom_findings(self, mock_close, mock_batch, mock_test, mock_engagement, client):
         """Test importing SBOM findings."""
         mock_engagement.return_value = {"id": 1, "name": "Test"}
         mock_test.return_value = {"id": 10, "title": "SBOM"}
@@ -575,9 +569,7 @@ class TestDefectDojoClientImportMethods:
 
     @patch.object(DefectDojoClient, "create_engagement")
     @patch.object(DefectDojoClient, "create_test")
-    def test_import_sbom_findings_test_failure(
-        self, mock_test, mock_engagement, client
-    ):
+    def test_import_sbom_findings_test_failure(self, mock_test, mock_engagement, client):
         """Test import failure when test creation fails."""
         mock_engagement.return_value = {"id": 1}
         mock_test.return_value = None
@@ -594,9 +586,7 @@ class TestDefectDojoClientImportMethods:
     @patch.object(DefectDojoClient, "create_test")
     @patch.object(DefectDojoClient, "create_findings_batch")
     @patch.object(DefectDojoClient, "close_engagement")
-    def test_import_threat_intel(
-        self, mock_close, mock_batch, mock_test, mock_engagement, client
-    ):
+    def test_import_threat_intel(self, mock_close, mock_batch, mock_test, mock_engagement, client):
         """Test importing threat intelligence CVEs."""
         mock_engagement.return_value = {"id": 2, "name": "Threat Intel"}
         mock_test.return_value = {"id": 20, "title": "CVE Analysis"}
@@ -653,9 +643,7 @@ class TestDefectDojoClientUtilities:
         """Test getting findings with filters."""
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "results": [{"id": 1, "title": "Finding 1"}]
-        }
+        mock_response.json.return_value = {"results": [{"id": 1, "title": "Finding 1"}]}
         mock_request.return_value = mock_response
 
         findings = client.get_findings(test_id=10, severity="High", active=True)
@@ -730,7 +718,9 @@ class TestSeverityMap:
 class TestCLI:
     """Tests for CLI functionality."""
 
-    @patch("sys.argv", ["medsec-defectdojo", "--url", "https://test.com", "--api-key", "key", "--test"])
+    @patch(
+        "sys.argv", ["medsec-defectdojo", "--url", "https://test.com", "--api-key", "key", "--test"]
+    )
     @patch.object(DefectDojoClient, "test_connection")
     def test_cli_test_connection(self, mock_test, capsys):
         """Test CLI connection test."""
@@ -743,7 +733,9 @@ class TestCLI:
         captured = capsys.readouterr()
         assert "[OK]" in captured.out
 
-    @patch("sys.argv", ["medsec-defectdojo", "--url", "https://test.com", "--api-key", "key", "--test"])
+    @patch(
+        "sys.argv", ["medsec-defectdojo", "--url", "https://test.com", "--api-key", "key", "--test"]
+    )
     @patch.object(DefectDojoClient, "test_connection")
     def test_cli_test_connection_failure(self, mock_test, capsys):
         """Test CLI connection test failure."""
@@ -756,7 +748,10 @@ class TestCLI:
         captured = capsys.readouterr()
         assert "[FAIL]" in captured.out
 
-    @patch("sys.argv", ["medsec-defectdojo", "--url", "https://test.com", "--api-key", "key", "--list-products"])
+    @patch(
+        "sys.argv",
+        ["medsec-defectdojo", "--url", "https://test.com", "--api-key", "key", "--list-products"],
+    )
     @patch.object(DefectDojoClient, "get_products")
     def test_cli_list_products(self, mock_products, capsys):
         """Test CLI list products."""

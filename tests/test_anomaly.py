@@ -1,6 +1,5 @@
 """Unit tests for Phase 3: Anomaly Detection for Medical Device Traffic."""
 
-
 import numpy as np
 import pytest
 
@@ -162,9 +161,7 @@ class TestTrafficGenerator:
 
     def test_generate_dataset(self, generator):
         """Test generating complete dataset with mixed traffic."""
-        features, labels, packets = generator.generate_dataset(
-            n_normal=50, n_attack=10
-        )
+        features, labels, packets = generator.generate_dataset(n_normal=50, n_attack=10)
 
         assert len(features) == len(labels)
         assert len(packets) == len(labels)
@@ -242,18 +239,14 @@ class TestAutoencoder:
         """Test encoder weights have correct shapes."""
         expected_shapes = [(16, 12), (12, 8), (8, 4)]
 
-        for i, (weight, expected) in enumerate(
-            zip(autoencoder.encoder_weights, expected_shapes)
-        ):
+        for i, (weight, expected) in enumerate(zip(autoencoder.encoder_weights, expected_shapes)):
             assert weight.shape == expected, f"Encoder weight {i} has wrong shape"
 
     def test_decoder_weight_shapes(self, autoencoder):
         """Test decoder weights have correct shapes."""
         expected_shapes = [(4, 8), (8, 12), (12, 16)]
 
-        for i, (weight, expected) in enumerate(
-            zip(autoencoder.decoder_weights, expected_shapes)
-        ):
+        for i, (weight, expected) in enumerate(zip(autoencoder.decoder_weights, expected_shapes)):
             assert weight.shape == expected, f"Decoder weight {i} has wrong shape"
 
     def test_encode(self, autoencoder, sample_data):

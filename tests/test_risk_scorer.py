@@ -227,9 +227,7 @@ class TestVulnerabilityRiskScorer:
         """Test CVSS vector parsing."""
         scorer = VulnerabilityRiskScorer()
 
-        result = scorer._parse_cvss_vector(
-            "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
-        )
+        result = scorer._parse_cvss_vector("CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H")
 
         assert result["av"] == 0.85  # Network
         assert result["ac"] == 0.77  # Low

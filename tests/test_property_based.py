@@ -352,7 +352,9 @@ class TestModelIntegrityProperties:
     @given(
         content=st.binary(min_size=100, max_size=5000),
         secret=st.binary(min_size=32, max_size=64),
-        signer_id=st.text(min_size=1, max_size=50, alphabet=st.characters(whitelist_categories=("L", "N"))),
+        signer_id=st.text(
+            min_size=1, max_size=50, alphabet=st.characters(whitelist_categories=("L", "N"))
+        ),
     )
     @settings(max_examples=20, deadline=5000)
     def test_signature_verification(self, content, secret, signer_id):

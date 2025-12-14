@@ -205,9 +205,7 @@ class AdversarialDefender:
 
         for i in range(len(images)):
             for c in range(images.shape[-1]):
-                defended[i, :, :, c] = ndimage.gaussian_filter(
-                    images[i, :, :, c], sigma=sigma
-                )
+                defended[i, :, :, c] = ndimage.gaussian_filter(images[i, :, :, c], sigma=sigma)
 
         return defended.astype(np.float32)
 
@@ -233,9 +231,7 @@ class AdversarialDefender:
 
         for i in range(len(images)):
             for c in range(images.shape[-1]):
-                defended[i, :, :, c] = ndimage.median_filter(
-                    images[i, :, :, c], size=kernel_size
-                )
+                defended[i, :, :, c] = ndimage.median_filter(images[i, :, :, c], size=kernel_size)
 
         return defended.astype(np.float32)
 
@@ -373,9 +369,7 @@ class AdversarialDefender:
             else:
                 certified_radii[i] = 0.0
 
-        logger.info(
-            f"Randomized smoothing: mean certified radius = {np.mean(certified_radii):.4f}"
-        )
+        logger.info(f"Randomized smoothing: mean certified radius = {np.mean(certified_radii):.4f}")
 
         return smoothed_preds, certified_radii
 
@@ -424,25 +418,22 @@ class AdversarialDefender:
 
             # Build transformation matrix
             cos_a, sin_a = np.cos(angle_rad), np.sin(angle_rad)
-            rotation_matrix = np.array([
-                [cos_a / scale, -sin_a / scale],
-                [sin_a / scale, cos_a / scale]
-            ])
+            rotation_matrix = np.array(
+                [[cos_a / scale, -sin_a / scale], [sin_a / scale, cos_a / scale]]
+            )
 
             # Offset to rotate around center
-            offset = np.array([
-                center[0] - center[0] * cos_a / scale + center[1] * sin_a / scale - ty,
-                center[1] - center[0] * sin_a / scale - center[1] * cos_a / scale - tx
-            ])
+            offset = np.array(
+                [
+                    center[0] - center[0] * cos_a / scale + center[1] * sin_a / scale - ty,
+                    center[1] - center[0] * sin_a / scale - center[1] * cos_a / scale - tx,
+                ]
+            )
 
             # Apply to each channel
             for c in range(img.shape[-1]):
                 transformed[i, :, :, c] = affine_transform(
-                    img[:, :, c],
-                    rotation_matrix,
-                    offset=offset,
-                    order=1,
-                    mode="nearest"
+                    img[:, :, c], rotation_matrix, offset=offset, order=1, mode="nearest"
                 )
 
         return transformed.astype(np.float32)
@@ -608,9 +599,7 @@ class AdversarialTrainer:
 
         if num_adversarial > 0:
             # Select indices for adversarial examples
-            adv_indices = np.random.choice(
-                batch_size, num_adversarial, replace=False
-            )
+            adv_indices = np.random.choice(batch_size, num_adversarial, replace=False)
 
             # Generate adversarial examples
             adv_images = images[adv_indices]
@@ -644,9 +633,7 @@ class AdversarialTrainer:
             Training loss
         """
         # Generate mixed batch
-        mixed_images, mixed_labels = self.generate_adversarial_batch(
-            images, labels, ratio
-        )
+        mixed_images, mixed_labels = self.generate_adversarial_batch(images, labels, ratio)
 
         # Train step (assumes Keras model)
         try:
@@ -721,9 +708,7 @@ class AdversarialTrainer:
                 batch_x = x_shuffled[start:end]
                 batch_y = y_shuffled[start:end]
 
-                loss = self.adversarial_training_step(
-                    batch_x, batch_y, adversarial_ratio
-                )
+                loss = self.adversarial_training_step(batch_x, batch_y, adversarial_ratio)
                 epoch_losses.append(loss)
 
             mean_loss = float(np.mean(epoch_losses))
@@ -787,6 +772,7 @@ class GradientRegularizedTrainer:
 
         try:
             import tensorflow as tf
+
             self.tf = tf
         except ImportError:
             raise ImportError("TensorFlow required for gradient regularization")
@@ -807,9 +793,7 @@ class GradientRegularizedTrainer:
                     self.tf.squeeze(predictions),
                 )
             else:
-                loss = self.tf.keras.losses.sparse_categorical_crossentropy(
-                    labels, predictions
-                )
+                loss = self.tf.keras.losses.sparse_categorical_crossentropy(labels, predictions)
 
         gradients = tape.gradient(loss, images)
 
@@ -872,9 +856,7 @@ class GradientRegularizedTrainer:
 
         # Update model weights
         model_gradients = tape.gradient(total_loss, self.model.trainable_variables)
-        self.model.optimizer.apply_gradients(
-            zip(model_gradients, self.model.trainable_variables)
-        )
+        self.model.optimizer.apply_gradients(zip(model_gradients, self.model.trainable_variables))
 
         del tape  # Release persistent tape
 

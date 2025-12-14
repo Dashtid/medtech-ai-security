@@ -163,7 +163,11 @@ class AssessmentReport:
             "",
             "## Executive Summary",
             "",
-            self.executive_summary if self.executive_summary else "_No executive summary provided._",
+            (
+                self.executive_summary
+                if self.executive_summary
+                else "_No executive summary provided._"
+            ),
             "",
             "## System Information",
             "",
@@ -196,13 +200,15 @@ class AssessmentReport:
             gap = self.target_sl.value - self.achieved_sl.value
             lines.append(f"[!] **Status**: Gap of {gap} security level(s) to target")
 
-        lines.extend([
-            "",
-            "## Zone and Conduit Model",
-            "",
-            "### Zones",
-            "",
-        ])
+        lines.extend(
+            [
+                "",
+                "## Zone and Conduit Model",
+                "",
+                "### Zones",
+                "",
+            ]
+        )
 
         if self.zones:
             lines.append("| Zone ID | Name | Target SL | Achieved SL | Assets |")
@@ -218,11 +224,13 @@ class AssessmentReport:
         else:
             lines.append("_No zones defined._")
 
-        lines.extend([
-            "",
-            "### Conduits",
-            "",
-        ])
+        lines.extend(
+            [
+                "",
+                "### Conduits",
+                "",
+            ]
+        )
 
         if self.conduits:
             lines.append("| Conduit ID | Name | Source | Destination | Type | SL |")
@@ -236,11 +244,13 @@ class AssessmentReport:
         else:
             lines.append("_No conduits defined._")
 
-        lines.extend([
-            "",
-            "## Foundational Requirements Assessment",
-            "",
-        ])
+        lines.extend(
+            [
+                "",
+                "## Foundational Requirements Assessment",
+                "",
+            ]
+        )
 
         # Group results by FR
         fr_results: dict[str, list[tuple[str, ComplianceStatus]]] = {}
@@ -258,13 +268,17 @@ class AssessmentReport:
             lines.append("|-------------|--------|")
             for sr_id, status in sorted(results):
                 status_icon = _status_icon(status)
-                lines.append(f"| {sr_id} | {status_icon} {status.value.replace('_', ' ').title()} |")
+                lines.append(
+                    f"| {sr_id} | {status_icon} {status.value.replace('_', ' ').title()} |"
+                )
             lines.append("")
 
-        lines.extend([
-            "## SOUP Inventory (IEC 62304)",
-            "",
-        ])
+        lines.extend(
+            [
+                "## SOUP Inventory (IEC 62304)",
+                "",
+            ]
+        )
 
         if self.soup_inventory:
             lines.append("| Component | Version | Vendor | Risk Class | Known Vulns |")
@@ -279,11 +293,13 @@ class AssessmentReport:
         else:
             lines.append("_No SOUP components documented._")
 
-        lines.extend([
-            "",
-            "## Identified Gaps",
-            "",
-        ])
+        lines.extend(
+            [
+                "",
+                "## Identified Gaps",
+                "",
+            ]
+        )
 
         if self.gaps:
             for i, gap in enumerate(self.gaps, 1):
@@ -291,11 +307,13 @@ class AssessmentReport:
         else:
             lines.append("[+] No gaps identified.")
 
-        lines.extend([
-            "",
-            "## Recommendations",
-            "",
-        ])
+        lines.extend(
+            [
+                "",
+                "## Recommendations",
+                "",
+            ]
+        )
 
         if self.recommendations:
             for i, rec in enumerate(self.recommendations, 1):
@@ -303,27 +321,29 @@ class AssessmentReport:
         else:
             lines.append("_No specific recommendations._")
 
-        lines.extend([
-            "",
-            "---",
-            "",
-            "## FDA Compliance Note",
-            "",
-            "This assessment follows IEC 62443 standards recognized by FDA as consensus ",
-            "standards for medical device cybersecurity. The security level framework ",
-            "aligns with FDA's risk-based approach to premarket cybersecurity review.",
-            "",
-            "### Regulatory References",
-            "",
-            "- FDA Guidance: Content of Premarket Submissions for Management of ",
-            "  Cybersecurity in Medical Devices (2023)",
-            "- IEC 62443-3-3: System security requirements and security levels",
-            "- IEC 62443-4-2: Technical security requirements for IACS components",
-            "- IEC 81001-5-1: Security for health software and health IT systems",
-            "- IEC 62304: Medical device software life cycle processes",
-            "",
-            f"_Report generated: {datetime.now(timezone.utc).isoformat()}_",
-        ])
+        lines.extend(
+            [
+                "",
+                "---",
+                "",
+                "## FDA Compliance Note",
+                "",
+                "This assessment follows IEC 62443 standards recognized by FDA as consensus ",
+                "standards for medical device cybersecurity. The security level framework ",
+                "aligns with FDA's risk-based approach to premarket cybersecurity review.",
+                "",
+                "### Regulatory References",
+                "",
+                "- FDA Guidance: Content of Premarket Submissions for Management of ",
+                "  Cybersecurity in Medical Devices (2023)",
+                "- IEC 62443-3-3: System security requirements and security levels",
+                "- IEC 62443-4-2: Technical security requirements for IACS components",
+                "- IEC 81001-5-1: Security for health software and health IT systems",
+                "- IEC 62304: Medical device software life cycle processes",
+                "",
+                f"_Report generated: {datetime.now(timezone.utc).isoformat()}_",
+            ]
+        )
 
         return "\n".join(lines)
 
@@ -750,9 +770,7 @@ class IEC62443Assessor:
         gaps = self.identify_gaps()
 
         if gaps:
-            recommendations.append(
-                "Address identified gaps to achieve target security level"
-            )
+            recommendations.append("Address identified gaps to achieve target security level")
 
         # Check SOUP inventory
         high_risk_soup = [s for s in self.soup_inventory if s.risk_class == "C"]
@@ -785,9 +803,7 @@ class IEC62443Assessor:
 
         # General recommendations based on target SL
         if self.target_sl.value >= 2:
-            recommendations.append(
-                "Implement continuous security monitoring per FR 6"
-            )
+            recommendations.append("Implement continuous security monitoring per FR 6")
         if self.target_sl.value >= 3:
             recommendations.append(
                 "Consider third-party penetration testing to validate security controls"

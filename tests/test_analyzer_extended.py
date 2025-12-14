@@ -50,11 +50,13 @@ class TestGNNPredictions:
 
         mock = MagicMock()
         # Return probabilities for 3 nodes, 3 classes each
-        mock.predict_proba.return_value = np.array([
-            [0.8, 0.1, 0.1],  # clean
-            [0.1, 0.8, 0.1],  # vulnerable
-            [0.1, 0.1, 0.8],  # transitive
-        ])
+        mock.predict_proba.return_value = np.array(
+            [
+                [0.8, 0.1, 0.1],  # clean
+                [0.1, 0.8, 0.1],  # vulnerable
+                [0.1, 0.1, 0.8],  # transitive
+            ]
+        )
         return mock
 
     def test_run_gnn_predictions_success(self, mock_gnn_model):
@@ -134,15 +136,17 @@ class TestGNNPredictions:
 
     def test_analyze_json_with_gnn_model(self, mock_gnn_model):
         """Test analyze_json includes GNN predictions."""
-        sbom = json.dumps({
-            "bomFormat": "CycloneDX",
-            "specVersion": "1.5",
-            "components": [
-                {"name": "pkg-a", "version": "1.0.0"},
-                {"name": "pkg-b", "version": "1.0.0"},
-                {"name": "pkg-c", "version": "1.0.0"},
-            ],
-        })
+        sbom = json.dumps(
+            {
+                "bomFormat": "CycloneDX",
+                "specVersion": "1.5",
+                "components": [
+                    {"name": "pkg-a", "version": "1.0.0"},
+                    {"name": "pkg-b", "version": "1.0.0"},
+                    {"name": "pkg-c", "version": "1.0.0"},
+                ],
+            }
+        )
 
         analyzer = SBOMAnalyzer(use_gnn=False)
         analyzer.gnn_model = mock_gnn_model
@@ -158,6 +162,7 @@ class TestVisualizationColorCodes:
     @pytest.fixture
     def create_analyzer_with_risk_report(self):
         """Create analyzer and risk report for testing visualization."""
+
         def _create(risk_level):
             from medtech_ai_security.sbom_analysis.risk_scorer import PackageRisk
 
@@ -180,6 +185,7 @@ class TestVisualizationColorCodes:
             )
 
             return analyzer, dep_graph, risk_report
+
         return _create
 
     def test_visualization_critical_color(self, create_analyzer_with_risk_report):

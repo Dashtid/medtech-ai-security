@@ -404,8 +404,7 @@ class TrafficAnalyzer:
         # Keep only last 5 minutes
         cutoff = now.timestamp() - 300
         self._connection_tracker[ip] = [
-            t for t in self._connection_tracker[ip]
-            if t.timestamp() > cutoff
+            t for t in self._connection_tracker[ip] if t.timestamp() > cutoff
         ]
 
     def _track_data_transfer(self, ip: str, bytes_transferred: int) -> None:
@@ -468,30 +467,19 @@ def main() -> None:
     """CLI for traffic analyzer."""
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Analyze DICOM/HL7 traffic for security anomalies"
+    parser = argparse.ArgumentParser(description="Analyze DICOM/HL7 traffic for security anomalies")
+    parser.add_argument("--interface", "-i", help="Network interface for capture")
+    parser.add_argument(
+        "--dicom-ports", type=int, nargs="+", default=[104, 11112], help="DICOM ports to monitor"
     )
     parser.add_argument(
-        "--interface", "-i", help="Network interface for capture"
+        "--hl7-ports", type=int, nargs="+", default=[2575, 5000], help="HL7 ports to monitor"
     )
+    parser.add_argument("--model", "-m", help="Path to anomaly detection model")
     parser.add_argument(
-        "--dicom-ports", type=int, nargs="+", default=[104, 11112],
-        help="DICOM ports to monitor"
+        "--duration", "-d", type=int, default=60, help="Analysis duration in seconds"
     )
-    parser.add_argument(
-        "--hl7-ports", type=int, nargs="+", default=[2575, 5000],
-        help="HL7 ports to monitor"
-    )
-    parser.add_argument(
-        "--model", "-m", help="Path to anomaly detection model"
-    )
-    parser.add_argument(
-        "--duration", "-d", type=int, default=60,
-        help="Analysis duration in seconds"
-    )
-    parser.add_argument(
-        "--output", "-o", help="Output file for anomalies (JSON)"
-    )
+    parser.add_argument("--output", "-o", help="Output file for anomalies (JSON)")
 
     args = parser.parse_args()
 

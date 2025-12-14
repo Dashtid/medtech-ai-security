@@ -575,9 +575,7 @@ class DefectDojoClient:
             if pkg.get("vulnerability_count", 0) == 0:
                 continue
 
-            severity = self.SEVERITY_MAP.get(
-                pkg.get("risk_level", "medium").lower(), "Medium"
-            )
+            severity = self.SEVERITY_MAP.get(pkg.get("risk_level", "medium").lower(), "Medium")
 
             finding = Finding(
                 title=f"Vulnerable dependency: {pkg.get('package_name', 'Unknown')}@{pkg.get('package_version', '')}",

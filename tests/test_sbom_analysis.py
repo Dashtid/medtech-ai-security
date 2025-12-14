@@ -246,9 +246,7 @@ class TestSBOMParser:
     @pytest.fixture
     def temp_sbom_file(self, cyclonedx_sbom):
         """Create temporary SBOM file."""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(cyclonedx_sbom, f)
             temp_path = f.name
         yield temp_path
@@ -581,9 +579,7 @@ class TestSBOMAnalyzer:
             ],
             "dependencies": [],
         }
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(sbom, f)
             temp_path = f.name
         yield temp_path
@@ -708,10 +704,7 @@ class TestVulnerabilityGNN:
 
         # Create simple graph with 10 nodes
         node_features = np.random.rand(10, 88).astype(np.float32)
-        edge_index = np.array([
-            [0, 1, 2, 3, 4, 5],
-            [1, 2, 3, 4, 5, 6]
-        ])
+        edge_index = np.array([[0, 1, 2, 3, 4, 5], [1, 2, 3, 4, 5, 6]])
         node_labels = np.array([0, 0, 1, 1, 0, 1, 0, 2, 2, 0])
 
         return GraphData(
@@ -883,26 +876,28 @@ class TestSBOMAnalyzerAdvanced:
     @pytest.fixture
     def sample_sbom_json(self):
         """Create sample SBOM JSON string."""
-        return json.dumps({
-            "bomFormat": "CycloneDX",
-            "specVersion": "1.5",
-            "version": 1,
-            "metadata": {
-                "component": {
-                    "name": "test-app",
-                    "version": "1.0.0",
-                    "type": "application",
-                }
-            },
-            "components": [
-                {"name": "express", "version": "4.17.1", "type": "library"},
-                {"name": "lodash", "version": "4.17.20", "type": "library"},
-            ],
-            "dependencies": [
-                {"ref": "test-app@1.0.0", "dependsOn": ["express@4.17.1"]},
-                {"ref": "express@4.17.1", "dependsOn": ["lodash@4.17.20"]},
-            ],
-        })
+        return json.dumps(
+            {
+                "bomFormat": "CycloneDX",
+                "specVersion": "1.5",
+                "version": 1,
+                "metadata": {
+                    "component": {
+                        "name": "test-app",
+                        "version": "1.0.0",
+                        "type": "application",
+                    }
+                },
+                "components": [
+                    {"name": "express", "version": "4.17.1", "type": "library"},
+                    {"name": "lodash", "version": "4.17.20", "type": "library"},
+                ],
+                "dependencies": [
+                    {"ref": "test-app@1.0.0", "dependsOn": ["express@4.17.1"]},
+                    {"ref": "express@4.17.1", "dependsOn": ["lodash@4.17.20"]},
+                ],
+            }
+        )
 
     def test_analyzer_without_gnn(self):
         """Test analyzer with GNN disabled."""
@@ -1235,7 +1230,9 @@ class TestRiskScorerAdvanced:
         vuln2 = VulnerabilityInfo(cve_id="CVE-2021-2222", severity="critical", cvss_score=9.5)
         vuln3 = VulnerabilityInfo(cve_id="CVE-2021-3333", severity="medium", cvss_score=5.0)
         graph = DependencyGraph()
-        graph.add_package(Package(name="multi-vuln", version="1.0.0", vulnerabilities=[vuln1, vuln2, vuln3]))
+        graph.add_package(
+            Package(name="multi-vuln", version="1.0.0", vulnerabilities=[vuln1, vuln2, vuln3])
+        )
 
         scorer = SupplyChainRiskScorer()
         report = scorer.score(graph)
@@ -1274,7 +1271,9 @@ class TestRiskScorerAdvanced:
         """Test risk level assignment at boundaries."""
         # Create packages with different risk scores
         vuln_low = VulnerabilityInfo(cve_id="CVE-2021-0001", severity="low", cvss_score=2.0)
-        vuln_critical = VulnerabilityInfo(cve_id="CVE-2021-0002", severity="critical", cvss_score=10.0)
+        vuln_critical = VulnerabilityInfo(
+            cve_id="CVE-2021-0002", severity="critical", cvss_score=10.0
+        )
 
         graph = DependencyGraph()
         graph.add_package(Package(name="low-risk", version="1.0.0", vulnerabilities=[vuln_low]))
@@ -1287,7 +1286,9 @@ class TestRiskScorerAdvanced:
         low_vuln_score = report.overall_risk_score
 
         # Add critical vuln
-        graph.add_package(Package(name="critical-pkg", version="1.0.0", vulnerabilities=[vuln_critical]))
+        graph.add_package(
+            Package(name="critical-pkg", version="1.0.0", vulnerabilities=[vuln_critical])
+        )
         report2 = scorer.score(graph)
 
         # Score should increase with critical vulnerability
@@ -1317,7 +1318,9 @@ class TestGraphBuilderAdvanced:
         graph = DependencyGraph()
         graph.add_package(Package(name="npm-pkg", version="1.0.0", package_type=PackageType.NPM))
         graph.add_package(Package(name="pypi-pkg", version="1.0.0", package_type=PackageType.PYPI))
-        graph.add_package(Package(name="maven-pkg", version="1.0.0", package_type=PackageType.MAVEN))
+        graph.add_package(
+            Package(name="maven-pkg", version="1.0.0", package_type=PackageType.MAVEN)
+        )
 
         builder = SBOMGraphBuilder()
         graph_data = builder.build(graph)
@@ -1356,17 +1359,19 @@ class TestVisualizationGeneration:
         vuln_medium = VulnerabilityInfo(cve_id="CVE-2021-0003", severity="medium", cvss_score=5.0)
         vuln_low = VulnerabilityInfo(cve_id="CVE-2021-0004", severity="low", cvss_score=2.0)
 
-        sbom = json.dumps({
-            "bomFormat": "CycloneDX",
-            "specVersion": "1.5",
-            "components": [
-                {"name": "critical-pkg", "version": "1.0.0"},
-                {"name": "high-pkg", "version": "1.0.0"},
-                {"name": "medium-pkg", "version": "1.0.0"},
-                {"name": "low-pkg", "version": "1.0.0"},
-                {"name": "clean-pkg", "version": "1.0.0"},
-            ],
-        })
+        sbom = json.dumps(
+            {
+                "bomFormat": "CycloneDX",
+                "specVersion": "1.5",
+                "components": [
+                    {"name": "critical-pkg", "version": "1.0.0"},
+                    {"name": "high-pkg", "version": "1.0.0"},
+                    {"name": "medium-pkg", "version": "1.0.0"},
+                    {"name": "low-pkg", "version": "1.0.0"},
+                    {"name": "clean-pkg", "version": "1.0.0"},
+                ],
+            }
+        )
 
         analyzer = SBOMAnalyzer(use_gnn=False)
         report = analyzer.analyze_json(sbom)
@@ -1376,15 +1381,17 @@ class TestVisualizationGeneration:
 
     def test_visualization_ecosystems_grouping(self):
         """Test visualization groups packages by ecosystem."""
-        sbom = json.dumps({
-            "bomFormat": "CycloneDX",
-            "specVersion": "1.5",
-            "components": [
-                {"name": "npm-pkg-1", "version": "1.0.0", "purl": "pkg:npm/npm-pkg-1@1.0.0"},
-                {"name": "npm-pkg-2", "version": "1.0.0", "purl": "pkg:npm/npm-pkg-2@1.0.0"},
-                {"name": "pypi-pkg", "version": "1.0.0", "purl": "pkg:pypi/pypi-pkg@1.0.0"},
-            ],
-        })
+        sbom = json.dumps(
+            {
+                "bomFormat": "CycloneDX",
+                "specVersion": "1.5",
+                "components": [
+                    {"name": "npm-pkg-1", "version": "1.0.0", "purl": "pkg:npm/npm-pkg-1@1.0.0"},
+                    {"name": "npm-pkg-2", "version": "1.0.0", "purl": "pkg:npm/npm-pkg-2@1.0.0"},
+                    {"name": "pypi-pkg", "version": "1.0.0", "purl": "pkg:pypi/pypi-pkg@1.0.0"},
+                ],
+            }
+        )
 
         analyzer = SBOMAnalyzer(use_gnn=False)
         report = analyzer.analyze_json(sbom)
@@ -1429,9 +1436,7 @@ class TestIntegration:
             ],
         }
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(sbom, f)
             temp_path = f.name
 

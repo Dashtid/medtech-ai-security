@@ -152,6 +152,7 @@ class APIKeyResponse(BaseModel):
 # In-Memory Storage (Replace with database in production)
 # =============================================================================
 
+
 # Helper function for hashing at module load time
 def _hash_password(password: str) -> str:
     """Hash password using bcrypt (for module initialization)."""

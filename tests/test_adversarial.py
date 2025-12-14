@@ -597,7 +597,9 @@ class TestAdversarialDefenderAdvanced:
 
         with pytest.raises(ValueError, match="Model required"):
             defender.evaluate_defense(
-                images, labels, images,
+                images,
+                labels,
+                images,
                 DefenseType.GAUSSIAN_BLUR,
                 defender.gaussian_blur,
                 {"sigma": 1.0},
@@ -722,14 +724,16 @@ class TestRobustnessEvaluatorAdvanced:
 
         labels = np.array([0, 1, 2, 0, 1, 2])
         # Create predictions with some misclassifications
-        preds = np.array([
-            [0.9, 0.05, 0.05],  # Correct (class 0)
-            [0.1, 0.8, 0.1],   # Correct (class 1)
-            [0.1, 0.1, 0.8],   # Correct (class 2)
-            [0.1, 0.8, 0.1],   # Wrong (class 1 instead of 0)
-            [0.8, 0.1, 0.1],   # Wrong (class 0 instead of 1)
-            [0.1, 0.8, 0.1],   # Wrong (class 1 instead of 2)
-        ])
+        preds = np.array(
+            [
+                [0.9, 0.05, 0.05],  # Correct (class 0)
+                [0.1, 0.8, 0.1],  # Correct (class 1)
+                [0.1, 0.1, 0.8],  # Correct (class 2)
+                [0.1, 0.8, 0.1],  # Wrong (class 1 instead of 0)
+                [0.8, 0.1, 0.1],  # Wrong (class 0 instead of 1)
+                [0.1, 0.8, 0.1],  # Wrong (class 1 instead of 2)
+            ]
+        )
 
         impact = evaluator.assess_clinical_impact(labels, preds)
 
@@ -1015,7 +1019,8 @@ class TestAdversarialAttackerAdvanced:
 
         # Use minimal iterations for speed
         result = attacker.attack(
-            images, labels,
+            images,
+            labels,
             attack_type="cw_l2",
             binary_search_steps=1,
             max_iterations=5,
@@ -1039,9 +1044,11 @@ class TestCWAttack:
     @pytest.fixture
     def simple_model(self):
         """Create a simple model."""
+
         def model(x):
             mean_val = np.mean(x, axis=(1, 2, 3))
             return np.column_stack([1 - mean_val, mean_val])
+
         return model
 
     def test_cw_l2_basic(self, simple_model):
@@ -1099,9 +1106,11 @@ class TestFullEvaluation:
     @pytest.fixture
     def simple_model(self):
         """Create a simple model."""
+
         def model(x):
             mean_val = np.mean(x, axis=(1, 2, 3))
             return np.column_stack([1 - mean_val, mean_val])
+
         return model
 
     def test_full_evaluation_default_configs(self, simple_model):
@@ -1124,7 +1133,8 @@ class TestFullEvaluation:
         ]
 
         report = evaluator.full_evaluation(
-            images, labels,
+            images,
+            labels,
             attack_configs=attack_configs,
             defense_configs=defense_configs,
         )
@@ -1137,6 +1147,7 @@ class TestFullEvaluation:
 
     def test_full_evaluation_high_vulnerability(self, simple_model):
         """Test full evaluation detects high vulnerability."""
+
         # Create a model that's easily fooled
         def weak_model(x):
             mean_val = np.mean(x, axis=(1, 2, 3))
@@ -1159,7 +1170,8 @@ class TestFullEvaluation:
         ]
 
         report = evaluator.full_evaluation(
-            images, labels,
+            images,
+            labels,
             attack_configs=attack_configs,
             defense_configs=[],
         )
@@ -1180,7 +1192,8 @@ class TestFullEvaluation:
         attack_configs = [(AttackType.FGSM, {"epsilon": 0.05})]
 
         report = evaluator.full_evaluation(
-            images, labels,
+            images,
+            labels,
             attack_configs=attack_configs,
             defense_configs=[],
         )
@@ -1189,6 +1202,7 @@ class TestFullEvaluation:
 
     def test_full_evaluation_with_defenses(self):
         """Test full evaluation with defense evaluation."""
+
         # Use a model that's more susceptible to attacks
         def weak_model(x):
             mean_val = np.mean(x, axis=(1, 2, 3))
@@ -1211,7 +1225,8 @@ class TestFullEvaluation:
         ]
 
         report = evaluator.full_evaluation(
-            images, labels,
+            images,
+            labels,
             attack_configs=attack_configs,
             defense_configs=defense_configs,
         )
@@ -1226,10 +1241,12 @@ class TestBinaryModelAttacks:
     @pytest.fixture
     def binary_model(self):
         """Create a binary output model (single value)."""
+
         def model(x):
             # Returns single probability value
             mean_val = np.mean(x, axis=(1, 2, 3))
             return mean_val
+
         return model
 
     def test_fgsm_binary_model(self, binary_model):
@@ -1251,12 +1268,7 @@ class TestBinaryModelAttacks:
         images = np.random.rand(5, 28, 28, 1).astype(np.float32) * 0.4
         labels = np.array([0, 1, 0, 1, 0])
 
-        result = attacker.pgd(
-            images, labels,
-            epsilon=0.1,
-            alpha=0.02,
-            num_iterations=3
-        )
+        result = attacker.pgd(images, labels, epsilon=0.1, alpha=0.02, num_iterations=3)
 
         assert result.attack_type == AttackType.PGD
 
@@ -1267,9 +1279,11 @@ class TestDefenderAdvanced:
     @pytest.fixture
     def simple_model(self):
         """Create a simple model."""
+
         def model(x):
             mean_val = np.mean(x, axis=(1, 2, 3))
             return np.column_stack([1 - mean_val, mean_val])
+
         return model
 
     @pytest.fixture
@@ -1393,9 +1407,11 @@ class TestAttackResultMetrics:
     @pytest.fixture
     def simple_model(self):
         """Create a simple model."""
+
         def model(x):
             mean_val = np.mean(x, axis=(1, 2, 3))
             return np.column_stack([1 - mean_val, mean_val])
+
         return model
 
     def test_attack_result_perturbation_metrics(self, simple_model):
@@ -1492,6 +1508,7 @@ class TestAdversarialTrainerMethods:
     @pytest.fixture
     def simple_attacker(self):
         """Create a simple attacker for testing."""
+
         def model(x):
             mean_val = np.mean(x, axis=(1, 2, 3))
             return np.column_stack([1 - mean_val, mean_val])
@@ -1518,9 +1535,7 @@ class TestAdversarialTrainerMethods:
         labels = np.array([0] * 5 + [1] * 5)
 
         # Zero ratio should return unchanged images
-        mixed_images, mixed_labels = trainer.generate_adversarial_batch(
-            images, labels, ratio=0.0
-        )
+        mixed_images, mixed_labels = trainer.generate_adversarial_batch(images, labels, ratio=0.0)
 
         assert np.allclose(mixed_images, images)
         np.testing.assert_array_equal(mixed_labels, labels)
@@ -1544,9 +1559,7 @@ class TestAdversarialTrainerMethods:
         labels = np.array([0] * 10)
 
         # 50% ratio should modify some images
-        mixed_images, mixed_labels = trainer.generate_adversarial_batch(
-            images, labels, ratio=0.5
-        )
+        mixed_images, mixed_labels = trainer.generate_adversarial_batch(images, labels, ratio=0.5)
 
         # Some images should be different (adversarial)
         num_changed = np.sum(~np.isclose(mixed_images, images).all(axis=(1, 2, 3)))
@@ -1650,9 +1663,11 @@ class TestClinicalImpactAssessment:
     @pytest.fixture
     def simple_model(self):
         """Create a simple model."""
+
         def model(x):
             mean_val = np.mean(x, axis=(1, 2, 3))
             return np.column_stack([1 - mean_val, mean_val])
+
         return model
 
     @pytest.fixture
@@ -1702,13 +1717,16 @@ class TestClinicalImpactAssessment:
         original_labels = np.array([0, 1, 2, 3, 4])
         # Predictions as one-hot like model outputs (5 classes)
         # All misclassified to different classes
-        adversarial_preds = np.array([
-            [0, 1, 0, 0, 0],  # pred=1, true=0 -> medium
-            [0, 0, 1, 0, 0],  # pred=2, true=1 -> medium
-            [0, 0, 0, 1, 0],  # pred=3, true=2 -> medium
-            [0, 0, 0, 0, 1],  # pred=4, true=3 -> medium
-            [1, 0, 0, 0, 0],  # pred=0, true=4 -> medium
-        ], dtype=np.float32)
+        adversarial_preds = np.array(
+            [
+                [0, 1, 0, 0, 0],  # pred=1, true=0 -> medium
+                [0, 0, 1, 0, 0],  # pred=2, true=1 -> medium
+                [0, 0, 0, 1, 0],  # pred=3, true=2 -> medium
+                [0, 0, 0, 0, 1],  # pred=4, true=3 -> medium
+                [1, 0, 0, 0, 0],  # pred=0, true=4 -> medium
+            ],
+            dtype=np.float32,
+        )
 
         impact = evaluator.assess_clinical_impact(original_labels, adversarial_preds)
 
@@ -1722,9 +1740,11 @@ class TestEvaluatorDefenseEvaluation:
     @pytest.fixture
     def simple_model(self):
         """Create a simple model."""
+
         def model(x):
             mean_val = np.mean(x, axis=(1, 2, 3))
             return np.column_stack([1 - mean_val, mean_val])
+
         return model
 
     @pytest.fixture
@@ -1757,9 +1777,7 @@ class TestEvaluatorDefenseEvaluation:
         images = np.random.rand(10, 28, 28, 1).astype(np.float32)
         labels = np.array([0] * 5 + [1] * 5)
 
-        result = evaluator.evaluate_attack(
-            images, labels, AttackType.FGSM, epsilon=0.03
-        )
+        result = evaluator.evaluate_attack(images, labels, AttackType.FGSM, epsilon=0.03)
 
         assert "attack_type" in result
         assert result["attack_type"] == "fgsm"
@@ -1768,6 +1786,7 @@ class TestEvaluatorDefenseEvaluation:
 
     def test_evaluate_clean_accuracy_multiclass(self, simple_model):
         """Test clean accuracy with multiclass predictions."""
+
         # Model that returns multiclass predictions
         def multiclass_model(x):
             batch_size = len(x)
@@ -1792,9 +1811,11 @@ class TestVulnerabilityAssessment:
     @pytest.fixture
     def simple_model(self):
         """Create a simple model."""
+
         def model(x):
             mean_val = np.mean(x, axis=(1, 2, 3))
             return np.column_stack([1 - mean_val, mean_val])
+
         return model
 
     @pytest.fixture
@@ -1813,9 +1834,7 @@ class TestVulnerabilityAssessment:
         defense_results = {}
         clinical_impact = {"risk_level": "LOW"}
 
-        recs = evaluator.generate_recommendations(
-            attack_results, defense_results, clinical_impact
-        )
+        recs = evaluator.generate_recommendations(attack_results, defense_results, clinical_impact)
 
         # Should warn about small perturbation
         assert any("SMALL PERTURBATION" in r for r in recs)
@@ -1826,9 +1845,7 @@ class TestVulnerabilityAssessment:
         defense_results = {}
         clinical_impact = {"risk_level": "CRITICAL"}
 
-        recs = evaluator.generate_recommendations(
-            attack_results, defense_results, clinical_impact
-        )
+        recs = evaluator.generate_recommendations(attack_results, defense_results, clinical_impact)
 
         assert any("CRITICAL CLINICAL RISK" in r for r in recs)
 
@@ -1838,9 +1855,7 @@ class TestVulnerabilityAssessment:
         defense_results = {}
         clinical_impact = {"risk_level": "HIGH"}
 
-        recs = evaluator.generate_recommendations(
-            attack_results, defense_results, clinical_impact
-        )
+        recs = evaluator.generate_recommendations(attack_results, defense_results, clinical_impact)
 
         assert any("HIGH CLINICAL RISK" in r for r in recs)
 

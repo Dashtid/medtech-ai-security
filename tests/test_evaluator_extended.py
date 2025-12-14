@@ -21,10 +21,12 @@ class TestEvaluatorBinaryModel:
     @pytest.fixture
     def binary_model(self):
         """Create a binary classification model with sigmoid output."""
+
         def model(x):
             # Returns single probability (sigmoid output)
             mean_val = np.mean(x, axis=(1, 2, 3))
             return mean_val  # Single value per sample
+
         return model
 
     @pytest.fixture
@@ -108,6 +110,7 @@ class TestEvaluatorModelOutputFormats:
     @pytest.fixture
     def tensor_like_model(self):
         """Create a model that returns tensor-like output with numpy() method."""
+
         class TensorLikeOutput:
             def __init__(self, data):
                 self._data = data
@@ -137,7 +140,9 @@ class TestEvaluatorModelOutputFormats:
         """Generate sample labels."""
         return np.array([0] * 5 + [1] * 5)
 
-    def test_evaluate_clean_accuracy_tensor_output(self, tensor_like_model, sample_images, sample_labels):
+    def test_evaluate_clean_accuracy_tensor_output(
+        self, tensor_like_model, sample_images, sample_labels
+    ):
         """Test clean accuracy with tensor-like output that has numpy() method."""
         evaluator = RobustnessEvaluator(
             model=tensor_like_model,
@@ -164,7 +169,9 @@ class TestEvaluatorModelOutputFormats:
 
         assert "robust_accuracy" in result
 
-    def test_assess_clinical_impact_tensor_output(self, tensor_like_model, sample_images, sample_labels):
+    def test_assess_clinical_impact_tensor_output(
+        self, tensor_like_model, sample_images, sample_labels
+    ):
         """Test clinical impact with tensor-like predictions."""
         evaluator = RobustnessEvaluator(
             model=tensor_like_model,
@@ -175,8 +182,10 @@ class TestEvaluatorModelOutputFormats:
         class TensorLikeOutput:
             def __init__(self, data):
                 self._data = data
+
             def numpy(self):
                 return self._data
+
             @property
             def shape(self):
                 return self._data.shape
@@ -195,10 +204,12 @@ class TestEvaluatorDefenseNotImplemented:
     @pytest.fixture
     def simple_model(self):
         """Create a simple model for testing."""
+
         def model(x):
             mean_val = np.mean(x, axis=(1, 2, 3))
             probs = np.column_stack([1 - mean_val, mean_val])
             return probs
+
         return model
 
     @pytest.fixture
@@ -220,7 +231,9 @@ class TestEvaluatorDefenseNotImplemented:
         )
 
         # Create adversarial images (just use modified clean images)
-        adversarial_images = sample_images + np.random.rand(*sample_images.shape).astype(np.float32) * 0.1
+        adversarial_images = (
+            sample_images + np.random.rand(*sample_images.shape).astype(np.float32) * 0.1
+        )
         adversarial_images = np.clip(adversarial_images, 0, 1)
 
         # Create a mock defense type that's not in the map
@@ -243,12 +256,14 @@ class TestMulticlassClinicalImpact:
     @pytest.fixture
     def multiclass_model(self):
         """Create a multiclass model."""
+
         def model(x):
             batch_size = x.shape[0]
             # Return 5-class probabilities
             probs = np.random.rand(batch_size, 5).astype(np.float32)
             probs = probs / probs.sum(axis=1, keepdims=True)
             return probs
+
         return model
 
     def test_assess_clinical_impact_multiclass(self, multiclass_model):
@@ -320,10 +335,12 @@ class TestEvaluatorFullEvaluation:
     @pytest.fixture
     def simple_model(self):
         """Create a simple model for testing."""
+
         def model(x):
             mean_val = np.mean(x, axis=(1, 2, 3))
             probs = np.column_stack([1 - mean_val, mean_val])
             return probs
+
         return model
 
     @pytest.fixture
@@ -429,8 +446,16 @@ class TestEvaluatorCLI:
 
         monkeypatch.setattr(
             "sys.argv",
-            ["medsec-adversarial", "defend", "--images", str(input_path),
-             "--defense", "squeeze", "--output", str(output_path)],
+            [
+                "medsec-adversarial",
+                "defend",
+                "--images",
+                str(input_path),
+                "--defense",
+                "squeeze",
+                "--output",
+                str(output_path),
+            ],
         )
 
         try:
@@ -455,8 +480,16 @@ class TestEvaluatorCLI:
 
         monkeypatch.setattr(
             "sys.argv",
-            ["medsec-adversarial", "defend", "--images", str(input_path),
-             "--defense", "jpeg", "--output", str(output_path)],
+            [
+                "medsec-adversarial",
+                "defend",
+                "--images",
+                str(input_path),
+                "--defense",
+                "jpeg",
+                "--output",
+                str(output_path),
+            ],
         )
 
         try:
@@ -474,8 +507,7 @@ class TestEvaluatorCLI:
 
         monkeypatch.setattr(
             "sys.argv",
-            ["medsec-adversarial", "defend", "--images", str(input_path),
-             "--defense", "blur"],
+            ["medsec-adversarial", "defend", "--images", str(input_path), "--defense", "blur"],
         )
 
         try:

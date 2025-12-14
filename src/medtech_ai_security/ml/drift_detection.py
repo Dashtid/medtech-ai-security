@@ -104,9 +104,7 @@ class DriftResult:
     feature_name: str | None = None
     reference_stats: dict[str, float] = field(default_factory=dict)
     current_stats: dict[str, float] = field(default_factory=dict)
-    timestamp: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     recommendations: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -135,9 +133,7 @@ class DriftReport:
     feature_results: list[DriftResult]
     prediction_drift: DriftResult | None
     summary: dict[str, Any]
-    timestamp: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     recommendations: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -450,9 +446,7 @@ class DriftDetector:
                 else self.reference_features
             )
             cur_col = (
-                current_features[:, i]
-                if len(current_features.shape) > 1
-                else current_features
+                current_features[:, i] if len(current_features.shape) > 1 else current_features
             )
 
             for m in methods_to_use:
@@ -552,35 +546,19 @@ class DriftDetector:
                 f"Monitor {feature_name} - low drift detected (score: {score:.4f})"
             )
         elif severity == DriftSeverity.MEDIUM:
-            recommendations.append(
-                f"Investigate {feature_name} - moderate drift detected"
-            )
-            recommendations.append(
-                "Consider collecting more recent training data"
-            )
+            recommendations.append(f"Investigate {feature_name} - moderate drift detected")
+            recommendations.append("Consider collecting more recent training data")
         elif severity == DriftSeverity.HIGH:
-            recommendations.append(
-                f"ACTION REQUIRED: High drift in {feature_name}"
-            )
-            recommendations.append(
-                "Evaluate model performance on recent data"
-            )
-            recommendations.append(
-                "Consider model retraining with updated distribution"
-            )
+            recommendations.append(f"ACTION REQUIRED: High drift in {feature_name}")
+            recommendations.append("Evaluate model performance on recent data")
+            recommendations.append("Consider model retraining with updated distribution")
         elif severity == DriftSeverity.CRITICAL:
             recommendations.append(
                 f"CRITICAL: Severe drift in {feature_name} - model reliability compromised"
             )
-            recommendations.append(
-                "Immediate model validation required"
-            )
-            recommendations.append(
-                "FDA PCCP: Document drift detection and mitigation steps"
-            )
-            recommendations.append(
-                "Consider halting automated predictions until validated"
-            )
+            recommendations.append("Immediate model validation required")
+            recommendations.append("FDA PCCP: Document drift detection and mitigation steps")
+            recommendations.append("Consider halting automated predictions until validated")
 
         return recommendations
 
@@ -622,8 +600,7 @@ class DriftDetector:
             ),
             "methods_used": list(set(r.method.value for r in all_results)),
             "severity_counts": {
-                s.value: sum(1 for r in all_results if r.severity == s)
-                for s in DriftSeverity
+                s.value: sum(1 for r in all_results if r.severity == s) for s in DriftSeverity
             },
         }
 
@@ -637,9 +614,7 @@ class DriftDetector:
             all_recommendations.append(
                 "HSCC 2026 Guidance: Drift exploitation is a key AI security threat"
             )
-            all_recommendations.append(
-                "Consider implementing automated drift monitoring alerts"
-            )
+            all_recommendations.append("Consider implementing automated drift monitoring alerts")
 
         return DriftReport(
             overall_drift_detected=overall_drift,

@@ -105,9 +105,9 @@ class CISAScraper:
         """
         self.request_delay = request_delay
         self.session = requests.Session()
-        self.session.headers.update({
-            "User-Agent": "MedTech-AI-Security/1.0 (Medical Device Security Research)"
-        })
+        self.session.headers.update(
+            {"User-Agent": "MedTech-AI-Security/1.0 (Medical Device Security Research)"}
+        )
         self.last_request_time = 0.0
 
     def _rate_limit(self) -> None:
@@ -178,13 +178,15 @@ class CISAScraper:
                     if date_elem:
                         date_str = date_elem.get_text(strip=True)
 
-                advisories.append({
-                    "advisory_id": advisory_id,
-                    "title": title,
-                    "url": full_url,
-                    "release_date": date_str,
-                    "advisory_type": "ICSMA" if "icsma" in advisory_id.lower() else "ICSA",
-                })
+                advisories.append(
+                    {
+                        "advisory_id": advisory_id,
+                        "title": title,
+                        "url": full_url,
+                        "release_date": date_str,
+                        "advisory_type": "ICSMA" if "icsma" in advisory_id.lower() else "ICSA",
+                    }
+                )
 
         return advisories
 
@@ -442,9 +444,7 @@ def main() -> None:
     """CLI entry point."""
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Scrape CISA ICS-CERT medical device advisories"
-    )
+    parser = argparse.ArgumentParser(description="Scrape CISA ICS-CERT medical device advisories")
     parser.add_argument(
         "--max-results",
         type=int,

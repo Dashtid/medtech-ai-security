@@ -300,6 +300,7 @@ class TestDICOMCapture:
 
         # Wait for some simulated records
         import time
+
         time.sleep(0.5)
 
         capture.stop()
@@ -558,9 +559,7 @@ class TestTrafficAnalyzer:
 
     def test_initialization_with_ae_titles(self):
         """Test initialization with known AE titles."""
-        analyzer = TrafficAnalyzer(
-            known_ae_titles=["PACS", "WORKSTATION", "RIS"]
-        )
+        analyzer = TrafficAnalyzer(known_ae_titles=["PACS", "WORKSTATION", "RIS"])
 
         assert "PACS" in analyzer.known_ae_titles
         assert "WORKSTATION" in analyzer.known_ae_titles
@@ -1023,9 +1022,7 @@ class TestHL7CaptureAdvanced:
         capture = HL7Capture()
 
         # Message with empty trigger event field
-        message = (
-            b"MSH|^~\\&|HIS|HOSPITAL|RIS|RADIOLOGY|20231215120000||ACK|MSG005|P|2.5\r"
-        )
+        message = b"MSH|^~\\&|HIS|HOSPITAL|RIS|RADIOLOGY|20231215120000||ACK|MSG005|P|2.5\r"
 
         record = capture._parse_hl7_message(
             message,

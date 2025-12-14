@@ -82,9 +82,7 @@ class ModelHash:
     digest: str
     file_path: str
     file_size: int
-    computed_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    computed_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -104,9 +102,7 @@ class ModelHash:
             digest=data["digest"],
             file_path=data["file_path"],
             file_size=data["file_size"],
-            computed_at=data.get(
-                "computed_at", datetime.now(timezone.utc).isoformat()
-            ),
+            computed_at=data.get("computed_at", datetime.now(timezone.utc).isoformat()),
         )
 
 
@@ -119,9 +115,7 @@ class IntegrityRecord:
     model_format: ModelFormat
     hashes: list[ModelHash]
     metadata: dict[str, Any] = field(default_factory=dict)
-    created_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     signed_by: str | None = None
     signature: str | None = None
 
@@ -147,9 +141,7 @@ class IntegrityRecord:
             model_format=ModelFormat(data["model_format"]),
             hashes=[ModelHash.from_dict(h) for h in data["hashes"]],
             metadata=data.get("metadata", {}),
-            created_at=data.get(
-                "created_at", datetime.now(timezone.utc).isoformat()
-            ),
+            created_at=data.get("created_at", datetime.now(timezone.utc).isoformat()),
             signed_by=data.get("signed_by"),
             signature=data.get("signature"),
         )
@@ -166,9 +158,7 @@ class VerificationResult:
     failed_hashes: list[str]  # List of failed algorithm names
     message: str
     details: dict[str, Any] = field(default_factory=dict)
-    verified_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    verified_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -279,10 +269,7 @@ class ModelIntegrityVerifier:
         Returns:
             List of ModelHash objects
         """
-        return [
-            self.compute_hash(file_path, algorithm)
-            for algorithm in self.algorithms
-        ]
+        return [self.compute_hash(file_path, algorithm) for algorithm in self.algorithms]
 
     def generate_record(
         self,
@@ -363,7 +350,9 @@ class ModelIntegrityVerifier:
 
         if failed_hashes:
             status = IntegrityStatus.TAMPERED
-            message = f"Model integrity verification FAILED: {len(failed_hashes)} hash(es) do not match"
+            message = (
+                f"Model integrity verification FAILED: {len(failed_hashes)} hash(es) do not match"
+            )
         elif verified_hashes:
             status = IntegrityStatus.VERIFIED
             message = f"Model integrity verified with {len(verified_hashes)} hash algorithm(s)"
@@ -549,9 +538,7 @@ class CustodyEvent:
             "actor": self.actor,
             "location": self.location,
             "notes": self.notes,
-            "integrity_status": (
-                self.integrity_status.value if self.integrity_status else None
-            ),
+            "integrity_status": (self.integrity_status.value if self.integrity_status else None),
         }
 
 

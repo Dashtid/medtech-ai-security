@@ -948,10 +948,7 @@ class TestFederatedIntegration:
 
         # Simulate client updates
         for client_id in ["client_1", "client_2", "client_3"]:
-            weights = [
-                w + np.random.randn(*w.shape) * 0.1
-                for w in server._global_weights
-            ]
+            weights = [w + np.random.randn(*w.shape) * 0.1 for w in server._global_weights]
             server.submit_update(
                 client_id=client_id,
                 weights=weights,
@@ -1002,8 +999,7 @@ class TestFederatedIntegration:
 
         # Simulate training and update
         weights = [
-            np.array(w) + np.random.randn(*np.array(w).shape) * 0.01
-            for w in model["weights"]
+            np.array(w) + np.random.randn(*np.array(w).shape) * 0.01 for w in model["weights"]
         ]
 
         response = server.submit_update(
@@ -1182,7 +1178,7 @@ class TestFederatedServerAdvanced:
                 client_id="client_1",
                 weights=weights,
                 num_samples=100 + i * 50,
-                metrics={"loss": 0.5 - i * 0.1}
+                metrics={"loss": 0.5 - i * 0.1},
             )
 
         client = server._clients["client_1"]

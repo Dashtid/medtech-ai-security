@@ -93,9 +93,7 @@ class PredictionExplanation:
     explanation_type: ExplanationType
     feature_contributions: list[FeatureContribution]
     base_value: float
-    timestamp: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     model_name: Optional[str] = None
     input_hash: Optional[str] = None
     clinical_context: Optional[str] = None
@@ -143,9 +141,7 @@ class GlobalExplanation:
     feature_importance: dict[str, float]
     feature_names: list[str]
     num_samples_analyzed: int
-    timestamp: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     interaction_effects: Optional[dict[str, dict[str, float]]] = None
     model_baseline: Optional[float] = None
 
@@ -188,9 +184,7 @@ class ClinicalExplanationReport:
     limitations: list[str]
     recommendations: list[str]
     regulatory_notes: list[str]
-    timestamp: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
     def to_dict(self) -> dict:
         """Convert to dictionary."""
@@ -235,50 +229,58 @@ class ClinicalExplanationReport:
         for i, factor in enumerate(self.key_contributing_factors, 1):
             lines.append(f"{i}. {factor}")
 
-        lines.extend([
-            "",
-            "## Top Feature Contributions",
-            "",
-            "| Feature | Contribution | Direction |",
-            "|---------|--------------|-----------|",
-        ])
+        lines.extend(
+            [
+                "",
+                "## Top Feature Contributions",
+                "",
+                "| Feature | Contribution | Direction |",
+                "|---------|--------------|-----------|",
+            ]
+        )
 
         for fc in self.explanation.top_features(5):
-            lines.append(
-                f"| {fc.feature_name} | {fc.contribution:.4f} | {fc.direction} |"
-            )
+            lines.append(f"| {fc.feature_name} | {fc.contribution:.4f} | {fc.direction} |")
 
-        lines.extend([
-            "",
-            "## Limitations",
-            "",
-        ])
+        lines.extend(
+            [
+                "",
+                "## Limitations",
+                "",
+            ]
+        )
         for limitation in self.limitations:
             lines.append(f"- {limitation}")
 
-        lines.extend([
-            "",
-            "## Recommendations",
-            "",
-        ])
+        lines.extend(
+            [
+                "",
+                "## Recommendations",
+                "",
+            ]
+        )
         for rec in self.recommendations:
             lines.append(f"- {rec}")
 
-        lines.extend([
-            "",
-            "## Regulatory Notes",
-            "",
-        ])
+        lines.extend(
+            [
+                "",
+                "## Regulatory Notes",
+                "",
+            ]
+        )
         for note in self.regulatory_notes:
             lines.append(f"- {note}")
 
-        lines.extend([
-            "",
-            "---",
-            "",
-            "*This report is generated for clinical decision support purposes.*",
-            "*Final clinical decisions should be made by qualified healthcare professionals.*",
-        ])
+        lines.extend(
+            [
+                "",
+                "---",
+                "",
+                "*This report is generated for clinical decision support purposes.*",
+                "*Final clinical decisions should be made by qualified healthcare professionals.*",
+            ]
+        )
 
         return "\n".join(lines)
 
@@ -335,8 +337,7 @@ class ModelExplainer:
 
         # Auto-detect or use specified model type
         if self.model_type == "tree" or (
-            self.model_type == "auto"
-            and hasattr(self.model, "feature_importances_")
+            self.model_type == "auto" and hasattr(self.model, "feature_importances_")
         ):
             self._shap_explainer = shap.TreeExplainer(self.model)
         elif self.model_type == "linear" or (
@@ -364,9 +365,7 @@ class ModelExplainer:
         self._lime_explainer = lime_tabular.LimeTabularExplainer(
             X,
             feature_names=self.feature_names,
-            mode="classification"
-            if hasattr(self.model, "predict_proba")
-            else "regression",
+            mode="classification" if hasattr(self.model, "predict_proba") else "regression",
             discretize_continuous=True,
         )
 
@@ -426,9 +425,7 @@ class ModelExplainer:
         # Build feature contributions
         shap_values_flat = shap_values.flatten()
         feature_contributions = []
-        feature_names = self.feature_names or [
-            f"feature_{i}" for i in range(len(shap_values_flat))
-        ]
+        feature_names = self.feature_names or [f"feature_{i}" for i in range(len(shap_values_flat))]
 
         for i, (name, value) in enumerate(zip(feature_names, shap_values_flat)):
             fc = FeatureContribution(
@@ -578,14 +575,9 @@ class ModelExplainer:
         # Mean absolute SHAP value per feature
         mean_importance = np.mean(shap_values, axis=0)
 
-        feature_names = self.feature_names or [
-            f"feature_{i}" for i in range(len(mean_importance))
-        ]
+        feature_names = self.feature_names or [f"feature_{i}" for i in range(len(mean_importance))]
 
-        importance_dict = {
-            name: float(imp)
-            for name, imp in zip(feature_names, mean_importance)
-        }
+        importance_dict = {name: float(imp) for name, imp in zip(feature_names, mean_importance)}
 
         base_value = None
         if hasattr(self._shap_explainer, "expected_value"):
@@ -616,13 +608,10 @@ class ModelExplainer:
             random_state=42,
         )
 
-        feature_names = self.feature_names or [
-            f"feature_{i}" for i in range(X.shape[1])
-        ]
+        feature_names = self.feature_names or [f"feature_{i}" for i in range(X.shape[1])]
 
         importance_dict = {
-            name: float(imp)
-            for name, imp in zip(feature_names, result.importances_mean)
+            name: float(imp) for name, imp in zip(feature_names, result.importances_mean)
         }
 
         return GlobalExplanation(

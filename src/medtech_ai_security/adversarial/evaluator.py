@@ -135,9 +135,7 @@ class RobustnessEvaluator:
         self.num_classes = num_classes
         self.class_names = class_names or [f"class_{i}" for i in range(num_classes)]
 
-        self.attacker = AdversarialAttacker(
-            model, num_classes=num_classes
-        )
+        self.attacker = AdversarialAttacker(model, num_classes=num_classes)
         self.defender = AdversarialDefender(model)
 
     def evaluate_clean_accuracy(
@@ -178,9 +176,7 @@ class RobustnessEvaluator:
         """
         logger.info(f"Evaluating {attack_type.value} attack...")
 
-        result = self.attacker.attack(
-            images, labels, attack_type, **attack_params
-        )
+        result = self.attacker.attack(images, labels, attack_type, **attack_params)
 
         # Compute robust accuracy
         adversarial_preds = self.model(result.adversarial_images)
@@ -452,9 +448,7 @@ class RobustnessEvaluator:
             # Track strongest attack for defense testing
             if result["success_rate"] > worst_success_rate:
                 worst_success_rate = result["success_rate"]
-                attack_result = self.attacker.attack(
-                    images, labels, attack_type, **params
-                )
+                attack_result = self.attacker.attack(images, labels, attack_type, **params)
                 strongest_attack_images = attack_result.adversarial_images
 
         # Evaluate defenses using strongest attack
@@ -676,9 +670,7 @@ def main() -> None:
             print(f"[+] Loaded {len(images)} test images")
 
             # Run evaluation
-            evaluator = RobustnessEvaluator(
-                model, model_name=args.model_name
-            )
+            evaluator = RobustnessEvaluator(model, model_name=args.model_name)
             report = evaluator.full_evaluation(images, labels)
 
             # Print summary
@@ -690,8 +682,10 @@ def main() -> None:
             print(f"Clinical Risk: {report.clinical_risk_level}")
             print("\nAttack Results:")
             for name, attack_data in report.attack_results.items():
-                print(f"  {name}: {attack_data['success_rate']:.2%} success, "
-                      f"{attack_data['robust_accuracy']:.2%} robust accuracy")
+                print(
+                    f"  {name}: {attack_data['success_rate']:.2%} success, "
+                    f"{attack_data['robust_accuracy']:.2%} robust accuracy"
+                )
             print("\nRecommendations:")
             for rec in report.recommendations:
                 print(f"  - {rec}")

@@ -579,10 +579,10 @@ class TestIntegration:
         """Test complete workflow of creating a clinical report."""
         # Create feature contributions
         contributions = [
-            FeatureContribution("heart_rate", 0.25, 0.5, 95.0, "positive",
-                              "Elevated heart rate contributes to risk"),
-            FeatureContribution("age", 0.20, 0.5, 65.0, "positive",
-                              "Advanced age increases risk"),
+            FeatureContribution(
+                "heart_rate", 0.25, 0.5, 95.0, "positive", "Elevated heart rate contributes to risk"
+            ),
+            FeatureContribution("age", 0.20, 0.5, 65.0, "positive", "Advanced age increases risk"),
             FeatureContribution("blood_pressure", 0.15, 0.5, 145.0, "positive"),
             FeatureContribution("cholesterol", -0.10, 0.5, 180.0, "negative"),
         ]

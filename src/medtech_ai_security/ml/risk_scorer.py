@@ -172,9 +172,7 @@ class NaiveBayesClassifier:
 
         return self
 
-    def _gaussian_likelihood(
-        self, x: np.ndarray, mean: np.ndarray, var: np.ndarray
-    ) -> np.ndarray:
+    def _gaussian_likelihood(self, x: np.ndarray, mean: np.ndarray, var: np.ndarray) -> np.ndarray:
         """Calculate Gaussian probability density."""
         eps = 1e-9
         coeff = 1.0 / np.sqrt(2.0 * np.pi * var + eps)
@@ -201,10 +199,7 @@ class NaiveBayesClassifier:
             # Sum of log likelihoods
             likelihood = np.sum(
                 np.log(
-                    self._gaussian_likelihood(
-                        X, self.class_means[c], self.class_vars[c]
-                    )
-                    + 1e-300
+                    self._gaussian_likelihood(X, self.class_means[c], self.class_vars[c]) + 1e-300
                 ),
                 axis=1,
             )
@@ -266,8 +261,9 @@ class KNNClassifier:
         Returns:
             Probability matrix (n_samples, n_classes)
         """
-        assert self.X_train is not None and self.y_train is not None and self.classes is not None, \
-            "Model must be fitted before prediction"
+        assert (
+            self.X_train is not None and self.y_train is not None and self.classes is not None
+        ), "Model must be fitted before prediction"
 
         # Calculate distances to all training points
         distances = cdist(X, self.X_train, metric="euclidean")
@@ -428,9 +424,7 @@ class VulnerabilityRiskScorer:
     def _encode_exploitability(self, exploitability: str | None) -> float:
         """Encode exploitability to numeric value."""
         exploit_map = {"EASY": 1.0, "MODERATE": 0.6, "HARD": 0.3, None: 0.5}
-        return exploit_map.get(
-            exploitability.upper() if exploitability else None, 0.5
-        )
+        return exploit_map.get(exploitability.upper() if exploitability else None, 0.5)
 
     def _encode_cwe_domain(self, domain: str) -> dict:
         """One-hot encode CWE domain."""
@@ -480,17 +474,11 @@ class VulnerabilityRiskScorer:
         features.update(self._encode_device_type(cve.get("device_type")))
 
         # Clinical impact and exploitability
-        features["clinical_impact"] = self._encode_clinical_impact(
-            cve.get("clinical_impact")
-        )
-        features["exploitability"] = self._encode_exploitability(
-            cve.get("exploitability")
-        )
+        features["clinical_impact"] = self._encode_clinical_impact(cve.get("clinical_impact"))
+        features["exploitability"] = self._encode_exploitability(cve.get("exploitability"))
 
         # Vulnerability age
-        features["vuln_age"] = self._calculate_vulnerability_age(
-            cve.get("published_date")
-        )
+        features["vuln_age"] = self._calculate_vulnerability_age(cve.get("published_date"))
 
         # Reference count
         refs = cve.get("references", [])
@@ -498,9 +486,7 @@ class VulnerabilityRiskScorer:
 
         # Has exploit reference
         exploit_keywords = ["exploit", "poc", "metasploit", "exploit-db"]
-        features["has_exploit"] = int(
-            any(kw in str(refs).lower() for kw in exploit_keywords)
-        )
+        features["has_exploit"] = int(any(kw in str(refs).lower() for kw in exploit_keywords))
 
         return features
 
@@ -571,9 +557,7 @@ class VulnerabilityRiskScorer:
 
         # Convert to numpy arrays
         self.feature_names = sorted(features_list[0].keys())
-        X = np.array(
-            [[f[name] for name in self.feature_names] for f in features_list]
-        )
+        X = np.array([[f[name] for name in self.feature_names] for f in features_list])
 
         # Encode targets to indices
         label_map = {label: idx for idx, label in enumerate(PRIORITY_ORDER)}
@@ -651,7 +635,9 @@ class VulnerabilityRiskScorer:
             "class_distribution": class_dist,
         }
 
-        logger.info(f"Training complete. NB accuracy: {nb_score:.3f}, KNN accuracy: {knn_score:.3f}")
+        logger.info(
+            f"Training complete. NB accuracy: {nb_score:.3f}, KNN accuracy: {knn_score:.3f}"
+        )
 
         importance_sorted = sorted(
             self.feature_importance.items(),
@@ -664,9 +650,7 @@ class VulnerabilityRiskScorer:
 
         return metrics
 
-    def _calculate_feature_importance(
-        self, X_test: np.ndarray, y_test: np.ndarray
-    ) -> None:
+    def _calculate_feature_importance(self, X_test: np.ndarray, y_test: np.ndarray) -> None:
         """Calculate feature importance via permutation importance."""
         baseline_score = self.model_knn.score(X_test, y_test)
 
@@ -674,15 +658,11 @@ class VulnerabilityRiskScorer:
             X_permuted = X_test.copy()
             np.random.shuffle(X_permuted[:, idx])
             permuted_score = self.model_knn.score(X_permuted, y_test)
-            self.feature_importance[feat_name] = max(
-                0, baseline_score - permuted_score
-            )
+            self.feature_importance[feat_name] = max(0, baseline_score - permuted_score)
 
         # Normalize
         total = sum(self.feature_importance.values()) + 1e-9
-        self.feature_importance = {
-            k: v / total for k, v in self.feature_importance.items()
-        }
+        self.feature_importance = {k: v / total for k, v in self.feature_importance.items()}
 
     def predict(self, cve: dict) -> RiskPrediction:
         """
@@ -724,13 +704,9 @@ class VulnerabilityRiskScorer:
             f: self.feature_importance.get(f, 0) * abs(feature_values[f])
             for f in self.feature_names
         }
-        top_factors = dict(
-            sorted(contributions.items(), key=lambda x: x[1], reverse=True)[:5]
-        )
+        top_factors = dict(sorted(contributions.items(), key=lambda x: x[1], reverse=True)[:5])
 
-        recommendation = self._generate_recommendation(
-            priority, features, top_factors
-        )
+        recommendation = self._generate_recommendation(priority, features, top_factors)
 
         return RiskPrediction(
             cve_id=cve_id,
@@ -741,9 +717,7 @@ class VulnerabilityRiskScorer:
             recommendation=recommendation,
         )
 
-    def _generate_recommendation(
-        self, priority: str, features: dict, top_factors: dict
-    ) -> str:
+    def _generate_recommendation(self, priority: str, features: dict, top_factors: dict) -> str:
         """Generate remediation recommendation based on prediction."""
         recommendations = []
 
@@ -752,27 +726,17 @@ class VulnerabilityRiskScorer:
                 "IMMEDIATE ACTION REQUIRED: This vulnerability poses critical risk."
             )
         elif priority == "HIGH":
-            recommendations.append(
-                "HIGH PRIORITY: Address this vulnerability within 7 days."
-            )
+            recommendations.append("HIGH PRIORITY: Address this vulnerability within 7 days.")
         elif priority == "MEDIUM":
-            recommendations.append(
-                "MEDIUM PRIORITY: Schedule remediation within 30 days."
-            )
+            recommendations.append("MEDIUM PRIORITY: Schedule remediation within 30 days.")
         else:
-            recommendations.append(
-                "LOW PRIORITY: Include in regular maintenance cycle."
-            )
+            recommendations.append("LOW PRIORITY: Include in regular maintenance cycle.")
 
         if features.get("has_exploit"):
-            recommendations.append(
-                "Active exploit exists - isolate affected systems immediately."
-            )
+            recommendations.append("Active exploit exists - isolate affected systems immediately.")
 
         if features.get("clinical_impact", 0) >= 0.8:
-            recommendations.append(
-                "High clinical impact - prioritize patient safety assessment."
-            )
+            recommendations.append("High clinical impact - prioritize patient safety assessment.")
 
         for dt in ["monitoring", "infusion", "implantable"]:
             if features.get(f"device_{dt}", 0):
@@ -782,9 +746,7 @@ class VulnerabilityRiskScorer:
                 break
 
         if features.get("cwe_authentication", 0):
-            recommendations.append(
-                "Authentication weakness - enforce strong credentials and MFA."
-            )
+            recommendations.append("Authentication weakness - enforce strong credentials and MFA.")
         elif features.get("cwe_memory_safety", 0):
             recommendations.append(
                 "Memory safety issue - apply vendor patches or implement ASLR/DEP."
@@ -931,9 +893,7 @@ def main() -> None:
             }
 
             # Handle OneDrive file write issue by using temp file + powershell copy
-            temp_file = tempfile.NamedTemporaryFile(
-                mode="w", suffix=".json", delete=False
-            )
+            temp_file = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False)
             json.dump(output_data, temp_file, indent=2)
             temp_file.close()
 

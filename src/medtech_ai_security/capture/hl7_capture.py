@@ -185,13 +185,9 @@ class HL7Capture:
         self._stats["start_time"] = datetime.now(timezone.utc)
 
         if self.pcap_file:
-            self._capture_thread = threading.Thread(
-                target=self._capture_from_file, daemon=True
-            )
+            self._capture_thread = threading.Thread(target=self._capture_from_file, daemon=True)
         else:
-            self._capture_thread = threading.Thread(
-                target=self._capture_live, daemon=True
-            )
+            self._capture_thread = threading.Thread(target=self._capture_live, daemon=True)
 
         self._capture_thread.start()
         logger.info("HL7 capture started")
@@ -294,9 +290,7 @@ class HL7Capture:
         ]
 
         while self._running:
-            msg_type, event, _ = sample_messages[
-                int(time.time()) % len(sample_messages)
-            ]
+            msg_type, event, _ = sample_messages[int(time.time()) % len(sample_messages)]
 
             record = HL7Record(
                 timestamp=datetime.now(timezone.utc),
@@ -351,14 +345,12 @@ class HL7Capture:
                 break
 
             # Extract message
-            message = buffer[start_idx + 1:end_idx]
-            buffer = buffer[end_idx + 2:]
+            message = buffer[start_idx + 1 : end_idx]
+            buffer = buffer[end_idx + 2 :]
             self._stream_buffers[stream_key] = buffer
 
             # Parse HL7 message
-            record = self._parse_hl7_message(
-                message, src_ip, dst_ip, src_port, dst_port
-            )
+            record = self._parse_hl7_message(message, src_ip, dst_ip, src_port, dst_port)
             if record:
                 self._stats["hl7_messages"] += 1
                 self._add_record(record)
@@ -469,26 +461,21 @@ def main() -> None:
     import argparse
     import json
 
-    parser = argparse.ArgumentParser(
-        description="Capture and analyze HL7 network traffic"
+    parser = argparse.ArgumentParser(description="Capture and analyze HL7 network traffic")
+    parser.add_argument("--interface", "-i", help="Network interface for live capture")
+    parser.add_argument("--pcap", "-f", help="pcap file for offline analysis")
+    parser.add_argument(
+        "--ports",
+        "-p",
+        type=int,
+        nargs="+",
+        default=[2575, 5000],
+        help="HL7 ports to capture (default: 2575 5000)",
     )
     parser.add_argument(
-        "--interface", "-i", help="Network interface for live capture"
+        "--duration", "-d", type=int, default=60, help="Capture duration in seconds (default: 60)"
     )
-    parser.add_argument(
-        "--pcap", "-f", help="pcap file for offline analysis"
-    )
-    parser.add_argument(
-        "--ports", "-p", type=int, nargs="+", default=[2575, 5000],
-        help="HL7 ports to capture (default: 2575 5000)"
-    )
-    parser.add_argument(
-        "--duration", "-d", type=int, default=60,
-        help="Capture duration in seconds (default: 60)"
-    )
-    parser.add_argument(
-        "--output", "-o", help="Output file for captured records (JSON)"
-    )
+    parser.add_argument("--output", "-o", help="Output file for captured records (JSON)")
 
     args = parser.parse_args()
 
@@ -518,7 +505,9 @@ def main() -> None:
         print(f"Records saved to {args.output}")
     else:
         for record in records[:10]:
-            print(f"  {record.timestamp}: {record.message_type}^{record.trigger_event} from {record.src_ip}")
+            print(
+                f"  {record.timestamp}: {record.message_type}^{record.trigger_event} from {record.src_ip}"
+            )
 
 
 if __name__ == "__main__":

@@ -164,9 +164,7 @@ class FederatedClient:
 
         logger.info(f"Initialized FederatedClient: {client_id}")
 
-    def add_callback(
-        self, callback: Callable[[str, dict[str, Any]], None]
-    ) -> None:
+    def add_callback(self, callback: Callable[[str, dict[str, Any]], None]) -> None:
         """Add callback for state changes."""
         self._callbacks.append(callback)
 
@@ -343,8 +341,7 @@ class FederatedClient:
 
         # In production, this would serialize and send via gRPC
         logger.info(
-            f"Sending update for round {self.state.current_round}: "
-            f"loss={metrics.loss:.4f}"
+            f"Sending update for round {self.state.current_round}: " f"loss={metrics.loss:.4f}"
         )
 
         # Update local weights for next round
@@ -362,6 +359,7 @@ class FederatedClient:
             # Load actual data
             if data_path.suffix == ".csv":
                 import pandas as pd
+
                 df = pd.read_csv(data_path)
                 self._local_data = df.values.astype(np.float32)
             elif data_path.suffix == ".npy":
@@ -442,9 +440,7 @@ class FederatedClient:
             epochs_completed=self.config.local_epochs,
         )
 
-    def _compute_loss_and_gradients(
-        self, batch: np.ndarray
-    ) -> tuple[float, list[np.ndarray]]:
+    def _compute_loss_and_gradients(self, batch: np.ndarray) -> tuple[float, list[np.ndarray]]:
         """
         Compute loss and gradients for a batch.
 
@@ -470,10 +466,7 @@ class FederatedClient:
         loss = np.mean((batch - reconstruction) ** 2)
 
         # Simplified gradients (not actual backprop, just noise for simulation)
-        gradients = [
-            np.random.randn(*w.shape) * 0.01 * loss
-            for w in self._global_weights
-        ]
+        gradients = [np.random.randn(*w.shape) * 0.01 * loss for w in self._global_weights]
 
         return loss, gradients
 

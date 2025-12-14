@@ -199,13 +199,9 @@ class DICOMCapture:
         self._stats["start_time"] = datetime.now(timezone.utc)
 
         if self.pcap_file:
-            self._capture_thread = threading.Thread(
-                target=self._capture_from_file, daemon=True
-            )
+            self._capture_thread = threading.Thread(target=self._capture_from_file, daemon=True)
         else:
-            self._capture_thread = threading.Thread(
-                target=self._capture_live, daemon=True
-            )
+            self._capture_thread = threading.Thread(target=self._capture_live, daemon=True)
 
         self._capture_thread.start()
         logger.info("DICOM capture started")
@@ -261,14 +257,10 @@ class DICOMCapture:
             )
 
         except ImportError:
-            logger.error(
-                "scapy not installed. Install with: pip install scapy"
-            )
+            logger.error("scapy not installed. Install with: pip install scapy")
             self._capture_simulated()
         except PermissionError:
-            logger.error(
-                "Permission denied. Live capture requires root/admin privileges."
-            )
+            logger.error("Permission denied. Live capture requires root/admin privileges.")
             self._capture_simulated()
         except Exception as e:
             logger.error(f"Capture error: {e}")
@@ -377,7 +369,7 @@ class DICOMCapture:
             dst_port=dst_port,
             pdu_type=pdu_type_name,
             data_length=pdu_length,
-            raw_data=data[:min(len(data), 1024)],  # Store first 1KB
+            raw_data=data[: min(len(data), 1024)],  # Store first 1KB
         )
 
         # Parse specific PDU types
@@ -413,9 +405,9 @@ class DICOMCapture:
         try:
             # Look for command field in the data
             for i in range(len(data) - 2):
-                if data[i:i + 2] == b"\x00\x00":  # Command Group
+                if data[i : i + 2] == b"\x00\x00":  # Command Group
                     if i + 4 < len(data):
-                        cmd = struct.unpack("<H", data[i + 2:i + 4])[0]
+                        cmd = struct.unpack("<H", data[i + 2 : i + 4])[0]
                         return self._get_command_name(cmd)
         except Exception:
             pass
@@ -465,26 +457,21 @@ def main() -> None:
     import argparse
     import json
 
-    parser = argparse.ArgumentParser(
-        description="Capture and analyze DICOM network traffic"
+    parser = argparse.ArgumentParser(description="Capture and analyze DICOM network traffic")
+    parser.add_argument("--interface", "-i", help="Network interface for live capture")
+    parser.add_argument("--pcap", "-f", help="pcap file for offline analysis")
+    parser.add_argument(
+        "--ports",
+        "-p",
+        type=int,
+        nargs="+",
+        default=[104, 11112],
+        help="DICOM ports to capture (default: 104 11112)",
     )
     parser.add_argument(
-        "--interface", "-i", help="Network interface for live capture"
+        "--duration", "-d", type=int, default=60, help="Capture duration in seconds (default: 60)"
     )
-    parser.add_argument(
-        "--pcap", "-f", help="pcap file for offline analysis"
-    )
-    parser.add_argument(
-        "--ports", "-p", type=int, nargs="+", default=[104, 11112],
-        help="DICOM ports to capture (default: 104 11112)"
-    )
-    parser.add_argument(
-        "--duration", "-d", type=int, default=60,
-        help="Capture duration in seconds (default: 60)"
-    )
-    parser.add_argument(
-        "--output", "-o", help="Output file for captured records (JSON)"
-    )
+    parser.add_argument("--output", "-o", help="Output file for captured records (JSON)")
 
     args = parser.parse_args()
 

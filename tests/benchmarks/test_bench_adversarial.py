@@ -33,6 +33,7 @@ def sample_labels():
 @pytest.fixture
 def simple_model():
     """Create a simple callable model for benchmarking."""
+
     def model(x):
         # Simple thresholding model - returns 10-class probabilities
         if len(x.shape) == 4:
@@ -46,12 +47,14 @@ def simple_model():
             probs[i, predicted_class] = 0.9
             probs[i, (predicted_class + 1) % 10] = 0.1
         return probs
+
     return model
 
 
 @pytest.fixture
 def binary_model():
     """Create a simple binary classifier model."""
+
     def model(x):
         if len(x.shape) == 4:
             mean_val = np.mean(x, axis=(1, 2, 3))
@@ -59,6 +62,7 @@ def binary_model():
             mean_val = np.mean(x, axis=tuple(range(1, len(x.shape))))
         probs = np.column_stack([1 - mean_val, mean_val])
         return probs
+
     return model
 
 
@@ -85,6 +89,7 @@ class TestAttackBenchmarks:
 
     def test_bench_fgsm_attack(self, benchmark, attacker, sample_images, sample_labels):
         """Benchmark FGSM attack generation."""
+
         def run_fgsm():
             return attacker.fgsm(sample_images, sample_labels, epsilon=0.1)
 
@@ -93,6 +98,7 @@ class TestAttackBenchmarks:
 
     def test_bench_pgd_attack(self, benchmark, attacker, sample_images, sample_labels):
         """Benchmark PGD attack generation."""
+
         def run_pgd():
             return attacker.pgd(sample_images, sample_labels, epsilon=0.1, num_iterations=10)
 
@@ -101,6 +107,7 @@ class TestAttackBenchmarks:
 
     def test_bench_pgd_attack_many_steps(self, benchmark, attacker, sample_images, sample_labels):
         """Benchmark PGD attack with more iterations."""
+
         def run_pgd_many():
             return attacker.pgd(sample_images, sample_labels, epsilon=0.1, num_iterations=40)
 
@@ -142,6 +149,7 @@ class TestDefenseBenchmarks:
 
     def test_bench_jpeg_defense(self, benchmark, defender, adversarial_images):
         """Benchmark JPEG compression defense."""
+
         def run_jpeg():
             return defender.jpeg_compression(adversarial_images, quality=75)
 
@@ -150,6 +158,7 @@ class TestDefenseBenchmarks:
 
     def test_bench_gaussian_blur_defense(self, benchmark, defender, adversarial_images):
         """Benchmark Gaussian blur defense."""
+
         def run_blur():
             return defender.gaussian_blur(adversarial_images, sigma=1.0)
 
@@ -158,6 +167,7 @@ class TestDefenseBenchmarks:
 
     def test_bench_bit_depth_reduction(self, benchmark, defender, adversarial_images):
         """Benchmark bit depth reduction defense."""
+
         def run_bit_depth():
             return defender.bit_depth_reduction(adversarial_images, bits=4)
 
@@ -166,6 +176,7 @@ class TestDefenseBenchmarks:
 
     def test_bench_feature_squeezing(self, benchmark, defender, adversarial_images):
         """Benchmark feature squeezing defense."""
+
         def run_squeeze():
             return defender.feature_squeezing(adversarial_images, bit_depth=4)
 
@@ -174,6 +185,7 @@ class TestDefenseBenchmarks:
 
     def test_bench_combined_defense(self, benchmark, defender, adversarial_images):
         """Benchmark combined defense pipeline."""
+
         def run_ensemble():
             return defender.ensemble_defense(adversarial_images)
 
@@ -195,7 +207,9 @@ class TestEvaluationBenchmarks:
         result = benchmark(run_eval)
         assert result.success_rate >= 0.0
 
-    def test_bench_full_evaluation_multiple_attacks(self, benchmark, attacker, sample_images, sample_labels):
+    def test_bench_full_evaluation_multiple_attacks(
+        self, benchmark, attacker, sample_images, sample_labels
+    ):
         """Benchmark evaluation with multiple attacks."""
         images = sample_images[:16]
         labels = sample_labels[:16]
@@ -226,10 +240,12 @@ class TestMedicalImageBenchmarks:
     @pytest.fixture
     def medical_model(self):
         """Create a simple model for medical images (binary classification)."""
+
         def model(x):
             mean_val = np.mean(x, axis=(1, 2, 3))
             probs = np.column_stack([1 - mean_val, mean_val])
             return probs
+
         return model
 
     def test_bench_medical_fgsm(self, benchmark, medical_images, medical_model):

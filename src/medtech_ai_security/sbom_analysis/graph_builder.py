@@ -93,9 +93,7 @@ class NodeFeatures:
             ],
             dtype=np.float32,
         )
-        return np.concatenate(
-            [self.name_embedding, self.package_type_onehot, scalar_features]
-        )
+        return np.concatenate([self.name_embedding, self.package_type_onehot, scalar_features])
 
     @property
     def feature_dim(self) -> int:
@@ -478,8 +476,7 @@ def build_batch(graphs: list[GraphData]) -> GraphData:
     edge_features = None
     if all(g.edge_features is not None for g in graphs):
         valid_edge_features = [
-            g.edge_features for g in graphs
-            if g.edge_features is not None and g.num_edges > 0
+            g.edge_features for g in graphs if g.edge_features is not None and g.num_edges > 0
         ]
         if valid_edge_features:
             edge_features = np.concatenate(valid_edge_features, axis=0)

@@ -115,9 +115,7 @@ class Autoencoder:
         for i in range(len(encoder_dims) - 1):
             fan_in, fan_out = encoder_dims[i], encoder_dims[i + 1]
             scale = np.sqrt(2.0 / (fan_in + fan_out))
-            self.encoder_weights.append(
-                self.rng.randn(fan_in, fan_out).astype(np.float32) * scale
-            )
+            self.encoder_weights.append(self.rng.randn(fan_in, fan_out).astype(np.float32) * scale)
             self.encoder_biases.append(np.zeros(fan_out, dtype=np.float32))
 
         self.decoder_weights = []
@@ -125,9 +123,7 @@ class Autoencoder:
         for i in range(len(decoder_dims) - 1):
             fan_in, fan_out = decoder_dims[i], decoder_dims[i + 1]
             scale = np.sqrt(2.0 / (fan_in + fan_out))
-            self.decoder_weights.append(
-                self.rng.randn(fan_in, fan_out).astype(np.float32) * scale
-            )
+            self.decoder_weights.append(self.rng.randn(fan_in, fan_out).astype(np.float32) * scale)
             self.decoder_biases.append(np.zeros(fan_out, dtype=np.float32))
 
     def _relu(self, x: np.ndarray) -> np.ndarray:
@@ -716,7 +712,9 @@ class AnomalyDetector:
             "threshold": result.threshold,
             "top_deviating_features": [
                 {
-                    "feature": self.FEATURE_NAMES[i] if i < len(self.FEATURE_NAMES) else f"feature_{i}",
+                    "feature": (
+                        self.FEATURE_NAMES[i] if i < len(self.FEATURE_NAMES) else f"feature_{i}"
+                    ),
                     "contribution": float(contributions[i]),
                     "index": int(i),
                 }
@@ -758,8 +756,14 @@ class AnomalyDetector:
         # AUC approximation (simple trapezoid rule)
         sorted_indices = np.argsort(scores)[::-1]
         sorted_true = y_true[sorted_indices]
-        tpr_values = np.cumsum(sorted_true) / np.sum(y_true) if np.sum(y_true) > 0 else np.zeros(len(y_true))
-        fpr_values = np.cumsum(1 - sorted_true) / np.sum(1 - y_true) if np.sum(1 - y_true) > 0 else np.zeros(len(y_true))
+        tpr_values = (
+            np.cumsum(sorted_true) / np.sum(y_true) if np.sum(y_true) > 0 else np.zeros(len(y_true))
+        )
+        fpr_values = (
+            np.cumsum(1 - sorted_true) / np.sum(1 - y_true)
+            if np.sum(1 - y_true) > 0
+            else np.zeros(len(y_true))
+        )
         # Use trapezoid (numpy >= 2.0) or fallback to trapz for older versions
         trapezoid_func = getattr(np, "trapezoid", np.trapz)
         auc = trapezoid_func(tpr_values, fpr_values)
@@ -1052,7 +1056,9 @@ def main() -> None:
         print(f"\n{'=' * 60}")
         print("EVALUATION RESULTS")
         print("=" * 60)
-        print(f"Samples: {len(features)} (Normal: {(labels==0).sum()}, Attack: {(labels==1).sum()})")
+        print(
+            f"Samples: {len(features)} (Normal: {(labels==0).sum()}, Attack: {(labels==1).sum()})"
+        )
         print("\nMetrics:")
         print(f"  Accuracy:  {metrics['accuracy']:.4f}")
         print(f"  Precision: {metrics['precision']:.4f}")

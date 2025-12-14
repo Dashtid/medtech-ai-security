@@ -367,7 +367,8 @@ class ModelVersionManager:
     def get_previous_version(self) -> ModelVersion | None:
         """Get the previously active version (for rollback)."""
         versions = [
-            v for v in self._versions.values()
+            v
+            for v in self._versions.values()
             if v.status in [VersionStatus.INACTIVE, VersionStatus.ACTIVE]
             and v.version != self._active_version
         ]
@@ -575,34 +576,60 @@ class ModelVersionManager:
         triggers = self._policy.triggers
 
         # Check drift
-        if (RollbackTrigger.DRIFT_CRITICAL in triggers and
-                drift_score is not None and
-                drift_score > thresholds.get("drift_critical", 0.3)):
-            return True, RollbackTrigger.DRIFT_CRITICAL, f"Drift score {drift_score} exceeds threshold"
+        if (
+            RollbackTrigger.DRIFT_CRITICAL in triggers
+            and drift_score is not None
+            and drift_score > thresholds.get("drift_critical", 0.3)
+        ):
+            return (
+                True,
+                RollbackTrigger.DRIFT_CRITICAL,
+                f"Drift score {drift_score} exceeds threshold",
+            )
 
         # Check accuracy
-        if (RollbackTrigger.ACCURACY_DEGRADATION in triggers and
-                accuracy is not None and
-                accuracy < thresholds.get("min_accuracy", 0.85)):
-            return True, RollbackTrigger.ACCURACY_DEGRADATION, f"Accuracy {accuracy} below threshold"
+        if (
+            RollbackTrigger.ACCURACY_DEGRADATION in triggers
+            and accuracy is not None
+            and accuracy < thresholds.get("min_accuracy", 0.85)
+        ):
+            return (
+                True,
+                RollbackTrigger.ACCURACY_DEGRADATION,
+                f"Accuracy {accuracy} below threshold",
+            )
 
         # Check recall
-        if (RollbackTrigger.RECALL_DEGRADATION in triggers and
-                recall is not None and
-                recall < thresholds.get("min_recall", 0.80)):
+        if (
+            RollbackTrigger.RECALL_DEGRADATION in triggers
+            and recall is not None
+            and recall < thresholds.get("min_recall", 0.80)
+        ):
             return True, RollbackTrigger.RECALL_DEGRADATION, f"Recall {recall} below threshold"
 
         # Check precision
-        if (RollbackTrigger.PRECISION_DEGRADATION in triggers and
-                precision is not None and
-                precision < thresholds.get("min_precision", 0.80)):
-            return True, RollbackTrigger.PRECISION_DEGRADATION, f"Precision {precision} below threshold"
+        if (
+            RollbackTrigger.PRECISION_DEGRADATION in triggers
+            and precision is not None
+            and precision < thresholds.get("min_precision", 0.80)
+        ):
+            return (
+                True,
+                RollbackTrigger.PRECISION_DEGRADATION,
+                f"Precision {precision} below threshold",
+            )
 
         # Check error rate
-        if (RollbackTrigger.ERROR_RATE_HIGH in triggers and
-                error_rate is not None and
-                error_rate > thresholds.get("max_error_rate", 0.1)):
-            return True, RollbackTrigger.ERROR_RATE_HIGH, f"Error rate {error_rate} exceeds threshold"
+        if (
+            RollbackTrigger.ERROR_RATE_HIGH in triggers
+            and error_rate is not None
+            and error_rate > thresholds.get("max_error_rate", 0.1)
+        ):
+            return (
+                True,
+                RollbackTrigger.ERROR_RATE_HIGH,
+                f"Error rate {error_rate} exceeds threshold",
+            )
 
         return False, None, ""
 
@@ -638,11 +665,13 @@ class ModelVersionManager:
                 f"{hash_short}... | {accuracy} |"
             )
 
-        lines.extend([
-            "",
-            "## Rollback History",
-            "",
-        ])
+        lines.extend(
+            [
+                "",
+                "## Rollback History",
+                "",
+            ]
+        )
 
         if self._rollback_history:
             lines.append("| Time | Trigger | From | To | Status | Reason |")
@@ -657,11 +686,13 @@ class ModelVersionManager:
         else:
             lines.append("_No rollback events recorded._")
 
-        lines.extend([
-            "",
-            "## Current Policy",
-            "",
-        ])
+        lines.extend(
+            [
+                "",
+                "## Current Policy",
+                "",
+            ]
+        )
 
         if self._policy:
             lines.append(f"- **Name**: {self._policy.name}")
@@ -677,22 +708,24 @@ class ModelVersionManager:
         else:
             lines.append("_No rollback policy configured._")
 
-        lines.extend([
-            "",
-            "---",
-            "",
-            "## FDA PCCP Compliance Note",
-            "",
-            "This audit trail documents all model version changes and rollback events ",
-            "as required by FDA's Predetermined Change Control Plan (PCCP) framework. ",
-            "All model changes are traceable through version hashes and audit logs.",
-            "",
-            "### Integrity Verification",
-            "",
-            "Model files are verified using SHA-256 hashes before activation to ensure ",
-            "no tampering or corruption has occurred.",
-            "",
-        ])
+        lines.extend(
+            [
+                "",
+                "---",
+                "",
+                "## FDA PCCP Compliance Note",
+                "",
+                "This audit trail documents all model version changes and rollback events ",
+                "as required by FDA's Predetermined Change Control Plan (PCCP) framework. ",
+                "All model changes are traceable through version hashes and audit logs.",
+                "",
+                "### Integrity Verification",
+                "",
+                "Model files are verified using SHA-256 hashes before activation to ensure ",
+                "no tampering or corruption has occurred.",
+                "",
+            ]
+        )
 
         return "\n".join(lines)
 
@@ -768,7 +801,9 @@ class ModelVersionManager:
             "versions": {k: v.to_dict() for k, v in self._versions.items()},
             "rollback_history": [e.to_dict() for e in self._rollback_history],
             "policy": self._policy.to_dict() if self._policy else None,
-            "last_rollback_time": self._last_rollback_time.isoformat() if self._last_rollback_time else None,
+            "last_rollback_time": (
+                self._last_rollback_time.isoformat() if self._last_rollback_time else None
+            ),
             "rollbacks_today": self._rollbacks_today,
             "rollbacks_today_date": self._rollbacks_today_date,
         }
@@ -789,12 +824,10 @@ class ModelVersionManager:
 
             self._active_version = state.get("active_version")
             self._versions = {
-                k: ModelVersion.from_dict(v)
-                for k, v in state.get("versions", {}).items()
+                k: ModelVersion.from_dict(v) for k, v in state.get("versions", {}).items()
             }
             self._rollback_history = [
-                RollbackEvent.from_dict(e)
-                for e in state.get("rollback_history", [])
+                RollbackEvent.from_dict(e) for e in state.get("rollback_history", [])
             ]
 
             policy_data = state.get("policy")

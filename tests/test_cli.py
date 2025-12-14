@@ -360,7 +360,7 @@ class TestUtilityFunctions:
         console = Console(force_terminal=True)
 
         # These should not raise
-        with patch('medtech_ai_security.cli.main.console', console):
+        with patch("medtech_ai_security.cli.main.console", console):
             print_success("Success message")
             print_error("Error message")
             print_warning("Warning message")
@@ -372,7 +372,7 @@ class TestUtilityFunctions:
 
         console = Console(force_terminal=True)
 
-        with patch('medtech_ai_security.cli.main.console', console):
+        with patch("medtech_ai_security.cli.main.console", console):
             print_header()
 
 
@@ -531,11 +531,13 @@ norm: "Linf"
         nested.mkdir(parents=True, exist_ok=True)
 
         config_path = nested / "config.yaml"
-        config_path.write_text("""
+        config_path.write_text(
+            """
 name: "nested"
 attack_type: "fgsm"
 epsilon: 0.3
-""")
+"""
+        )
 
         result = runner.invoke(app, ["validate", str(config_path), "--type", "attack"])
 

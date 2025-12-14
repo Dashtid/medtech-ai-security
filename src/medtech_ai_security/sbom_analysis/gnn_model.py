@@ -146,18 +146,14 @@ class GraphConvLayer(keras.layers.Layer if TF_AVAILABLE else object):  # type: i
 
             # Aggregate messages at target nodes
             aggregated = tf.zeros((num_nodes, self.output_dim), dtype=h.dtype)
-            aggregated = tf.tensor_scatter_nd_add(
-                aggregated, tf.expand_dims(tgt, 1), messages
-            )
+            aggregated = tf.tensor_scatter_nd_add(aggregated, tf.expand_dims(tgt, 1), messages)
 
             # Degree normalization
             if self.normalize:
                 # Count incoming edges per node
                 ones = tf.ones((tf.shape(tgt)[0],), dtype=h.dtype)
                 degree = tf.zeros((num_nodes,), dtype=h.dtype)
-                degree = tf.tensor_scatter_nd_add(
-                    degree, tf.expand_dims(tgt, 1), ones
-                )
+                degree = tf.tensor_scatter_nd_add(degree, tf.expand_dims(tgt, 1), ones)
                 degree = tf.maximum(degree, 1.0)  # Avoid division by zero
 
                 # Normalize by degree
@@ -464,7 +460,12 @@ class VulnerabilityGNN:
 
         # For simplicity, train on each graph separately
         # In production, use proper batching with padding
-        history: dict[str, list[float]] = {"loss": [], "accuracy": [], "val_loss": [], "val_accuracy": []}
+        history: dict[str, list[float]] = {
+            "loss": [],
+            "accuracy": [],
+            "val_loss": [],
+            "val_accuracy": [],
+        }
 
         for epoch in range(epochs):
             epoch_losses = []
@@ -591,7 +592,11 @@ class VulnerabilityGNN:
 
             precision = float(tp / (tp + fp)) if (tp + fp) > 0 else 0.0
             recall = float(tp / (tp + fn)) if (tp + fn) > 0 else 0.0
-            f1 = float(2 * precision * recall / (precision + recall)) if (precision + recall) > 0 else 0.0
+            f1 = (
+                float(2 * precision * recall / (precision + recall))
+                if (precision + recall) > 0
+                else 0.0
+            )
 
             metrics[f"class_{cls}_precision"] = precision
             metrics[f"class_{cls}_recall"] = recall

@@ -187,9 +187,7 @@ class TestModelIntegrityVerifier:
 
     def test_initialization_custom_algorithms(self):
         """Test verifier with custom algorithms."""
-        verifier = ModelIntegrityVerifier(
-            algorithms=[HashAlgorithm.SHA512, HashAlgorithm.BLAKE2B]
-        )
+        verifier = ModelIntegrityVerifier(algorithms=[HashAlgorithm.SHA512, HashAlgorithm.BLAKE2B])
         assert HashAlgorithm.SHA512 in verifier.algorithms
         assert HashAlgorithm.BLAKE2B in verifier.algorithms
 

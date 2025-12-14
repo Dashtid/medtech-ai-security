@@ -460,9 +460,7 @@ class SupplyChainRiskScorer:
 
         return dependents
 
-    def _aggregate_vulnerabilities(
-        self, report: RiskReport, dep_graph: DependencyGraph
-    ) -> None:
+    def _aggregate_vulnerabilities(self, report: RiskReport, dep_graph: DependencyGraph) -> None:
         """Aggregate vulnerability counts."""
         for pkg in dep_graph.packages.values():
             for vuln in pkg.vulnerabilities:
@@ -504,15 +502,11 @@ class SupplyChainRiskScorer:
             report.max_dependency_depth = 0
             report.avg_dependency_depth = 0.0
 
-    def _check_licenses(
-        self, report: RiskReport, dep_graph: DependencyGraph
-    ) -> None:
+    def _check_licenses(self, report: RiskReport, dep_graph: DependencyGraph) -> None:
         """Check for license issues."""
         for pkg in dep_graph.packages.values():
             if not pkg.license:
-                report.license_issues.append(
-                    f"{pkg.name}@{pkg.version}: No license declared"
-                )
+                report.license_issues.append(f"{pkg.name}@{pkg.version}: No license declared")
                 continue
 
             for risky, level in self.RISKY_LICENSES.items():
@@ -546,19 +540,16 @@ class SupplyChainRiskScorer:
 
         # Boost for critical vulnerabilities
         if report.critical_vulnerabilities > 0:
-            report.overall_risk_score = min(
-                report.overall_risk_score + 20, 100.0
-            )
+            report.overall_risk_score = min(report.overall_risk_score + 20, 100.0)
 
         report.overall_risk_level = self._score_to_level(report.overall_risk_score)
 
-    def _add_package_recommendations(
-        self, pkg_risk: PackageRisk, pkg: Package
-    ) -> None:
+    def _add_package_recommendations(self, pkg_risk: PackageRisk, pkg: Package) -> None:
         """Add recommendations for a specific package."""
         if pkg_risk.vulnerability_score > 50:
             critical_vulns = [
-                v for v in pkg.vulnerabilities
+                v
+                for v in pkg.vulnerabilities
                 if v.cvss_score >= 9.0 or (v.severity or "").upper() == "CRITICAL"
             ]
             if critical_vulns:
@@ -576,13 +567,9 @@ class SupplyChainRiskScorer:
             )
 
         if pkg_risk.license_score > 50:
-            pkg_risk.recommendations.append(
-                f"Review license compliance: {pkg.license}"
-            )
+            pkg_risk.recommendations.append(f"Review license compliance: {pkg.license}")
 
-    def _generate_recommendations(
-        self, report: RiskReport, dep_graph: DependencyGraph
-    ) -> None:
+    def _generate_recommendations(self, report: RiskReport, dep_graph: DependencyGraph) -> None:
         """Generate overall recommendations."""
         recommendations = []
 
@@ -616,21 +603,15 @@ class SupplyChainRiskScorer:
 
         # License issues
         if len(report.license_issues) > 0:
-            recommendations.append(
-                f"[INFO] Review {len(report.license_issues)} license issues"
-            )
+            recommendations.append(f"[INFO] Review {len(report.license_issues)} license issues")
 
         # If no major issues
         if not recommendations:
-            recommendations.append(
-                "[OK] No critical supply chain risks identified"
-            )
+            recommendations.append("[OK] No critical supply chain risks identified")
 
         report.recommendations = recommendations
 
-    def _add_compliance_notes(
-        self, report: RiskReport, dep_graph: DependencyGraph
-    ) -> None:
+    def _add_compliance_notes(self, report: RiskReport, dep_graph: DependencyGraph) -> None:
         """Add medical device compliance notes."""
         # FDA SBOM requirements
         if report.critical_vulnerabilities > 0:
@@ -699,8 +680,10 @@ if __name__ == "__main__":
 
     print("\n[+] Per-Package Risks:")
     for pkg_risk in sorted(report.package_risks, key=lambda x: x.risk_score, reverse=True):
-        print(f"    {pkg_risk.package_name}@{pkg_risk.package_version}: "
-              f"{pkg_risk.risk_level.value.upper()} ({pkg_risk.risk_score:.1f})")
+        print(
+            f"    {pkg_risk.package_name}@{pkg_risk.package_version}: "
+            f"{pkg_risk.risk_level.value.upper()} ({pkg_risk.risk_score:.1f})"
+        )
         for rec in pkg_risk.recommendations:
             print(f"        -> {rec}")
 

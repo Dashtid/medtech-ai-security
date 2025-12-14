@@ -342,10 +342,7 @@ class TestTokenRevocation:
 
     def test_revoke_multiple_tokens(self):
         """Test revoking multiple tokens."""
-        tokens = [
-            create_access_token(f"user{i}", UserRole.VIEWER)
-            for i in range(3)
-        ]
+        tokens = [create_access_token(f"user{i}", UserRole.VIEWER) for i in range(3)]
 
         # Revoke all
         for token in tokens:

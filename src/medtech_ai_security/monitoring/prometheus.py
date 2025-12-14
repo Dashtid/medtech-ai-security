@@ -106,11 +106,13 @@ class DriftMetrics:
 
         # Add per-feature drift metrics
         for feature_name, drift_val in self.feature_drifts.items():
-            metrics.append(MetricSample(
-                name="ml_model_feature_drift",
-                value=drift_val,
-                labels={**labels, "feature": feature_name},
-            ))
+            metrics.append(
+                MetricSample(
+                    name="ml_model_feature_drift",
+                    value=drift_val,
+                    labels={**labels, "feature": feature_name},
+                )
+            )
 
         return metrics
 
@@ -189,11 +191,13 @@ class ModelPerformanceMetrics:
         ]
 
         if self.auc_roc is not None:
-            metrics.append(MetricSample(
-                name="ml_model_auc_roc",
-                value=self.auc_roc,
-                labels=labels,
-            ))
+            metrics.append(
+                MetricSample(
+                    name="ml_model_auc_roc",
+                    value=self.auc_roc,
+                    labels=labels,
+                )
+            )
 
         return metrics
 
@@ -408,7 +412,9 @@ class MetricsExporter:
         label_str = json.dumps(labels or {}, sort_keys=True)
         self._gauges[f"{name}:{label_str}"] = value
 
-    def increment_counter(self, name: str, value: float = 1.0, labels: dict[str, str] | None = None) -> None:
+    def increment_counter(
+        self, name: str, value: float = 1.0, labels: dict[str, str] | None = None
+    ) -> None:
         """
         Increment a custom counter metric.
 
@@ -535,38 +541,44 @@ class MetricsExporter:
         }
 
         for dm in self._drift_metrics:
-            data["drift_metrics"].append({
-                "drift_type": dm.drift_type,
-                "drift_value": dm.drift_value,
-                "threshold": dm.threshold,
-                "severity": dm.severity.value,
-                "is_drifted": dm.is_drifted(),
-                "feature_drifts": dm.feature_drifts,
-                "timestamp": dm.timestamp,
-            })
+            data["drift_metrics"].append(
+                {
+                    "drift_type": dm.drift_type,
+                    "drift_value": dm.drift_value,
+                    "threshold": dm.threshold,
+                    "severity": dm.severity.value,
+                    "is_drifted": dm.is_drifted(),
+                    "feature_drifts": dm.feature_drifts,
+                    "timestamp": dm.timestamp,
+                }
+            )
 
         for pm in self._performance_metrics:
-            data["performance_metrics"].append({
-                "accuracy": pm.accuracy,
-                "precision": pm.precision,
-                "recall": pm.recall,
-                "f1_score": pm.f1_score,
-                "auc_roc": pm.auc_roc,
-                "latency_p50_ms": pm.latency_p50_ms,
-                "latency_p95_ms": pm.latency_p95_ms,
-                "latency_p99_ms": pm.latency_p99_ms,
-                "predictions_total": pm.predictions_total,
-                "errors_total": pm.errors_total,
-                "timestamp": pm.timestamp,
-            })
+            data["performance_metrics"].append(
+                {
+                    "accuracy": pm.accuracy,
+                    "precision": pm.precision,
+                    "recall": pm.recall,
+                    "f1_score": pm.f1_score,
+                    "auc_roc": pm.auc_roc,
+                    "latency_p50_ms": pm.latency_p50_ms,
+                    "latency_p95_ms": pm.latency_p95_ms,
+                    "latency_p99_ms": pm.latency_p99_ms,
+                    "predictions_total": pm.predictions_total,
+                    "errors_total": pm.errors_total,
+                    "timestamp": pm.timestamp,
+                }
+            )
 
         for se in self._security_events:
-            data["security_events"].append({
-                "event_type": se.event_type,
-                "event_count": se.event_count,
-                "severity": se.severity,
-                "timestamp": se.timestamp,
-            })
+            data["security_events"].append(
+                {
+                    "event_type": se.event_type,
+                    "event_count": se.event_count,
+                    "severity": se.severity,
+                    "timestamp": se.timestamp,
+                }
+            )
 
         data["custom_gauges"] = dict(self._gauges)
         data["custom_counters"] = dict(self._counters)

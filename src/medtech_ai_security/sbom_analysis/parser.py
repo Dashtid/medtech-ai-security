@@ -389,7 +389,9 @@ class SBOMParser:
             supplier=component.get("supplier", {}).get("name", ""),
             checksum=checksum,
             external_refs=[ref.get("url", "") for ref in component.get("externalReferences", [])],
-            properties={prop.get("name"): prop.get("value") for prop in component.get("properties", [])},
+            properties={
+                prop.get("name"): prop.get("value") for prop in component.get("properties", [])
+            },
         )
 
     def _parse_cyclonedx_xml(self, content: str) -> DependencyGraph:
@@ -414,9 +416,15 @@ class SBOMParser:
         graph.metadata = {"format": "CycloneDX-XML"}
 
         for comp in components:
-            name = comp.findtext("name", default="", namespaces=ns) or comp.findtext("name", default="")
-            version = comp.findtext("version", default="", namespaces=ns) or comp.findtext("version", default="")
-            purl = comp.findtext("purl", default="", namespaces=ns) or comp.findtext("purl", default="")
+            name = comp.findtext("name", default="", namespaces=ns) or comp.findtext(
+                "name", default=""
+            )
+            version = comp.findtext("version", default="", namespaces=ns) or comp.findtext(
+                "version", default=""
+            )
+            purl = comp.findtext("purl", default="", namespaces=ns) or comp.findtext(
+                "purl", default=""
+            )
 
             pkg = Package(
                 name=name,
@@ -431,9 +439,7 @@ class SBOMParser:
         for dep in deps:
             ref = dep.get("ref", "")
             for sub_dep in dep.findall("cdx:dependency", ns) or dep.findall("dependency"):
-                graph.add_dependency(
-                    Dependency(source=ref, target=sub_dep.get("ref", ""))
-                )
+                graph.add_dependency(Dependency(source=ref, target=sub_dep.get("ref", "")))
 
         logger.info(f"Parsed CycloneDX XML: {graph.package_count} packages")
         return graph
@@ -484,8 +490,7 @@ class SBOMParser:
 
         # Parse relationships
         spdx_to_purl = {
-            pkg.properties.get("spdx_id", ""): pkg.id
-            for pkg in graph.packages.values()
+            pkg.properties.get("spdx_id", ""): pkg.id for pkg in graph.packages.values()
         }
 
         for rel in data.get("relationships", []):
@@ -649,9 +654,7 @@ def create_sample_sbom() -> str:
                         "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H",
                     }
                 ],
-                "affects": [
-                    {"ref": "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.0"}
-                ],
+                "affects": [{"ref": "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.0"}],
             },
             {
                 "id": "CVE-2021-23337",

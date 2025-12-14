@@ -92,9 +92,7 @@ class TestNVDScraper:
         assert len(matched) >= 2
 
         # Test with no matching keywords
-        matched = scraper._matches_medical_keywords(
-            "Generic web application vulnerability"
-        )
+        matched = scraper._matches_medical_keywords("Generic web application vulnerability")
         assert len(matched) == 0
 
     def test_parse_cve_basic(self):
@@ -104,9 +102,7 @@ class TestNVDScraper:
         cve_item = {
             "cve": {
                 "id": "CVE-2024-1234",
-                "descriptions": [
-                    {"lang": "en", "value": "Test vulnerability in DICOM viewer"}
-                ],
+                "descriptions": [{"lang": "en", "value": "Test vulnerability in DICOM viewer"}],
                 "published": "2024-01-15T10:00:00.000",
                 "lastModified": "2024-01-16T10:00:00.000",
                 "vulnStatus": "Analyzed",
@@ -121,12 +117,8 @@ class TestNVDScraper:
                         }
                     ]
                 },
-                "weaknesses": [
-                    {"description": [{"value": "CWE-400"}]}
-                ],
-                "references": [
-                    {"url": "https://example.com/advisory"}
-                ],
+                "weaknesses": [{"description": [{"value": "CWE-400"}]}],
+                "references": [{"url": "https://example.com/advisory"}],
             }
         }
 
@@ -274,7 +266,7 @@ class TestClaudeProcessor:
 
     def test_load_claude_response_markdown(self, tmp_path):
         """Test loading JSON wrapped in markdown code block."""
-        response_content = '''```json
+        response_content = """```json
 {
     "analyses": [
         {
@@ -283,7 +275,7 @@ class TestClaudeProcessor:
         }
     ]
 }
-```'''
+```"""
 
         response_file = tmp_path / "response.md"
         with open(response_file, "w") as f:
@@ -509,7 +501,7 @@ class TestCISAScraper:
         """Test parsing advisory listing page."""
         from bs4 import BeautifulSoup
 
-        html = '''
+        html = """
         <html>
         <body>
             <a href="/ics-medical-advisories/icsma-24-001-01">
@@ -520,7 +512,7 @@ class TestCISAScraper:
             </a>
         </body>
         </html>
-        '''
+        """
 
         soup = BeautifulSoup(html, "html.parser")
         scraper = CISAScraper()
@@ -653,7 +645,7 @@ class TestCISAScraper:
         """Test parsing advisory detail page extracts CVEs."""
         from bs4 import BeautifulSoup
 
-        html = '''
+        html = """
         <html>
         <body>
             <article>
@@ -664,7 +656,7 @@ class TestCISAScraper:
             </article>
         </body>
         </html>
-        '''
+        """
 
         soup = BeautifulSoup(html, "html.parser")
         mock_request.return_value = soup
@@ -688,7 +680,7 @@ class TestCISAScraper:
         """Test parsing advisory detail page extracts CVSS score."""
         from bs4 import BeautifulSoup
 
-        html = '''
+        html = """
         <html>
         <body>
             <article>
@@ -698,7 +690,7 @@ class TestCISAScraper:
             </article>
         </body>
         </html>
-        '''
+        """
 
         soup = BeautifulSoup(html, "html.parser")
         mock_request.return_value = soup
@@ -738,7 +730,7 @@ class TestCISAScraper:
         """Test parsing advisory list page extracts dates from parent elements."""
         from bs4 import BeautifulSoup
 
-        html = '''
+        html = """
         <html>
         <body>
             <div class="advisory">
@@ -749,7 +741,7 @@ class TestCISAScraper:
             </div>
         </body>
         </html>
-        '''
+        """
 
         soup = BeautifulSoup(html, "html.parser")
         scraper = CISAScraper()
@@ -762,14 +754,14 @@ class TestCISAScraper:
         """Test parsing skips links without valid advisory IDs."""
         from bs4 import BeautifulSoup
 
-        html = '''
+        html = """
         <html>
         <body>
             <a href="/some-other-page">Not an advisory</a>
             <a href="/ics-medical-advisories/icsma-24-001-01">Valid Advisory</a>
         </body>
         </html>
-        '''
+        """
 
         soup = BeautifulSoup(html, "html.parser")
         scraper = CISAScraper()
@@ -792,7 +784,7 @@ class TestCISAScraper:
         scraper = CISAScraper()
 
         for cvss_str, expected_severity in test_cases:
-            html = f'''
+            html = f"""
             <html>
             <body>
                 <article>
@@ -802,7 +794,7 @@ class TestCISAScraper:
                 </article>
             </body>
             </html>
-            '''
+            """
 
             soup = BeautifulSoup(html, "html.parser")
 
@@ -815,7 +807,9 @@ class TestCISAScraper:
                 }
                 advisory = scraper._parse_advisory_detail("https://test.com", basic_info)
 
-                assert advisory.severity == expected_severity, f"CVSS {cvss_str} should map to {expected_severity}"
+                assert (
+                    advisory.severity == expected_severity
+                ), f"CVSS {cvss_str} should map to {expected_severity}"
 
 
 class TestNVDScraperAdvanced:
@@ -1233,6 +1227,7 @@ class TestCISAScraperAdvanced:
 
         assert output_file.exists()
         import json
+
         with open(output_file) as f:
             data = json.load(f)
         assert data["metadata"]["total_advisories"] == 0
@@ -1263,9 +1258,7 @@ class TestCISAScraperAdvanced:
         )
 
         scraper = CISAScraper()
-        advisories = scraper.scrape_medical_advisories(
-            max_results=5, include_general_ics=False
-        )
+        advisories = scraper.scrape_medical_advisories(max_results=5, include_general_ics=False)
 
         assert len(advisories) > 0
         mock_request.assert_called()
@@ -1294,9 +1287,7 @@ class TestCISAScraperAdvanced:
 
         scraper = CISAScraper()
         # Test that it searches both pages
-        advisories = scraper.scrape_medical_advisories(
-            max_results=5, include_general_ics=True
-        )
+        advisories = scraper.scrape_medical_advisories(max_results=5, include_general_ics=True)
 
         # Should have called twice (ICSMA + ICS pages)
         assert mock_request.call_count == 2
@@ -1325,9 +1316,7 @@ class TestCISAScraperAdvanced:
         mock_request.side_effect = request_return
 
         scraper = CISAScraper()
-        advisories = scraper.scrape_medical_advisories(
-            max_results=1, include_general_ics=False
-        )
+        advisories = scraper.scrape_medical_advisories(max_results=1, include_general_ics=False)
 
         # Should be limited to 1
         assert len(advisories) <= 1
@@ -1338,9 +1327,7 @@ class TestCISAScraperAdvanced:
         mock_request.return_value = None
 
         scraper = CISAScraper()
-        advisories = scraper.scrape_medical_advisories(
-            max_results=5, include_general_ics=False
-        )
+        advisories = scraper.scrape_medical_advisories(max_results=5, include_general_ics=False)
 
         # Should return empty list on failure
         assert advisories == []

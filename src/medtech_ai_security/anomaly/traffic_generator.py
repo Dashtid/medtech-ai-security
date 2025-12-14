@@ -49,6 +49,7 @@ logger = logging.getLogger(__name__)
 
 class DICOMCommand(Enum):
     """DICOM command types."""
+
     C_STORE = 0x0001
     C_GET = 0x0010
     C_FIND = 0x0020
@@ -64,6 +65,7 @@ class DICOMCommand(Enum):
 
 class HL7MessageType(Enum):
     """HL7 message types."""
+
     ADT_A01 = "ADT^A01"  # Admit
     ADT_A02 = "ADT^A02"  # Transfer
     ADT_A03 = "ADT^A03"  # Discharge
@@ -71,12 +73,13 @@ class HL7MessageType(Enum):
     ADT_A08 = "ADT^A08"  # Update
     ORM_O01 = "ORM^O01"  # Order
     ORU_R01 = "ORU^R01"  # Result
-    ACK = "ACK"          # Acknowledgment
+    ACK = "ACK"  # Acknowledgment
     QRY_A19 = "QRY^A19"  # Query
 
 
 class AttackType(Enum):
     """Types of attacks on medical protocols."""
+
     # DICOM attacks
     DICOM_UNAUTHORIZED_QUERY = "dicom_unauthorized_query"
     DICOM_DATA_EXFILTRATION = "dicom_data_exfiltration"
@@ -118,14 +121,12 @@ class DICOMPacket:
         features = [
             # Timing features
             self.timestamp % 86400,  # Time of day (seconds)
-            self.timestamp % 3600,   # Time within hour
-
+            self.timestamp % 3600,  # Time within hour
             # Network features
             hash(self.source_ip) % 1000 / 1000,
             hash(self.dest_ip) % 1000 / 1000,
             self.source_port / 65535,
             self.dest_port / 65535,
-
             # DICOM features
             len(self.calling_ae) / 16,
             len(self.called_ae) / 16,
@@ -134,7 +135,6 @@ class DICOMPacket:
             hash(self.affected_sop_class) % 1000 / 1000,
             min(self.dataset_size / 10_000_000, 1.0),  # Normalize to 10MB
             hash(self.transfer_syntax) % 100 / 100,
-
             # Flags
             float(self.is_association),
             float(self.is_release),
@@ -195,13 +195,11 @@ class HL7Message:
             # Timing features
             self.timestamp % 86400,
             self.timestamp % 3600,
-
             # Network features
             hash(self.source_ip) % 1000 / 1000,
             hash(self.dest_ip) % 1000 / 1000,
             self.source_port / 65535,
             self.dest_port / 65535,
-
             # HL7 features
             msg_type_map.get(self.message_type, 0) / len(HL7MessageType),
             len(self.message_control_id) / 20,
@@ -212,7 +210,6 @@ class HL7Message:
             len(self.patient_id) / 20,
             min(self.message_length / 10000, 1.0),
             min(self.segment_count / 50, 1.0),
-
             # Entropy of patient ID (randomness indicator)
             self._string_entropy(self.patient_id) / 4,
         ]
@@ -258,20 +255,20 @@ class TrafficGenerator:
 
     # Common DICOM SOP Classes
     SOP_CLASSES = [
-        "1.2.840.10008.5.1.4.1.1.2",      # CT Image Storage
-        "1.2.840.10008.5.1.4.1.1.4",      # MR Image Storage
-        "1.2.840.10008.5.1.4.1.1.7",      # Secondary Capture
-        "1.2.840.10008.5.1.4.1.1.12.1",   # X-Ray Angiographic
-        "1.2.840.10008.5.1.4.1.1.128",    # PET Image Storage
-        "1.2.840.10008.5.1.4.1.1.1.1",    # Digital X-Ray
-        "1.2.840.10008.5.1.4.1.1.6.1",    # US Image Storage
-        "1.2.840.10008.1.1",              # Verification SOP
+        "1.2.840.10008.5.1.4.1.1.2",  # CT Image Storage
+        "1.2.840.10008.5.1.4.1.1.4",  # MR Image Storage
+        "1.2.840.10008.5.1.4.1.1.7",  # Secondary Capture
+        "1.2.840.10008.5.1.4.1.1.12.1",  # X-Ray Angiographic
+        "1.2.840.10008.5.1.4.1.1.128",  # PET Image Storage
+        "1.2.840.10008.5.1.4.1.1.1.1",  # Digital X-Ray
+        "1.2.840.10008.5.1.4.1.1.6.1",  # US Image Storage
+        "1.2.840.10008.1.1",  # Verification SOP
     ]
 
     # Transfer Syntaxes
     TRANSFER_SYNTAXES = [
-        "1.2.840.10008.1.2",       # Implicit VR Little Endian
-        "1.2.840.10008.1.2.1",     # Explicit VR Little Endian
+        "1.2.840.10008.1.2",  # Implicit VR Little Endian
+        "1.2.840.10008.1.2.1",  # Explicit VR Little Endian
         "1.2.840.10008.1.2.4.50",  # JPEG Baseline
         "1.2.840.10008.1.2.4.70",  # JPEG Lossless
         "1.2.840.10008.1.2.4.90",  # JPEG 2000
@@ -279,20 +276,39 @@ class TrafficGenerator:
 
     # Realistic AE Titles
     AE_TITLES = [
-        "PACS_SERVER", "CT_SCANNER_1", "CT_SCANNER_2",
-        "MR_SCANNER_1", "MR_SCANNER_2", "XRAY_ROOM_1",
-        "WORKSTATION_1", "WORKSTATION_2", "WORKSTATION_3",
-        "ARCHIVE_SRV", "VIEWER_WEB", "MODALITY_WL",
+        "PACS_SERVER",
+        "CT_SCANNER_1",
+        "CT_SCANNER_2",
+        "MR_SCANNER_1",
+        "MR_SCANNER_2",
+        "XRAY_ROOM_1",
+        "WORKSTATION_1",
+        "WORKSTATION_2",
+        "WORKSTATION_3",
+        "ARCHIVE_SRV",
+        "VIEWER_WEB",
+        "MODALITY_WL",
     ]
 
     # Hospital applications/facilities for HL7
     HL7_APPLICATIONS = [
-        "HIS", "RIS", "LIS", "PACS", "EMR", "ADT", "ORDER_ENTRY",
+        "HIS",
+        "RIS",
+        "LIS",
+        "PACS",
+        "EMR",
+        "ADT",
+        "ORDER_ENTRY",
     ]
 
     HL7_FACILITIES = [
-        "MAIN_HOSPITAL", "RADIOLOGY_DEPT", "LAB_DEPT",
-        "CARDIOLOGY", "ONCOLOGY", "EMERGENCY", "ICU",
+        "MAIN_HOSPITAL",
+        "RADIOLOGY_DEPT",
+        "LAB_DEPT",
+        "CARDIOLOGY",
+        "ONCOLOGY",
+        "EMERGENCY",
+        "ICU",
     ]
 
     def __init__(self, seed: int = 42):
@@ -342,36 +358,48 @@ class TrafficGenerator:
 
             # Choose operation based on time of day
             if hour < 12:  # Morning - more imaging
-                command = self.rng.choice([  # type: ignore[arg-type]
-                    DICOMCommand.C_STORE,
-                    DICOMCommand.C_STORE,
-                    DICOMCommand.C_STORE,
-                    DICOMCommand.C_FIND,
-                    DICOMCommand.C_ECHO,
-                ])
+                command = self.rng.choice(
+                    [  # type: ignore[arg-type]
+                        DICOMCommand.C_STORE,
+                        DICOMCommand.C_STORE,
+                        DICOMCommand.C_STORE,
+                        DICOMCommand.C_FIND,
+                        DICOMCommand.C_ECHO,
+                    ]
+                )
             else:  # Afternoon - more viewing
-                command = self.rng.choice([  # type: ignore[arg-type]
-                    DICOMCommand.C_FIND,
-                    DICOMCommand.C_GET,
-                    DICOMCommand.C_FIND,
-                    DICOMCommand.C_MOVE,
-                    DICOMCommand.C_ECHO,
-                ])
+                command = self.rng.choice(
+                    [  # type: ignore[arg-type]
+                        DICOMCommand.C_FIND,
+                        DICOMCommand.C_GET,
+                        DICOMCommand.C_FIND,
+                        DICOMCommand.C_MOVE,
+                        DICOMCommand.C_ECHO,
+                    ]
+                )
 
             # Generate packet
             if command == DICOMCommand.C_STORE:
                 # Modality -> PACS
                 source_ip = self.rng.choice(self.modality_ips)
                 dest_ip = self.rng.choice(self.server_ips)
-                calling_ae = self.rng.choice([ae for ae in self.AE_TITLES if "SCANNER" in ae or "XRAY" in ae])
-                called_ae = self.rng.choice([ae for ae in self.AE_TITLES if "PACS" in ae or "ARCHIVE" in ae])
+                calling_ae = self.rng.choice(
+                    [ae for ae in self.AE_TITLES if "SCANNER" in ae or "XRAY" in ae]
+                )
+                called_ae = self.rng.choice(
+                    [ae for ae in self.AE_TITLES if "PACS" in ae or "ARCHIVE" in ae]
+                )
                 dataset_size = int(self.rng.lognormal(16, 1))  # ~10MB average
             else:
                 # Workstation -> PACS
                 source_ip = self.rng.choice(self.workstation_ips)
                 dest_ip = self.rng.choice(self.server_ips)
-                calling_ae = self.rng.choice([ae for ae in self.AE_TITLES if "WORKSTATION" in ae or "VIEWER" in ae])
-                called_ae = self.rng.choice([ae for ae in self.AE_TITLES if "PACS" in ae or "ARCHIVE" in ae])
+                calling_ae = self.rng.choice(
+                    [ae for ae in self.AE_TITLES if "WORKSTATION" in ae or "VIEWER" in ae]
+                )
+                called_ae = self.rng.choice(
+                    [ae for ae in self.AE_TITLES if "PACS" in ae or "ARCHIVE" in ae]
+                )
                 dataset_size = int(self.rng.exponential(1000))  # Small queries
 
             packet = DICOMPacket(
@@ -430,26 +458,32 @@ class TrafficGenerator:
 
             # Choose message type based on time
             if 6 <= hour <= 10:  # Morning - admissions
-                msg_type = self.rng.choice([  # type: ignore[arg-type]
-                    HL7MessageType.ADT_A01,
-                    HL7MessageType.ADT_A04,
-                    HL7MessageType.ADT_A01,
-                    HL7MessageType.ORM_O01,
-                ])
+                msg_type = self.rng.choice(
+                    [  # type: ignore[arg-type]
+                        HL7MessageType.ADT_A01,
+                        HL7MessageType.ADT_A04,
+                        HL7MessageType.ADT_A01,
+                        HL7MessageType.ORM_O01,
+                    ]
+                )
             elif 10 <= hour <= 16:  # Day - orders and results
-                msg_type = self.rng.choice([  # type: ignore[arg-type]
-                    HL7MessageType.ORM_O01,
-                    HL7MessageType.ORU_R01,
-                    HL7MessageType.ADT_A08,
-                    HL7MessageType.ACK,
-                ])
+                msg_type = self.rng.choice(
+                    [  # type: ignore[arg-type]
+                        HL7MessageType.ORM_O01,
+                        HL7MessageType.ORU_R01,
+                        HL7MessageType.ADT_A08,
+                        HL7MessageType.ACK,
+                    ]
+                )
             else:  # Evening - discharges
-                msg_type = self.rng.choice([  # type: ignore[arg-type]
-                    HL7MessageType.ADT_A03,
-                    HL7MessageType.ORU_R01,
-                    HL7MessageType.ACK,
-                    HL7MessageType.ADT_A02,
-                ])
+                msg_type = self.rng.choice(
+                    [  # type: ignore[arg-type]
+                        HL7MessageType.ADT_A03,
+                        HL7MessageType.ORU_R01,
+                        HL7MessageType.ACK,
+                        HL7MessageType.ADT_A02,
+                    ]
+                )
 
             # Generate patient ID (realistic format)
             patient_id = f"MRN{patient_counter:08d}"
@@ -513,7 +547,7 @@ class TrafficGenerator:
                     dest_ip=self.rng.choice(self.server_ips),
                     source_port=int(self.rng.randint(49152, 65535)),
                     dest_port=104,
-                    calling_ae="UNKNOWN_" + ''.join(random.choices(string.ascii_uppercase, k=4)),
+                    calling_ae="UNKNOWN_" + "".join(random.choices(string.ascii_uppercase, k=4)),
                     called_ae=self.rng.choice(self.AE_TITLES),
                     command=DICOMCommand.C_FIND,
                     message_id=int(self.rng.randint(1, 65535)),
@@ -532,7 +566,7 @@ class TrafficGenerator:
                     dest_ip=self.rng.choice(self.server_ips),
                     source_port=int(self.rng.randint(49152, 65535)),
                     dest_port=104,
-                    calling_ae="EXFIL_" + ''.join(random.choices(string.ascii_uppercase, k=4)),
+                    calling_ae="EXFIL_" + "".join(random.choices(string.ascii_uppercase, k=4)),
                     called_ae="PACS_SERVER",
                     command=self.rng.choice([DICOMCommand.C_GET, DICOMCommand.C_MOVE]),  # type: ignore[arg-type]
                     message_id=int(self.rng.randint(1, 65535)),
@@ -570,8 +604,8 @@ class TrafficGenerator:
                     dest_ip=self.rng.choice(self.server_ips),
                     source_port=int(self.rng.randint(49152, 65535)),
                     dest_port=104,
-                    calling_ae=''.join(random.choices(string.ascii_uppercase, k=8)),
-                    called_ae=''.join(random.choices(string.ascii_uppercase, k=8)),
+                    calling_ae="".join(random.choices(string.ascii_uppercase, k=8)),
+                    called_ae="".join(random.choices(string.ascii_uppercase, k=8)),
                     command=DICOMCommand.C_ECHO,
                     message_id=int(self.rng.randint(1, 65535)),
                     affected_sop_class="1.2.840.10008.1.1",
@@ -647,7 +681,7 @@ class TrafficGenerator:
                     sending_facility="FAKE_FACILITY",
                     receiving_application="EMR",
                     receiving_facility="MAIN_HOSPITAL",
-                    patient_id="INJECTED_" + ''.join(random.choices(string.digits, k=6)),
+                    patient_id="INJECTED_" + "".join(random.choices(string.digits, k=6)),
                     message_length=5000,
                     segment_count=50,  # Unusually many
                     is_attack=True,
@@ -668,7 +702,7 @@ class TrafficGenerator:
                     sending_facility="MAIN_HOSPITAL",
                     receiving_application="RIS",
                     receiving_facility="RADIOLOGY_DEPT",
-                    patient_id="MRN" + ''.join(random.choices(string.digits, k=8)),
+                    patient_id="MRN" + "".join(random.choices(string.digits, k=8)),
                     message_length=2000,
                     segment_count=15,
                     is_attack=True,
@@ -710,7 +744,9 @@ class TrafficGenerator:
                     sending_facility="MAIN_HOSPITAL",
                     receiving_application="EMR",
                     receiving_facility="MAIN_HOSPITAL",
-                    patient_id=''.join(random.choices(string.ascii_letters + string.digits, k=20)),  # Random
+                    patient_id="".join(
+                        random.choices(string.ascii_letters + string.digits, k=20)
+                    ),  # Random
                     message_length=10000,  # Large update
                     segment_count=40,
                     is_attack=True,
@@ -763,8 +799,12 @@ class TrafficGenerator:
         all_packets: list[DICOMPacket | HL7Message] = []
 
         if protocol in ["dicom", "both"]:
-            normal_dicom = self.generate_normal_dicom(n_normal // 2 if protocol == "both" else n_normal)
-            attack_dicom = self.generate_attack_dicom(n_attack // 2 if protocol == "both" else n_attack)
+            normal_dicom = self.generate_normal_dicom(
+                n_normal // 2 if protocol == "both" else n_normal
+            )
+            attack_dicom = self.generate_attack_dicom(
+                n_attack // 2 if protocol == "both" else n_attack
+            )
             all_packets.extend(normal_dicom)
             all_packets.extend(attack_dicom)
 
@@ -783,7 +823,9 @@ class TrafficGenerator:
         features = np.array([p.to_feature_vector() for p in all_packets])
         labels = np.array([1 if p.is_attack else 0 for p in all_packets])
 
-        logger.info(f"Generated dataset: {len(features)} samples, {labels.sum()} attacks ({100*labels.mean():.1f}%)")
+        logger.info(
+            f"Generated dataset: {len(features)} samples, {labels.sum()} attacks ({100*labels.mean():.1f}%)"
+        )
 
         return features, labels, all_packets
 

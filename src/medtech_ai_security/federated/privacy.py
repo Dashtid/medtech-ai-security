@@ -73,9 +73,7 @@ class PrivacyMetrics:
             "average_noise_multiplier": (
                 np.mean(self.noise_multipliers) if self.noise_multipliers else 0.0
             ),
-            "average_clipping_rate": (
-                np.mean(self.clipping_rates) if self.clipping_rates else 0.0
-            ),
+            "average_clipping_rate": (np.mean(self.clipping_rates) if self.clipping_rates else 0.0),
         }
 
 
@@ -165,9 +163,7 @@ class DifferentialPrivacy(PrivacyEngine):
         sigma = float(np.sqrt(2 * np.log(1.25 / delta)) / epsilon)
         return max(0.1, sigma)  # Minimum noise for stability
 
-    def clip_gradients(
-        self, gradients: list[np.ndarray]
-    ) -> tuple[list[np.ndarray], float]:
+    def clip_gradients(self, gradients: list[np.ndarray]) -> tuple[list[np.ndarray], float]:
         """
         Clip gradients to bound sensitivity.
 
@@ -324,9 +320,7 @@ class SecureAggregation(PrivacyEngine):
         self._client_seeds[client_id] = seed
         return seed.to_bytes(32, "big")
 
-    def generate_mask(
-        self, client_id: str, shapes: list[tuple[int, ...]]
-    ) -> list[np.ndarray]:
+    def generate_mask(self, client_id: str, shapes: list[tuple[int, ...]]) -> list[np.ndarray]:
         """
         Generate masks for a client's gradients.
 
@@ -349,9 +343,7 @@ class SecureAggregation(PrivacyEngine):
 
         return masks
 
-    def mask_gradients(
-        self, client_id: str, gradients: list[np.ndarray]
-    ) -> list[np.ndarray]:
+    def mask_gradients(self, client_id: str, gradients: list[np.ndarray]) -> list[np.ndarray]:
         """
         Apply mask to client's gradients.
 
@@ -365,9 +357,7 @@ class SecureAggregation(PrivacyEngine):
         masks = self.generate_mask(client_id, [g.shape for g in gradients])
         return [g + m for g, m in zip(gradients, masks)]
 
-    def aggregate(
-        self, masked_updates: dict[str, list[np.ndarray]]
-    ) -> list[np.ndarray] | None:
+    def aggregate(self, masked_updates: dict[str, list[np.ndarray]]) -> list[np.ndarray] | None:
         """
         Aggregate masked updates (masks cancel out in sum).
 
@@ -378,9 +368,7 @@ class SecureAggregation(PrivacyEngine):
             Aggregated gradients or None if threshold not met
         """
         if len(masked_updates) < self.threshold:
-            logger.warning(
-                f"Not enough clients: {len(masked_updates)} < {self.threshold}"
-            )
+            logger.warning(f"Not enough clients: {len(masked_updates)} < {self.threshold}")
             return None
 
         # In real secure aggregation, masks cancel out

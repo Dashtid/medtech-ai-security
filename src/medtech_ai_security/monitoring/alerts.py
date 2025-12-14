@@ -344,7 +344,12 @@ class AlertRulesGenerator:
                     summary=f"Data poisoning suspected for {self.model_name}",
                     description=f"Potential data poisoning attack detected for model {self.model_name}. "
                     "Immediate investigation required. Consider suspending model updates.",
-                    labels={"model": self.model_name, "team": self.team, "security": "true", "priority": "P1"},
+                    labels={
+                        "model": self.model_name,
+                        "team": self.team,
+                        "security": "true",
+                        "priority": "P1",
+                    },
                     annotations={
                         "action": "Suspend training pipeline and investigate data sources",
                         "fda_impact": "Poisoned model may produce unsafe outputs",
@@ -538,41 +543,51 @@ class AlertRulesGenerator:
 
         # Critical alerts - PagerDuty
         if pagerduty_key:
-            receivers.append({
-                "name": "pagerduty-critical",
-                "pagerduty_configs": [
-                    {
-                        "service_key": pagerduty_key,
-                        "severity": "critical",
-                    }
-                ],
-            })
-            routes.append({
-                "match": {"severity": "critical"},
-                "receiver": "pagerduty-critical",
-            })
-            routes.append({
-                "match": {"severity": "page"},
-                "receiver": "pagerduty-critical",
-            })
+            receivers.append(
+                {
+                    "name": "pagerduty-critical",
+                    "pagerduty_configs": [
+                        {
+                            "service_key": pagerduty_key,
+                            "severity": "critical",
+                        }
+                    ],
+                }
+            )
+            routes.append(
+                {
+                    "match": {"severity": "critical"},
+                    "receiver": "pagerduty-critical",
+                }
+            )
+            routes.append(
+                {
+                    "match": {"severity": "page"},
+                    "receiver": "pagerduty-critical",
+                }
+            )
 
         # Slack for warnings
         if slack_webhook:
-            receivers.append({
-                "name": "slack-warnings",
-                "slack_configs": [
-                    {
-                        "api_url": slack_webhook,
-                        "channel": "#ml-alerts",
-                        "title": "{{ .GroupLabels.alertname }}",
-                        "text": "{{ .Annotations.description }}",
-                    }
-                ],
-            })
-            routes.append({
-                "match": {"severity": "warning"},
-                "receiver": "slack-warnings",
-            })
+            receivers.append(
+                {
+                    "name": "slack-warnings",
+                    "slack_configs": [
+                        {
+                            "api_url": slack_webhook,
+                            "channel": "#ml-alerts",
+                            "title": "{{ .GroupLabels.alertname }}",
+                            "text": "{{ .Annotations.description }}",
+                        }
+                    ],
+                }
+            )
+            routes.append(
+                {
+                    "match": {"severity": "warning"},
+                    "receiver": "slack-warnings",
+                }
+            )
 
         config = {
             "global": {

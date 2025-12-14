@@ -94,9 +94,7 @@ def sample_sbom_cyclonedx():
 @pytest.fixture
 def temp_sbom_file(sample_sbom_cyclonedx):
     """Create a temporary SBOM file for testing."""
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".json", delete=False
-    ) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
         json.dump(sample_sbom_cyclonedx, f)
         temp_path = f.name
     yield temp_path
@@ -139,20 +137,20 @@ def sample_risk_training_data():
     n_samples = 100
 
     # Features: [cvss, exploitability, impact, age_days]
-    features = np.column_stack([
-        np.random.uniform(0, 10, n_samples),  # CVSS score
-        np.random.uniform(0, 4, n_samples),   # Exploitability
-        np.random.uniform(0, 6, n_samples),   # Impact
-        np.random.randint(0, 365, n_samples), # Age in days
-    ])
+    features = np.column_stack(
+        [
+            np.random.uniform(0, 10, n_samples),  # CVSS score
+            np.random.uniform(0, 4, n_samples),  # Exploitability
+            np.random.uniform(0, 6, n_samples),  # Impact
+            np.random.randint(0, 365, n_samples),  # Age in days
+        ]
+    )
 
     # Labels based on CVSS threshold
     labels = np.where(
-        features[:, 0] >= 9.0, "critical",
-        np.where(
-            features[:, 0] >= 7.0, "high",
-            np.where(features[:, 0] >= 4.0, "medium", "low")
-        )
+        features[:, 0] >= 9.0,
+        "critical",
+        np.where(features[:, 0] >= 7.0, "high", np.where(features[:, 0] >= 4.0, "medium", "low")),
     )
 
     return features.astype(np.float32), labels

@@ -136,9 +136,7 @@ class ServerState:
             "registered_clients": self.registered_clients,
             "active_clients": self.active_clients,
             "model_version": self.model_version,
-            "last_checkpoint": (
-                self.last_checkpoint.isoformat() if self.last_checkpoint else None
-            ),
+            "last_checkpoint": (self.last_checkpoint.isoformat() if self.last_checkpoint else None),
         }
 
 
@@ -228,9 +226,7 @@ class FederatedServer:
             f"min_clients={min_clients}, rounds={rounds}"
         )
 
-    def add_callback(
-        self, callback: Callable[[str, dict[str, Any]], None]
-    ) -> None:
+    def add_callback(self, callback: Callable[[str, dict[str, Any]], None]) -> None:
         """Add callback for server events."""
         self._callbacks.append(callback)
 
@@ -274,12 +270,15 @@ class FederatedServer:
         # Create checkpoint directory
         os.makedirs(self.config.checkpoint_dir, exist_ok=True)
 
-        self._log_audit("server_started", {
-            "host": self.config.host,
-            "port": self.config.port,
-            "min_clients": self.config.min_clients,
-            "rounds": self.config.rounds,
-        })
+        self._log_audit(
+            "server_started",
+            {
+                "host": self.config.host,
+                "port": self.config.port,
+                "min_clients": self.config.min_clients,
+                "rounds": self.config.rounds,
+            },
+        )
 
         self._notify_callbacks("server_started", self.state.to_dict())
 
@@ -301,10 +300,13 @@ class FederatedServer:
         # Save final checkpoint
         self._save_checkpoint()
 
-        self._log_audit("server_stopped", {
-            "rounds_completed": self.state.current_round,
-            "final_model_version": self.state.model_version,
-        })
+        self._log_audit(
+            "server_stopped",
+            {
+                "rounds_completed": self.state.current_round,
+                "final_model_version": self.state.model_version,
+            },
+        )
 
         self._notify_callbacks("server_stopped", self.state.to_dict())
 
@@ -452,15 +454,12 @@ class FederatedServer:
     def _wait_for_clients(self) -> bool:
         """Wait for minimum clients to be available."""
         active_clients = sum(
-            1 for c in self._clients.values()
-            if c.status in ("registered", "active")
+            1 for c in self._clients.values() if c.status in ("registered", "active")
         )
         self.state.active_clients = active_clients
 
         if active_clients < self.config.min_clients:
-            logger.debug(
-                f"Waiting for clients: {active_clients}/{self.config.min_clients}"
-            )
+            logger.debug(f"Waiting for clients: {active_clients}/{self.config.min_clients}")
             time.sleep(2)
             return False
 
@@ -508,8 +507,7 @@ class FederatedServer:
                 break
 
         logger.info(
-            f"Round {round_info.round_number}: "
-            f"Collected {len(self._round_updates)} updates"
+            f"Round {round_info.round_number}: " f"Collected {len(self._round_updates)} updates"
         )
 
     def _simulate_client_update(self, client_id: str) -> ClientUpdate | None:
@@ -522,8 +520,7 @@ class FederatedServer:
         np.random.seed(hash(client_id + str(self.state.current_round)) % 2**32)
 
         updated_weights = [
-            w + np.random.randn(*w.shape).astype(np.float32) * 0.01
-            for w in self._global_weights
+            w + np.random.randn(*w.shape).astype(np.float32) * 0.01 for w in self._global_weights
         ]
 
         return ClientUpdate(
@@ -577,8 +574,8 @@ class FederatedServer:
                 old_avg = self._clients[client_id].average_loss
                 rounds = self._clients[client_id].rounds_participated
                 self._clients[client_id].average_loss = (
-                    (old_avg * (rounds - 1) + metrics["loss"]) / rounds
-                )
+                    old_avg * (rounds - 1) + metrics["loss"]
+                ) / rounds
 
         logger.debug(f"Received update from {client_id}: {num_samples} samples")
 
@@ -591,8 +588,7 @@ class FederatedServer:
         """Aggregate client updates for this round."""
         if len(self._round_updates) < self.config.min_clients:
             logger.warning(
-                f"Not enough updates: {len(self._round_updates)} < "
-                f"{self.config.min_clients}"
+                f"Not enough updates: {len(self._round_updates)} < " f"{self.config.min_clients}"
             )
             round_info.status = "failed"
             return
@@ -618,12 +614,15 @@ class FederatedServer:
 
         self._round_history.append(round_info)
 
-        self._log_audit("round_completed", {
-            "round": round_info.round_number,
-            "clients": len(updates),
-            "total_samples": round_info.total_samples,
-            "aggregated_loss": round_info.aggregated_loss,
-        })
+        self._log_audit(
+            "round_completed",
+            {
+                "round": round_info.round_number,
+                "clients": len(updates),
+                "total_samples": round_info.total_samples,
+                "aggregated_loss": round_info.aggregated_loss,
+            },
+        )
 
         self._notify_callbacks("round_completed", round_info.to_dict())
 
@@ -704,17 +703,12 @@ class FederatedServer:
             "clients": {
                 "registered": len(self._clients),
                 "active": sum(
-                    1 for c in self._clients.values()
-                    if c.status in ("registered", "active")
+                    1 for c in self._clients.values() if c.status in ("registered", "active")
                 ),
             },
             "round_history_summary": {
                 "total_rounds": len(self._round_history),
-                "last_round": (
-                    self._round_history[-1].to_dict()
-                    if self._round_history
-                    else None
-                ),
+                "last_round": (self._round_history[-1].to_dict() if self._round_history else None),
             },
         }
 
@@ -732,9 +726,7 @@ def main() -> None:
     """CLI for federated learning server."""
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Federated learning coordinator server"
-    )
+    parser = argparse.ArgumentParser(description="Federated learning coordinator server")
     parser.add_argument(
         "--host",
         "-H",

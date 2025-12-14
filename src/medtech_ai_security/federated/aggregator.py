@@ -94,9 +94,7 @@ class ModelAggregator(ABC):
     def _check_minimum_clients(self, updates: list[ClientUpdate]) -> bool:
         """Check if minimum client requirement is met."""
         if len(updates) < self.min_clients:
-            logger.warning(
-                f"Not enough clients: {len(updates)} < {self.min_clients}"
-            )
+            logger.warning(f"Not enough clients: {len(updates)} < {self.min_clients}")
             return False
         return True
 
@@ -109,9 +107,7 @@ class ModelAggregator(ABC):
 
         for update in updates[1:]:
             if len(update.weights) != len(reference_shapes):
-                logger.error(
-                    f"Client {update.client_id} has different number of layers"
-                )
+                logger.error(f"Client {update.client_id} has different number of layers")
                 return False
 
             for i, (w, ref_shape) in enumerate(zip(update.weights, reference_shapes)):
@@ -195,9 +191,7 @@ class FedAvgAggregator(ModelAggregator):
             round_metrics=round_metrics,
         )
 
-    def _aggregate_metrics(
-        self, client_metrics: list[dict[str, float] | None]
-    ) -> dict[str, float]:
+    def _aggregate_metrics(self, client_metrics: list[dict[str, float] | None]) -> dict[str, float]:
         """Aggregate client metrics."""
         if not client_metrics:
             return {}
@@ -273,7 +267,7 @@ class FedProxAggregator(FedAvgAggregator):
         total = 0.0
         for local, global_w in zip(local_weights, global_weights):
             diff = local - global_w
-            total += np.sum(diff ** 2)
+            total += np.sum(diff**2)
         return (self.mu / 2) * total
 
     def compute_proximal_gradient(
@@ -293,8 +287,7 @@ class FedProxAggregator(FedAvgAggregator):
             Proximal gradient for each layer
         """
         return [
-            self.mu * (local - global_w)
-            for local, global_w in zip(local_weights, global_weights)
+            self.mu * (local - global_w) for local, global_w in zip(local_weights, global_weights)
         ]
 
 
@@ -366,8 +359,7 @@ class FedNovaAggregator(ModelAggregator):
         self.round_number += 1
 
         logger.info(
-            f"FedNova round {self.round_number}: "
-            f"{len(updates)} clients, tau_eff={tau_eff:.2f}"
+            f"FedNova round {self.round_number}: " f"{len(updates)} clients, tau_eff={tau_eff:.2f}"
         )
 
         return AggregationResult(
@@ -427,8 +419,7 @@ class RobustAggregator(ModelAggregator):
         self.round_number += 1
 
         logger.info(
-            f"Robust aggregation round {self.round_number}: "
-            f"{len(updates)} clients (median)"
+            f"Robust aggregation round {self.round_number}: " f"{len(updates)} clients (median)"
         )
 
         return AggregationResult(

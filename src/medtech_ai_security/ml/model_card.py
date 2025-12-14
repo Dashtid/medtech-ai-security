@@ -120,9 +120,7 @@ class PerformanceMetrics:
 
     overall_metrics: dict[str, float]  # e.g., {"accuracy": 0.95, "auc": 0.98}
     subgroup_metrics: dict[str, dict[str, float]] = field(default_factory=dict)
-    confidence_intervals: dict[str, tuple[float, float]] = field(
-        default_factory=dict
-    )
+    confidence_intervals: dict[str, tuple[float, float]] = field(default_factory=dict)
     threshold_analysis: dict[str, Any] = field(default_factory=dict)
     comparison_to_baseline: str | None = None
     failure_cases: list[str] = field(default_factory=list)
@@ -194,9 +192,7 @@ class ModelCard:
     quantitative_analysis: QuantitativeAnalysis | None = None
     additional_information: dict[str, Any] = field(default_factory=dict)
     version_history: list[dict[str, Any]] = field(default_factory=list)
-    generated_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    generated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
     def to_dict(self) -> dict[str, Any]:
         """Convert model card to dictionary."""
@@ -205,9 +201,7 @@ class ModelCard:
             "intended_use": self._dataclass_to_dict(self.intended_use),
             "training_data": self._dataclass_to_dict(self.training_data),
             "performance": self._dataclass_to_dict(self.performance),
-            "ethical_considerations": self._dataclass_to_dict(
-                self.ethical_considerations
-            ),
+            "ethical_considerations": self._dataclass_to_dict(self.ethical_considerations),
             "regulatory": self._dataclass_to_dict(self.regulatory),
             "cybersecurity": self._dataclass_to_dict(self.cybersecurity),
             "quantitative_analysis": (
@@ -227,9 +221,7 @@ class ModelCard:
             if isinstance(value, Enum):
                 result[key] = value.value
             elif isinstance(value, list):
-                result[key] = [
-                    v.value if isinstance(v, Enum) else v for v in value
-                ]
+                result[key] = [v.value if isinstance(v, Enum) else v for v in value]
             else:
                 result[key] = value
         return result
@@ -356,9 +348,7 @@ class ModelCardGenerator:
         lines.append(f"- **Framework**: {card.model_details.framework}")
         lines.append(f"- **Created**: {card.model_details.created_date}")
         if card.model_details.developers:
-            lines.append(
-                f"- **Developers**: {', '.join(card.model_details.developers)}"
-            )
+            lines.append(f"- **Developers**: {', '.join(card.model_details.developers)}")
         lines.append(f"- **License**: {card.model_details.license}")
         lines.append("")
 
@@ -368,9 +358,7 @@ class ModelCardGenerator:
         lines.append(
             f"- **Primary Use**: {card.intended_use.primary_use.value.replace('_', ' ').title()}"
         )
-        lines.append(
-            f"- **Primary Users**: {', '.join(card.intended_use.primary_users)}"
-        )
+        lines.append(f"- **Primary Users**: {', '.join(card.intended_use.primary_users)}")
         lines.append("")
         lines.append("### Use Cases")
         for use_case in card.intended_use.use_cases:
@@ -384,19 +372,13 @@ class ModelCardGenerator:
         # Training Data
         lines.append("## Training Data")
         lines.append("")
-        lines.append(
-            f"- **Dataset Type**: {card.training_data.dataset_type.value.title()}"
-        )
+        lines.append(f"- **Dataset Type**: {card.training_data.dataset_type.value.title()}")
         if card.training_data.dataset_name:
             lines.append(f"- **Dataset Name**: {card.training_data.dataset_name}")
         if card.training_data.dataset_size:
-            lines.append(
-                f"- **Dataset Size**: {card.training_data.dataset_size:,} samples"
-            )
+            lines.append(f"- **Dataset Size**: {card.training_data.dataset_size:,} samples")
         if card.training_data.temporal_range:
-            lines.append(
-                f"- **Temporal Range**: {card.training_data.temporal_range}"
-            )
+            lines.append(f"- **Temporal Range**: {card.training_data.temporal_range}")
         if card.training_data.geographic_distribution:
             lines.append(
                 f"- **Geographic Distribution**: {', '.join(card.training_data.geographic_distribution)}"
@@ -451,9 +433,7 @@ class ModelCardGenerator:
             f"- **Sensitive Attributes**: {', '.join(card.ethical_considerations.sensitive_attributes)}"
         )
         if card.ethical_considerations.human_oversight:
-            lines.append(
-                f"- **Human Oversight**: {card.ethical_considerations.human_oversight}"
-            )
+            lines.append(f"- **Human Oversight**: {card.ethical_considerations.human_oversight}")
         lines.append("")
 
         if card.ethical_considerations.known_limitations:
@@ -475,17 +455,11 @@ class ModelCardGenerator:
             f"- **FDA Risk Class**: {card.regulatory.fda_risk_class.value.replace('_', ' ').title()}"
         )
         if card.regulatory.fda_submission_type:
-            lines.append(
-                f"- **Submission Type**: {card.regulatory.fda_submission_type}"
-            )
+            lines.append(f"- **Submission Type**: {card.regulatory.fda_submission_type}")
         if card.regulatory.fda_clearance_number:
-            lines.append(
-                f"- **Clearance Number**: {card.regulatory.fda_clearance_number}"
-            )
+            lines.append(f"- **Clearance Number**: {card.regulatory.fda_clearance_number}")
         lines.append(f"- **Quality System**: {card.regulatory.quality_system}")
-        lines.append(
-            f"- **PCCP Enabled**: {'Yes' if card.regulatory.pccp_enabled else 'No'}"
-        )
+        lines.append(f"- **PCCP Enabled**: {'Yes' if card.regulatory.pccp_enabled else 'No'}")
         lines.append(
             f"- **Lifecycle Monitoring**: {'Yes' if card.regulatory.lifecycle_monitoring else 'No'}"
         )
@@ -513,9 +487,7 @@ class ModelCardGenerator:
             f"- **SBOM Available**: {'Yes' if card.cybersecurity.sbom_available else 'No'}"
         )
         if card.cybersecurity.integrity_hash:
-            lines.append(
-                f"- **Integrity Hash**: `{card.cybersecurity.integrity_hash[:32]}...`"
-            )
+            lines.append(f"- **Integrity Hash**: `{card.cybersecurity.integrity_hash[:32]}...`")
         lines.append("")
 
         if card.cybersecurity.adversarial_robustness:
@@ -557,23 +529,13 @@ class ModelCardGenerator:
             ),
             training_data=TrainingDataDetails(
                 dataset_type=DatasetType(data["training_data"]["dataset_type"]),
-                **{
-                    k: v
-                    for k, v in data["training_data"].items()
-                    if k != "dataset_type"
-                },
+                **{k: v for k, v in data["training_data"].items() if k != "dataset_type"},
             ),
             performance=PerformanceMetrics(**data["performance"]),
-            ethical_considerations=EthicalConsiderations(
-                **data["ethical_considerations"]
-            ),
+            ethical_considerations=EthicalConsiderations(**data["ethical_considerations"]),
             regulatory=RegulatoryInformation(
                 fda_risk_class=RiskLevel(data["regulatory"]["fda_risk_class"]),
-                **{
-                    k: v
-                    for k, v in data["regulatory"].items()
-                    if k != "fda_risk_class"
-                },
+                **{k: v for k, v in data["regulatory"].items() if k != "fda_risk_class"},
             ),
             cybersecurity=CybersecurityInformation(**data["cybersecurity"]),
             additional_information=data.get("additional_information", {}),

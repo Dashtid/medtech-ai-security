@@ -637,6 +637,7 @@ class TestIntegration:
 
     def test_integrity_verification_on_activate(self, temp_storage, sample_model_file):
         """Test integrity verification during activation."""
+
         def custom_verifier(path: str) -> bool:
             # Custom verifier that checks file exists and has content
             p = Path(path)

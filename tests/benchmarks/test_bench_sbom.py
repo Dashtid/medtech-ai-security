@@ -29,7 +29,9 @@ def generate_sbom(num_components: int) -> dict:
             "name": f"package-{i}",
             "version": version,
             "purl": f"pkg:pypi/package-{i}@{version}",
-            "licenses": [{"license": {"id": random.choice(["MIT", "Apache-2.0", "BSD-3-Clause", "GPL-3.0"])}}],
+            "licenses": [
+                {"license": {"id": random.choice(["MIT", "Apache-2.0", "BSD-3-Clause", "GPL-3.0"])}}
+            ],
         }
         components.append(component)
 
@@ -38,21 +40,20 @@ def generate_sbom(num_components: int) -> dict:
     for i in range(num_components):
         num_deps = random.randint(0, min(5, num_components - i - 1))
         if i < num_components - 1:
-            dep_indices = random.sample(range(i + 1, num_components), min(num_deps, num_components - i - 1))
+            dep_indices = random.sample(
+                range(i + 1, num_components), min(num_deps, num_components - i - 1)
+            )
             deps = [components[j]["bom-ref"] for j in dep_indices]
         else:
             deps = []
-        dependencies.append({
-            "ref": components[i]["bom-ref"],
-            "dependsOn": deps
-        })
+        dependencies.append({"ref": components[i]["bom-ref"], "dependsOn": deps})
 
     return {
         "bomFormat": "CycloneDX",
         "specVersion": "1.5",
         "version": 1,
         "components": components,
-        "dependencies": dependencies
+        "dependencies": dependencies,
     }
 
 

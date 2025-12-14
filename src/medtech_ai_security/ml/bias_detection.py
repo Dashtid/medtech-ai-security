@@ -123,9 +123,7 @@ class BiasReport:
     fairness_results: list[FairnessResult]
     overall_bias_level: BiasLevel
     recommendations: list[str]
-    generated_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    generated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
     def to_dict(self) -> dict[str, Any]:
         """Convert report to dictionary."""
@@ -372,9 +370,8 @@ class BiasDetector:
         positive_rates = {}
         for g in group_metrics:
             # Positive prediction rate from confusion matrix
-            pred_pos = (
-                g.true_positive_rate * g.prevalence
-                + g.false_positive_rate * (1 - g.prevalence)
+            pred_pos = g.true_positive_rate * g.prevalence + g.false_positive_rate * (
+                1 - g.prevalence
             )
             positive_rates[g.group_name] = pred_pos
 
@@ -400,8 +397,7 @@ class BiasDetector:
             reference_group=ref_group,
             comparison_groups=comparison,
             message=(
-                f"Max positive rate difference: {max_diff:.3f} "
-                f"({'PASS' if passed else 'FAIL'})"
+                f"Max positive rate difference: {max_diff:.3f} " f"({'PASS' if passed else 'FAIL'})"
             ),
         )
 
@@ -432,10 +428,7 @@ class BiasDetector:
             threshold=self.equalized_odds_threshold,
             passed=passed,
             reference_group=ref_group,
-            comparison_groups={
-                g: {"tpr": tpr_values[g], "fpr": fpr_values[g]}
-                for g in tpr_values
-            },
+            comparison_groups={g: {"tpr": tpr_values[g], "fpr": fpr_values[g]} for g in tpr_values},
             message=(
                 f"Max TPR/FPR difference: {max_diff:.3f} "
                 f"(TPR diff: {tpr_diff:.3f}, FPR diff: {fpr_diff:.3f}) "
@@ -486,9 +479,7 @@ class BiasDetector:
         Measures: P(Y=1|Y_pred=1,A=a) = P(Y=1|Y_pred=1,A=b)
         Equal positive predictive values across groups
         """
-        ppv_values = {
-            g.group_name: g.positive_predictive_value for g in group_metrics
-        }
+        ppv_values = {g.group_name: g.positive_predictive_value for g in group_metrics}
 
         max_ppv = max(ppv_values.values())
         min_ppv = min(ppv_values.values())
@@ -518,9 +509,7 @@ class BiasDetector:
     ) -> BiasLevel:
         """Determine overall bias level from fairness results."""
         failed_count = sum(1 for r in fairness_results if not r.passed)
-        max_violation = max(
-            r.value / r.threshold for r in fairness_results if r.threshold > 0
-        )
+        max_violation = max(r.value / r.threshold for r in fairness_results if r.threshold > 0)
 
         if failed_count == 0:
             return BiasLevel.NONE

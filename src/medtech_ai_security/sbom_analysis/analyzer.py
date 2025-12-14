@@ -298,11 +298,13 @@ class SBOMAnalyzer:
         # Create links (edges)
         links = []
         for dep in dep_graph.dependencies:
-            links.append({
-                "source": dep.source,
-                "target": dep.target,
-                "type": dep.dependency_type,
-            })
+            links.append(
+                {
+                    "source": dep.source,
+                    "target": dep.target,
+                    "type": dep.dependency_type,
+                }
+            )
 
         # Cluster by ecosystem
         ecosystems: dict[str, list[str]] = {}
@@ -323,9 +325,7 @@ class SBOMAnalyzer:
             },
         }
 
-    def generate_html_report(
-        self, report: AnalysisReport, output_path: str | None = None
-    ) -> str:
+    def generate_html_report(self, report: AnalysisReport, output_path: str | None = None) -> str:
         """Generate an HTML visualization report.
 
         Args:
@@ -336,11 +336,15 @@ class SBOMAnalyzer:
             HTML content
         """
         viz_data = json.dumps(report.visualization_data) if report.visualization_data else "{}"
-        _risk_data = json.dumps(report.risk_report.to_dict()) if report.risk_report else "{}"  # noqa: F841
+        _risk_data = (
+            json.dumps(report.risk_report.to_dict()) if report.risk_report else "{}"
+        )  # noqa: F841
 
         # Pre-compute values for f-string
         risk_level = report.risk_report.overall_risk_level.value if report.risk_report else "info"
-        risk_level_upper = report.risk_report.overall_risk_level.value.upper() if report.risk_report else "N/A"
+        risk_level_upper = (
+            report.risk_report.overall_risk_level.value.upper() if report.risk_report else "N/A"
+        )
         risk_score = f"{report.risk_report.overall_risk_score:.1f}" if report.risk_report else "0"
         vuln_packages = report.risk_report.vulnerable_packages if report.risk_report else 0
         total_vulns = report.risk_report.total_vulnerabilities if report.risk_report else 0
@@ -559,27 +563,17 @@ Examples:
     # Analyze command
     analyze_parser = subparsers.add_parser("analyze", help="Analyze an SBOM file")
     analyze_parser.add_argument("sbom_file", help="Path to SBOM file (CycloneDX or SPDX)")
-    analyze_parser.add_argument(
-        "--output", "-o", help="Output file for JSON report"
-    )
-    analyze_parser.add_argument(
-        "--html", help="Generate HTML visualization report"
-    )
-    analyze_parser.add_argument(
-        "--no-gnn", action="store_true", help="Disable GNN predictions"
-    )
+    analyze_parser.add_argument("--output", "-o", help="Output file for JSON report")
+    analyze_parser.add_argument("--html", help="Generate HTML visualization report")
+    analyze_parser.add_argument("--no-gnn", action="store_true", help="Disable GNN predictions")
     analyze_parser.add_argument(
         "--no-medical", action="store_true", help="Disable medical device context"
     )
-    analyze_parser.add_argument(
-        "--verbose", "-v", action="store_true", help="Verbose output"
-    )
+    analyze_parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
 
     # Demo command
     demo_parser = subparsers.add_parser("demo", help="Run demo with sample SBOM")
-    demo_parser.add_argument(
-        "--html", help="Generate HTML report to file"
-    )
+    demo_parser.add_argument("--html", help="Generate HTML report to file")
 
     # Parse command
     parse_parser = subparsers.add_parser("parse", help="Parse and display SBOM structure")

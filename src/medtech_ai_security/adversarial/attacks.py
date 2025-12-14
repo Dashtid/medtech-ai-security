@@ -142,9 +142,7 @@ class AdversarialAttacker:
         except ImportError:
             logger.warning("TensorFlow not available. Using NumPy-based attacks.")
 
-    def _compute_gradient(
-        self, images: np.ndarray, labels: np.ndarray
-    ) -> np.ndarray:
+    def _compute_gradient(self, images: np.ndarray, labels: np.ndarray) -> np.ndarray:
         """Compute gradient of loss w.r.t. input images."""
         if not self._tf_available:
             # Numerical gradient approximation for non-TF models
@@ -204,13 +202,15 @@ class AdversarialAttacker:
 
         for i in range(batch_size):
             # Get base prediction and loss
-            pred_base = self.model(images[i:i+1])
+            pred_base = self.model(images[i : i + 1])
             if hasattr(pred_base, "numpy"):
                 pred_base = pred_base.numpy()
 
             if len(pred_base.shape) == 1 or pred_base.shape[-1] == 1:
                 pred_val = float(np.squeeze(pred_base))
-                loss_base = -np.log(pred_val + 1e-8) if labels[i] == 1 else -np.log(1 - pred_val + 1e-8)
+                loss_base = (
+                    -np.log(pred_val + 1e-8) if labels[i] == 1 else -np.log(1 - pred_val + 1e-8)
+                )
             else:
                 loss_base = -np.log(pred_base[0, labels[i]] + 1e-8)
 
@@ -221,7 +221,7 @@ class AdversarialAttacker:
                 direction = direction / (np.linalg.norm(direction) + 1e-8)
 
                 # Forward perturbation
-                images_plus = images[i:i+1].copy()
+                images_plus = images[i : i + 1].copy()
                 images_plus[0] += eps * direction
                 pred_plus = self.model(images_plus)
                 if hasattr(pred_plus, "numpy"):
@@ -229,7 +229,9 @@ class AdversarialAttacker:
 
                 if len(pred_plus.shape) == 1 or pred_plus.shape[-1] == 1:
                     pred_val = float(np.squeeze(pred_plus))
-                    loss_plus = -np.log(pred_val + 1e-8) if labels[i] == 1 else -np.log(1 - pred_val + 1e-8)
+                    loss_plus = (
+                        -np.log(pred_val + 1e-8) if labels[i] == 1 else -np.log(1 - pred_val + 1e-8)
+                    )
                 else:
                     loss_plus = -np.log(pred_plus[0, labels[i]] + 1e-8)
 
@@ -351,12 +353,10 @@ class AdversarialAttacker:
         # Initialize adversarial images
         if random_start:
             # Random start within epsilon-ball
-            adversarial_images = images + np.random.uniform(
-                -epsilon, epsilon, images.shape
-            ).astype(np.float32)
-            adversarial_images = np.clip(
-                adversarial_images, self.clip_min, self.clip_max
+            adversarial_images = images + np.random.uniform(-epsilon, epsilon, images.shape).astype(
+                np.float32
             )
+            adversarial_images = np.clip(adversarial_images, self.clip_min, self.clip_max)
         else:
             adversarial_images = images.copy()
 
@@ -377,9 +377,7 @@ class AdversarialAttacker:
             adversarial_images = images + perturbation
 
             # Clip to valid pixel range
-            adversarial_images = np.clip(
-                adversarial_images, self.clip_min, self.clip_max
-            )
+            adversarial_images = np.clip(adversarial_images, self.clip_min, self.clip_max)
 
         # Final perturbation
         perturbation = adversarial_images - images
@@ -432,8 +430,7 @@ class AdversarialAttacker:
             AttackResult with adversarial examples
         """
         logger.info(
-            f"Running C&W L2 attack with confidence={confidence}, "
-            f"iterations={max_iterations}"
+            f"Running C&W L2 attack with confidence={confidence}, " f"iterations={max_iterations}"
         )
 
         images = np.asarray(images, dtype=np.float32)
@@ -458,9 +455,7 @@ class AdversarialAttacker:
         for search_step in range(binary_search_steps):
             # Initialize perturbation in tanh space
             # Map images to (-1, 1) range for tanh optimization
-            images_tanh = np.arctanh(
-                np.clip(images * 2 - 1, -0.999999, 0.999999)
-            )
+            images_tanh = np.arctanh(np.clip(images * 2 - 1, -0.999999, 0.999999))
             w = images_tanh.copy()  # Optimization variable
 
             for iteration in range(max_iterations):
@@ -474,9 +469,7 @@ class AdversarialAttacker:
                     predictions = predictions.numpy()
 
                 # Compute L2 distance
-                l2_dist = np.sqrt(
-                    np.sum((adv_images - images) ** 2, axis=(1, 2, 3))
-                )
+                l2_dist = np.sqrt(np.sum((adv_images - images) ** 2, axis=(1, 2, 3)))
 
                 # Compute f(x') - the objective function
                 if len(predictions.shape) == 1 or predictions.shape[-1] == 1:
@@ -498,12 +491,9 @@ class AdversarialAttacker:
                     # Multi-class: f = max(Z_t - max(Z_i, i!=t), -kappa)
                     if targeted:
                         # Want Z_target > max(Z_other)
-                        target_logits = predictions[
-                            np.arange(batch_size), attack_labels
-                        ]
+                        target_logits = predictions[np.arange(batch_size), attack_labels]
                         other_max = np.max(
-                            predictions
-                            - np.eye(self.num_classes)[attack_labels] * 1e10,
+                            predictions - np.eye(self.num_classes)[attack_labels] * 1e10,
                             axis=1,
                         )
                         f_val = np.maximum(other_max - target_logits, -confidence)
@@ -541,9 +531,15 @@ class AdversarialAttacker:
                         if len(pred_plus.shape) == 1 or pred_plus.shape[-1] == 1:
                             pred_plus = np.squeeze(pred_plus)
                             if targeted:
-                                f_plus = max(0.5 - pred_plus if attack_labels[i] == 1 else pred_plus - 0.5, -confidence)
+                                f_plus = max(
+                                    0.5 - pred_plus if attack_labels[i] == 1 else pred_plus - 0.5,
+                                    -confidence,
+                                )
                             else:
-                                f_plus = max(pred_plus - 0.5 if labels[i] == 1 else 0.5 - pred_plus, -confidence)
+                                f_plus = max(
+                                    pred_plus - 0.5 if labels[i] == 1 else 0.5 - pred_plus,
+                                    -confidence,
+                                )
                         else:
                             if targeted:
                                 f_plus = max(
@@ -636,7 +632,7 @@ class AdversarialAttacker:
         perturbations = np.zeros_like(images)
 
         for i in range(batch_size):
-            x = images[i:i+1].copy()
+            x = images[i : i + 1].copy()
             original_label = labels[i]
 
             for iteration in range(max_iterations):
@@ -690,7 +686,7 @@ class AdversarialAttacker:
                     if best_w is not None:
                         # Compute minimal perturbation
                         w_norm = np.linalg.norm(best_w)
-                        r = (abs(f_values[best_k]) / (w_norm ** 2 + 1e-8)) * best_w
+                        r = (abs(f_values[best_k]) / (w_norm**2 + 1e-8)) * best_w
                         x = x + (1 + overshoot) * r
 
                 x = np.clip(x, self.clip_min, self.clip_max)
@@ -767,9 +763,9 @@ class AdversarialAttacker:
                 # Apply square perturbation
                 x_new = x.copy()
                 if len(x.shape) > 2:
-                    x_new[x_start:x_start+s, y_start:y_start+s, :] += delta
+                    x_new[x_start : x_start + s, y_start : y_start + s, :] += delta
                 else:
-                    x_new[x_start:x_start+s, y_start:y_start+s] += delta
+                    x_new[x_start : x_start + s, y_start : y_start + s] += delta
 
                 # Clip to valid range and epsilon bound
                 x_new = np.clip(x_new, images[i] - epsilon, images[i] + epsilon)
@@ -847,7 +843,8 @@ class AdversarialAttacker:
         # Attack 1: APGD-CE (Approximation via standard PGD)
         logger.info("  Running PGD with cross-entropy loss...")
         result_pgd = self.pgd(
-            images, labels,
+            images,
+            labels,
             epsilon=epsilon,
             alpha=epsilon / 4,
             num_iterations=100,
@@ -863,7 +860,8 @@ class AdversarialAttacker:
         if remaining.any():
             logger.info("  Running PGD with smaller step size...")
             result_pgd2 = self.pgd(
-                images[remaining], labels[remaining],
+                images[remaining],
+                labels[remaining],
                 epsilon=epsilon,
                 alpha=epsilon / 10,
                 num_iterations=100,
@@ -880,7 +878,8 @@ class AdversarialAttacker:
         if remaining.any():
             logger.info("  Running Square Attack...")
             result_square = self.square_attack(
-                images[remaining], labels[remaining],
+                images[remaining],
+                labels[remaining],
                 epsilon=epsilon,
                 n_queries=1000,
             )
@@ -895,7 +894,8 @@ class AdversarialAttacker:
         if remaining.any() and version == "plus":
             logger.info("  Running DeepFool...")
             result_df = self.deepfool(
-                images[remaining], labels[remaining],
+                images[remaining],
+                labels[remaining],
                 max_iterations=50,
             )
             remaining_indices = np.where(remaining)[0]
@@ -950,12 +950,8 @@ class AdversarialAttacker:
         successful_indices = np.where(successful)[0].tolist()
 
         # Compute perturbation metrics
-        l2_norms = np.sqrt(
-            np.sum(perturbations**2, axis=tuple(range(1, perturbations.ndim)))
-        )
-        linf_norms = np.max(
-            np.abs(perturbations), axis=tuple(range(1, perturbations.ndim))
-        )
+        l2_norms = np.sqrt(np.sum(perturbations**2, axis=tuple(range(1, perturbations.ndim))))
+        linf_norms = np.max(np.abs(perturbations), axis=tuple(range(1, perturbations.ndim)))
 
         mean_l2 = np.mean(l2_norms)
         mean_linf = np.mean(linf_norms)

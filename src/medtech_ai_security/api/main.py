@@ -106,9 +106,7 @@ class SBOMResponse(BaseModel):
 class AnomalyRequest(BaseModel):
     """Request model for anomaly detection."""
 
-    traffic_data: list[dict[str, Any]] = Field(
-        ..., description="Network traffic records"
-    )
+    traffic_data: list[dict[str, Any]] = Field(..., description="Network traffic records")
     protocol: str = Field(
         default="dicom",
         description="Protocol type",
@@ -146,9 +144,7 @@ class CVEResponse(BaseModel):
 class AdversarialRequest(BaseModel):
     """Request model for adversarial testing."""
 
-    model_type: str = Field(
-        ..., description="Model architecture", examples=["cnn", "resnet"]
-    )
+    model_type: str = Field(..., description="Model architecture", examples=["cnn", "resnet"])
     attack_method: str = Field(
         default="fgsm",
         description="Attack method",
@@ -192,9 +188,7 @@ class BenchmarkResponse(BaseModel):
     """Response model for benchmark results."""
 
     execution_time_ms: float = Field(..., description="Total execution time in milliseconds")
-    modules: dict[str, dict[str, Any]] = Field(
-        ..., description="Per-module benchmark results"
-    )
+    modules: dict[str, dict[str, Any]] = Field(..., description="Per-module benchmark results")
     system_info: dict[str, Any] = Field(..., description="System information")
     timestamp: str = Field(..., description="Benchmark timestamp")
 
@@ -224,9 +218,7 @@ class ModelCompareResponse(BaseModel):
     """Response model for model comparison."""
 
     comparison_id: str = Field(..., description="Unique comparison ID")
-    models: dict[str, dict[str, Any]] = Field(
-        ..., description="Per-model robustness results"
-    )
+    models: dict[str, dict[str, Any]] = Field(..., description="Per-model robustness results")
     ranking: list[str] = Field(..., description="Models ranked by robustness")
     best_model: str = Field(..., description="Most robust model ID")
     recommendations: list[str] = Field(..., description="Recommendations based on comparison")
@@ -270,12 +262,8 @@ class DriftDetectionResponse(BaseModel):
     drift_detected: bool = Field(..., description="Whether drift was detected")
     severity: str = Field(..., description="Drift severity level")
     overall_score: float = Field(..., description="Overall drift score")
-    feature_results: list[dict[str, Any]] = Field(
-        ..., description="Per-feature drift results"
-    )
-    prediction_drift: dict[str, Any] | None = Field(
-        None, description="Prediction drift results"
-    )
+    feature_results: list[dict[str, Any]] = Field(..., description="Per-feature drift results")
+    prediction_drift: dict[str, Any] | None = Field(None, description="Prediction drift results")
     summary: dict[str, Any] = Field(..., description="Summary statistics")
     recommendations: list[str] = Field(..., description="Actionable recommendations")
     timestamp: str = Field(..., description="Analysis timestamp")
@@ -385,6 +373,7 @@ Contact your administrator to obtain API credentials.
     ],
     lifespan=lifespan,
 )
+
 
 # WebSocket connection manager for real-time anomaly streaming
 class ConnectionManager:
@@ -1010,9 +999,9 @@ async def compare_models(request: ModelCompareRequest) -> ModelCompareResponse:
                 }
 
             # Calculate overall robustness score
-            avg_adv_acc = sum(
-                r["adversarial_accuracy"] for r in attack_results.values()
-            ) / len(attack_results)
+            avg_adv_acc = sum(r["adversarial_accuracy"] for r in attack_results.values()) / len(
+                attack_results
+            )
             robustness_score = round(avg_adv_acc * 100, 2)
 
             model_results[model_id] = {
@@ -1128,22 +1117,28 @@ async def detect_drift(
         # Detect drift
         report = detector.detect_drift(
             current_data,
-            reference_predictions=np.array(request.reference_predictions) if request.reference_predictions else None,
-            current_predictions=np.array(request.current_predictions) if request.current_predictions else None,
+            reference_predictions=(
+                np.array(request.reference_predictions) if request.reference_predictions else None
+            ),
+            current_predictions=(
+                np.array(request.current_predictions) if request.current_predictions else None
+            ),
         )
 
         # Format feature results
         feature_results = []
         for result in report.feature_results:
-            feature_results.append({
-                "feature_name": result.feature_name,
-                "drift_detected": result.drift_detected,
-                "severity": result.severity.value,
-                "score": result.score,
-                "method": result.method.value,
-                "p_value": result.p_value,
-                "threshold": result.threshold,
-            })
+            feature_results.append(
+                {
+                    "feature_name": result.feature_name,
+                    "drift_detected": result.drift_detected,
+                    "severity": result.severity.value,
+                    "score": result.score,
+                    "method": result.method.value,
+                    "p_value": result.p_value,
+                    "threshold": result.threshold,
+                }
+            )
 
         # Format prediction drift results if available
         prediction_drift = None
@@ -1177,7 +1172,11 @@ async def detect_drift(
         summary = {
             "total_features": len(report.feature_results),
             "drifted_features": num_drifted,
-            "drift_rate": round(num_drifted / len(report.feature_results) * 100, 2) if report.feature_results else 0,
+            "drift_rate": (
+                round(num_drifted / len(report.feature_results) * 100, 2)
+                if report.feature_results
+                else 0
+            ),
             "max_severity": report.overall_severity.value,
             "analysis_methods": [m.value for m in (methods or [DriftMethod.PSI])],
         }
@@ -1294,27 +1293,29 @@ async def anomaly_stream(websocket: WebSocket) -> None:
         while True:
             # Check for incoming messages (non-blocking)
             try:
-                data = await asyncio.wait_for(
-                    websocket.receive_json(), timeout=1.0
-                )
+                data = await asyncio.wait_for(websocket.receive_json(), timeout=1.0)
                 # Handle client commands
                 if data.get("command") == "subscribe":
-                    await websocket.send_json({
-                        "type": "subscription_confirmed",
-                        "protocols": data.get("protocols", ["dicom", "hl7"]),
-                        "timestamp": datetime.now(timezone.utc).isoformat(),
-                    })
+                    await websocket.send_json(
+                        {
+                            "type": "subscription_confirmed",
+                            "protocols": data.get("protocols", ["dicom", "hl7"]),
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                        }
+                    )
             except asyncio.TimeoutError:
                 pass
 
             # Send periodic heartbeat
             now = datetime.now(timezone.utc)
             if (now - last_heartbeat).total_seconds() >= heartbeat_interval:
-                await websocket.send_json({
-                    "type": "heartbeat",
-                    "timestamp": now.isoformat(),
-                    "active_connections": len(ws_manager.active_connections),
-                })
+                await websocket.send_json(
+                    {
+                        "type": "heartbeat",
+                        "timestamp": now.isoformat(),
+                        "active_connections": len(ws_manager.active_connections),
+                    }
+                )
                 last_heartbeat = now
 
             # Simulate random anomaly detection (in production, this would be event-driven)
@@ -1327,15 +1328,17 @@ async def anomaly_stream(websocket: WebSocket) -> None:
                     ("unauthorized_access", "medium", "Authentication anomaly detected"),
                 ]
                 anomaly = random.choice(anomaly_types)
-                await websocket.send_json({
-                    "type": "anomaly_alert",
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                    "anomaly_type": anomaly[0],
-                    "severity": anomaly[1],
-                    "description": anomaly[2],
-                    "protocol": random.choice(["dicom", "hl7"]),
-                    "confidence": round(random.uniform(0.75, 0.99), 2),
-                })
+                await websocket.send_json(
+                    {
+                        "type": "anomaly_alert",
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "anomaly_type": anomaly[0],
+                        "severity": anomaly[1],
+                        "description": anomaly[2],
+                        "protocol": random.choice(["dicom", "hl7"]),
+                        "confidence": round(random.uniform(0.75, 0.99), 2),
+                    }
+                )
 
             await asyncio.sleep(1)
 

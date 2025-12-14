@@ -178,33 +178,39 @@ def generate_summary_report(cve_data: dict, output_file: Path | None = None) -> 
         if sev in severities:
             lines.append(f"  {sev}: {severities[sev]}")
 
-    lines.extend([
-        "",
-        "-" * 70,
-        "DEVICE TYPE DISTRIBUTION",
-        "-" * 70,
-    ])
+    lines.extend(
+        [
+            "",
+            "-" * 70,
+            "DEVICE TYPE DISTRIBUTION",
+            "-" * 70,
+        ]
+    )
 
     for dt, count in sorted(device_types.items(), key=lambda x: -x[1]):
         lines.append(f"  {dt}: {count}")
 
-    lines.extend([
-        "",
-        "-" * 70,
-        "CLINICAL IMPACT ASSESSMENT",
-        "-" * 70,
-    ])
+    lines.extend(
+        [
+            "",
+            "-" * 70,
+            "CLINICAL IMPACT ASSESSMENT",
+            "-" * 70,
+        ]
+    )
 
     for ci in ["HIGH", "MEDIUM", "LOW", "unclassified"]:
         if ci in clinical_impacts:
             lines.append(f"  {ci}: {clinical_impacts[ci]}")
 
-    lines.extend([
-        "",
-        "-" * 70,
-        "EXPLOITABILITY ASSESSMENT",
-        "-" * 70,
-    ])
+    lines.extend(
+        [
+            "",
+            "-" * 70,
+            "EXPLOITABILITY ASSESSMENT",
+            "-" * 70,
+        ]
+    )
 
     for ex in ["EASY", "MODERATE", "HARD", "unclassified"]:
         if ex in exploitability:
@@ -212,29 +218,34 @@ def generate_summary_report(cve_data: dict, output_file: Path | None = None) -> 
 
     # High priority CVEs (CRITICAL + HIGH clinical impact + EASY exploit)
     high_priority = [
-        cve for cve in cves
+        cve
+        for cve in cves
         if cve.get("cvss_v3_severity") == "CRITICAL"
         and cve.get("clinical_impact") == "HIGH"
         and cve.get("exploitability") == "EASY"
     ]
 
     if high_priority:
-        lines.extend([
-            "",
-            "-" * 70,
-            "HIGH PRIORITY CVEs (Critical + High Clinical Impact + Easy Exploit)",
-            "-" * 70,
-        ])
+        lines.extend(
+            [
+                "",
+                "-" * 70,
+                "HIGH PRIORITY CVEs (Critical + High Clinical Impact + Easy Exploit)",
+                "-" * 70,
+            ]
+        )
         for cve in high_priority[:10]:
             lines.append(f"  {cve['cve_id']}: {cve.get('description', '')[:80]}...")
 
     # Top CVEs by severity
-    lines.extend([
-        "",
-        "-" * 70,
-        "TOP 10 CVEs BY CVSS SCORE",
-        "-" * 70,
-    ])
+    lines.extend(
+        [
+            "",
+            "-" * 70,
+            "TOP 10 CVEs BY CVSS SCORE",
+            "-" * 70,
+        ]
+    )
 
     sorted_cves = sorted(cves, key=lambda x: -(x.get("cvss_v3_score") or 0))
     for cve in sorted_cves[:10]:

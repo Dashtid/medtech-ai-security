@@ -192,9 +192,7 @@ class TrainingDataValidator:
             ValueError: If contamination is not in valid range (0, 0.5]
         """
         if not (0 < contamination <= 0.5):
-            raise ValueError(
-                f"contamination must be in the range (0, 0.5], got {contamination}"
-            )
+            raise ValueError(f"contamination must be in the range (0, 0.5], got {contamination}")
         self.z_score_threshold = z_score_threshold
         self.iqr_multiplier = iqr_multiplier
         self.contamination = contamination
@@ -461,9 +459,7 @@ class TrainingDataValidator:
             report.recommendations.append(
                 "Apply RONI defense to filter potentially poisoned samples"
             )
-            report.recommendations.append(
-                "Consider ensemble validation with multiple subsets"
-            )
+            report.recommendations.append("Consider ensemble validation with multiple subsets")
 
         for result in report.results:
             if result.check_name == "isolation_forest" and not result.passed:
@@ -476,9 +472,7 @@ class TrainingDataValidator:
                 )
 
         if not report.recommendations:
-            report.recommendations.append(
-                "Data validation passed - proceed with training"
-            )
+            report.recommendations.append("Data validation passed - proceed with training")
 
 
 # =============================================================================
@@ -573,9 +567,7 @@ class InfluenceAnalyzer:
         results.sort(key=lambda x: x.influence_score, reverse=True)
 
         suspicious_count = sum(1 for r in results if r.is_suspicious)
-        logger.info(
-            f"Influence analysis: {suspicious_count}/{len(results)} suspicious samples"
-        )
+        logger.info(f"Influence analysis: {suspicious_count}/{len(results)} suspicious samples")
 
         return results
 
@@ -941,9 +933,7 @@ class DataPoisoningDefense:
         }
 
         # Validation report
-        validation_report = self.validator.validate(
-            features, labels, strategies=self.strategies
-        )
+        validation_report = self.validator.validate(features, labels, strategies=self.strategies)
         results["validation"] = validation_report.to_dict()
 
         # Influence analysis if requested
@@ -1006,9 +996,7 @@ class DataPoisoningDefense:
             Tuple of (clean_features, clean_labels, filter_stats)
         """
         if DefenseStrategy.RONI in self.strategies:
-            clean_features, clean_labels, rejected = self.roni_defense.filter(
-                features, labels
-            )
+            clean_features, clean_labels, rejected = self.roni_defense.filter(features, labels)
 
             stats = {
                 "original_samples": features.shape[0],

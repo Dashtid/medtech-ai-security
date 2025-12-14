@@ -595,9 +595,7 @@ def main() -> None:
     """CLI entry point for the NVD scraper."""
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Scrape NVD for medical device CVEs"
-    )
+    parser = argparse.ArgumentParser(description="Scrape NVD for medical device CVEs")
     parser.add_argument(
         "--max-results",
         type=int,

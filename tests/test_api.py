@@ -397,10 +397,7 @@ class TestAnomalyEndpoint:
     def test_detect_anomalies_large_dataset(self, client):
         """Test with larger dataset."""
         request_data = {
-            "traffic_data": [
-                {"id": i, "src_ip": f"192.168.1.{i % 255}"}
-                for i in range(100)
-            ]
+            "traffic_data": [{"id": i, "src_ip": f"192.168.1.{i % 255}"} for i in range(100)]
         }
 
         response = client.post("/api/v1/anomaly/detect", json=request_data)

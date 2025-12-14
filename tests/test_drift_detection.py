@@ -429,9 +429,7 @@ class TestDriftDetector:
 
     def test_initialization_custom_methods(self):
         """Test detector with custom methods."""
-        detector = DriftDetector(
-            methods=[DriftMethod.PSI, DriftMethod.KS_TEST]
-        )
+        detector = DriftDetector(methods=[DriftMethod.PSI, DriftMethod.KS_TEST])
 
         assert len(detector.methods) == 2
         assert DriftMethod.PSI in detector.methods
@@ -457,7 +455,11 @@ class TestDriftDetection:
 
         assert isinstance(report, DriftReport)
         # Low severity expected for similar distributions
-        assert report.overall_severity in [DriftSeverity.NONE, DriftSeverity.LOW, DriftSeverity.MEDIUM]
+        assert report.overall_severity in [
+            DriftSeverity.NONE,
+            DriftSeverity.LOW,
+            DriftSeverity.MEDIUM,
+        ]
 
     def test_detect_small_drift(self, reference_data, current_data_small_drift):
         """Test detection with small drift."""
@@ -492,8 +494,7 @@ class TestDriftDetection:
         assert len(report.feature_results) > 0
 
     def test_detect_prediction_drift(
-        self, reference_data, current_data_no_drift,
-        reference_predictions, drifted_predictions
+        self, reference_data, current_data_no_drift, reference_predictions, drifted_predictions
     ):
         """Test prediction drift detection."""
         detector = DriftDetector(methods=[DriftMethod.PSI])
@@ -607,14 +608,18 @@ class TestEdgeCases:
     def test_constant_feature(self):
         """Test with constant feature (zero variance)."""
         np.random.seed(42)
-        reference = np.column_stack([
-            np.ones(100),  # Constant
-            np.random.normal(0, 1, 100),
-        ])
-        current = np.column_stack([
-            np.ones(100),  # Still constant
-            np.random.normal(0.5, 1, 100),
-        ])
+        reference = np.column_stack(
+            [
+                np.ones(100),  # Constant
+                np.random.normal(0, 1, 100),
+            ]
+        )
+        current = np.column_stack(
+            [
+                np.ones(100),  # Still constant
+                np.random.normal(0.5, 1, 100),
+            ]
+        )
 
         detector = DriftDetector(methods=[DriftMethod.WASSERSTEIN])
         detector.set_reference(reference)
@@ -692,15 +697,17 @@ class TestDriftIntegration:
         reference = np.random.normal(0.5, 0.1, (1000, 5))
 
         # Step 2: Initialize detector
-        detector = DriftDetector(
-            methods=[DriftMethod.PSI, DriftMethod.KS_TEST]
-        )
+        detector = DriftDetector(methods=[DriftMethod.PSI, DriftMethod.KS_TEST])
         detector.set_reference(reference)
 
         # Step 3: Monitor batch 1 - no drift
         batch1 = np.random.normal(0.5, 0.1, (500, 5))
         report1 = detector.detect_drift(batch1)
-        assert report1.overall_severity in [DriftSeverity.NONE, DriftSeverity.LOW, DriftSeverity.MEDIUM]
+        assert report1.overall_severity in [
+            DriftSeverity.NONE,
+            DriftSeverity.LOW,
+            DriftSeverity.MEDIUM,
+        ]
 
         # Step 4: Monitor batch 2 - gradual drift
         batch2 = np.random.normal(0.55, 0.12, (500, 5))
