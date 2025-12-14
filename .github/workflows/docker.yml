@@ -5,7 +5,8 @@ name: Docker
 
 on:
   push:
-    tags: ["v*"]  # Only build and push on version tags
+    branches: [main]  # Build (no push) on main for validation
+    tags: ["v*"]  # Build and push on version tags
   pull_request:
     branches: [main]  # Build (no push) on PRs for validation
   workflow_dispatch:  # Manual trigger
