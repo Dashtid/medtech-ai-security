@@ -75,13 +75,39 @@ When using MedTech AI Security in production:
 
 ## Security Features
 
-This project includes several security measures:
+This project includes comprehensive security measures across multiple domains:
 
-- **Static Analysis**: Bandit security linting in CI pipeline
-- **Dependency Scanning**: Dependabot for vulnerability detection
+### Code Security
+
+- **Static Analysis**: Bandit, Semgrep, CodeQL in CI pipeline
+- **Dependency Scanning**: Grype, Safety, Dependabot for vulnerability detection
+- **Container Scanning**: Trivy for Docker image vulnerabilities
 - **Type Checking**: Mypy for catching potential runtime errors
 - **Code Quality**: Ruff and Black for consistent, secure code patterns
-- **Semgrep**: Static analysis for security patterns
+- **OpenSSF Scorecard**: Automated security best practices assessment
+
+### ML/AI Security
+
+- **Adversarial Testing**: FGSM, PGD, C&W attack evaluation
+- **Data Poisoning Defense**: Statistical outlier detection, RONI defense
+- **Model Drift Detection**: KS test, PSI, Wasserstein distance monitoring
+- **Input Validation**: Pydantic schema validation for all inputs
+- **Ensemble Validation**: Multiple anomaly detection algorithms
+
+### Authentication & Authorization
+
+- **JWT Authentication**: HS256 with configurable expiration
+- **Role-Based Access Control**: Admin, Analyst, Viewer, API Service roles
+- **API Key Support**: Long-lived keys for automated tools
+- **Rate Limiting**: IP-based throttling with configurable limits
+- **Security Headers**: CORS, CSP, HSTS, X-Frame-Options
+
+### Supply Chain Security
+
+- **SBOM Generation**: CycloneDX format for FDA compliance
+- **License Compliance**: Automated license scanning
+- **Signed Commits**: GPG-signed commits on main branch
+- **Dependency Pinning**: Locked dependencies with uv.lock
 
 ### Latest Security Scan Results
 
