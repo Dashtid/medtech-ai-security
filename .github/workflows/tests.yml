@@ -46,7 +46,7 @@ jobs:
 
     - name: Type check with mypy
       run: |
-        uv run mypy src/med_seg --ignore-missing-imports
+        uv run mypy src/medtech_ai_security --ignore-missing-imports
       continue-on-error: true  # Don't fail on type errors initially
 
   test-coverage:
@@ -67,11 +67,10 @@ jobs:
     - name: Install dependencies
       run: |
         uv sync --extra dev
-        uv add pytest-cov
 
     - name: Run tests with coverage
       run: |
-        uv run pytest tests/ --cov=med_seg --cov-report=xml --cov-report=html
+        uv run pytest tests/ --cov=medtech_ai_security --cov-report=xml --cov-report=html
 
     - name: Upload coverage reports
       uses: codecov/codecov-action@v3
