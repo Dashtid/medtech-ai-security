@@ -5,11 +5,10 @@ name: Docker
 
 on:
   push:
-    branches: [main]
-    tags: ["v*"]
+    tags: ["v*"]  # Only build and push on version tags
   pull_request:
-    branches: [main]
-  workflow_dispatch:
+    branches: [main]  # Build (no push) on PRs for validation
+  workflow_dispatch:  # Manual trigger
 
 env:
   REGISTRY: ghcr.io
