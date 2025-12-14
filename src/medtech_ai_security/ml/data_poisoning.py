@@ -271,10 +271,13 @@ class TrainingDataValidator:
         for i in range(features.shape[1]):
             col = features[:, i]
 
-            # Z-score outliers
-            z_scores = np.abs(stats.zscore(col, nan_policy="omit"))
-            z_outliers = np.where(z_scores > self.z_score_threshold)[0]
-            flagged_z.extend(z_outliers.tolist())
+            # Z-score outliers - handle zero variance case
+            col_std = np.nanstd(col)
+            if col_std > 1e-10:  # Only compute z-scores if variance is non-trivial
+                z_scores = np.abs(stats.zscore(col, nan_policy="omit"))
+                z_outliers = np.where(z_scores > self.z_score_threshold)[0]
+                flagged_z.extend(z_outliers.tolist())
+            # If variance is zero/near-zero, all values are identical - no outliers
 
             # IQR outliers
             q1, q3 = np.percentile(col, [25, 75])

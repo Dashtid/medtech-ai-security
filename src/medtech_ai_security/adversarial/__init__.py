@@ -27,10 +27,12 @@ Usage:
 from medtech_ai_security.adversarial.attacks import (
     AdversarialAttacker,
     AttackResult,
+    AttackType,
 )
 from medtech_ai_security.adversarial.defenses import (
     AdversarialDefender,
     DefenseResult,
+    DefenseType,
 )
 from medtech_ai_security.adversarial.evaluator import (
     RobustnessEvaluator,
@@ -40,8 +42,10 @@ from medtech_ai_security.adversarial.evaluator import (
 __all__ = [
     "AdversarialAttacker",
     "AttackResult",
+    "AttackType",
     "AdversarialDefender",
     "DefenseResult",
+    "DefenseType",
     "RobustnessEvaluator",
     "RobustnessReport",
 ]
