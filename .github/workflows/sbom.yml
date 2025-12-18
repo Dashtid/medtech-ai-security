@@ -56,18 +56,14 @@ jobs:
           uv run cyclonedx-py environment \
             --output-format json \
             --output-file sbom.cdx.json \
-            --mc-type application \
-            --author "MedTech AI Security" \
-            --component-version "${{ github.ref_name }}"
+            --mc-type application
 
       - name: Generate CycloneDX SBOM (XML)
         run: |
           uv run cyclonedx-py environment \
             --output-format xml \
             --output-file sbom.cdx.xml \
-            --mc-type application \
-            --author "MedTech AI Security" \
-            --component-version "${{ github.ref_name }}"
+            --mc-type application
 
       - name: Validate SBOM
         run: |
