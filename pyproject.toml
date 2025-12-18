@@ -1,6 +1,6 @@
 [project]
 name = "medtech-ai-security"
-version = "1.1.0"
+version = "0.1.0"
 description = "AI-powered medical device cybersecurity: threat intelligence, vulnerability detection, and adversarial ML"
 readme = "README.md"
 authors = [

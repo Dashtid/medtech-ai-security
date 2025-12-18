@@ -9,7 +9,7 @@ This package provides AI/ML tools for medical device cybersecurity:
 - SBOM analysis with graph neural networks
 """
 
-__version__ = "1.1.0"
+__version__ = "0.1.0"
 __author__ = "David Dashti"
 
 from medtech_ai_security.ml import RiskPrediction, VulnerabilityRiskScorer
