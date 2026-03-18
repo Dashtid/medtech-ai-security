@@ -7,7 +7,7 @@
 # =============================================================================
 # Stage 1: Builder - Install dependencies
 # =============================================================================
-FROM python:3.11-slim as builder
+FROM python:3.14-slim as builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -35,7 +35,7 @@ RUN uv pip install --no-cache .
 # =============================================================================
 # Stage 2: Runtime - Production image
 # =============================================================================
-FROM python:3.11-slim as runtime
+FROM python:3.14-slim as runtime
 
 # Labels
 LABEL org.opencontainers.image.title="MedTech AI Security"
