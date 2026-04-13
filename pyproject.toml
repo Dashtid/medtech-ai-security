@@ -89,7 +89,7 @@ dev = [
     "semgrep>=1.50.0",
     "memory-profiler>=0.61.0",
     # Test dependencies
-    "hypothesis>=6.92.0",
+    "hypothesis>=6.151.13",
     "faker>=22.0.0",
     "requests-mock>=1.11.0",
     # API testing (needed for test_api.py, test_auth.py, test_dashboard.py)
