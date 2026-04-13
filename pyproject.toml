@@ -93,7 +93,7 @@ dev = [
     "faker>=22.0.0",
     "requests-mock>=1.11.0",
     # API testing (needed for test_api.py, test_auth.py, test_dashboard.py)
-    "fastapi>=0.109.0",
+    "fastapi>=0.135.3",
     "uvicorn[standard]>=0.27.0",
     "python-multipart>=0.0.6",
     "slowapi>=0.1.9",
@@ -104,7 +104,7 @@ notebooks = [
     "seaborn>=0.12.0",
 ]
 api = [
-    "fastapi>=0.109.0",
+    "fastapi>=0.135.3",
     "uvicorn[standard]>=0.27.0",
     "prometheus-client>=0.19.0",
     # Authentication
